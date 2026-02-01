@@ -838,6 +838,64 @@ export default function ArlingtonLakesGolfLeague() {
       }
     });
 
+    // Third pass: assign any remaining unassigned players
+    // If their preferred times are full, put them in the next available tee time (no 5-player groups)
+    const unassigned = eligiblePlayers.filter(p => !assigned.has(p.id));
+
+    unassigned.forEach(player => {
+      // First, try to find a slot in their preferred times with room (<4 players)
+      const preferredSlots = player.availability
+        .map(time => {
+          const idx = teeTimes.indexOf(time);
+          return idx !== -1 ? { idx, slot: newTeeSheet[idx] } : null;
+        })
+        .filter(s => s && s.slot.players.length < 4);
+
+      if (preferredSlots.length > 0) {
+        // Assign to preferred time with fewest players
+        preferredSlots.sort((a, b) => a.slot.players.length - b.slot.players.length);
+        preferredSlots[0].slot.players.push(player.id);
+        assigned.add(player.id);
+      } else {
+        // All preferred times are full - find the next available tee time
+        // Start from their latest preferred time and look forward, then backward
+        const preferredIndices = player.availability
+          .map(t => teeTimes.indexOf(t))
+          .filter(i => i !== -1);
+
+        const latestPreferredIdx = preferredIndices.length > 0
+          ? Math.max(...preferredIndices)
+          : 0;
+
+        // Look forward first (later tee times)
+        let assignedSlot = null;
+        for (let i = latestPreferredIdx + 1; i < teeTimes.length; i++) {
+          if (newTeeSheet[i].players.length < 4) {
+            assignedSlot = newTeeSheet[i];
+            break;
+          }
+        }
+
+        // If no later slot found, look backward (earlier tee times)
+        if (!assignedSlot) {
+          const earliestPreferredIdx = preferredIndices.length > 0
+            ? Math.min(...preferredIndices)
+            : teeTimes.length - 1;
+          for (let i = earliestPreferredIdx - 1; i >= 0; i--) {
+            if (newTeeSheet[i].players.length < 4) {
+              assignedSlot = newTeeSheet[i];
+              break;
+            }
+          }
+        }
+
+        if (assignedSlot) {
+          assignedSlot.players.push(player.id);
+          assigned.add(player.id);
+        }
+      }
+    });
+
     // Update pairing history
     const newPairingHistory = { ...pairingHistory };
     newTeeSheet.forEach(slot => {
