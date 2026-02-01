@@ -980,7 +980,7 @@ export default function ArlingtonLakesGolfLeague() {
               { id: 'leaderboard', label: 'Leaderboard', icon: '💰' },
               { id: 'players', label: 'Players', icon: '👥' },
               { id: 'giantskins', label: 'Giant Skins', icon: '🏆' },
-              { id: 'admin', label: 'Admin', icon: '⚙️' },
+              ...(isAdminAuthenticated ? [{ id: 'admin', label: 'Admin', icon: '⚙️' }] : []),
             ].map(tab => (
               <button
                 key={tab.id}
