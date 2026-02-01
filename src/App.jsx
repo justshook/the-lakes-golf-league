@@ -345,6 +345,16 @@ export default function ArlingtonLakesGolfLeague() {
   const [leaderboardView, setLeaderboardView] = useState('season');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Player self-service score entry
+  const [showPlayerScoreEntry, setShowPlayerScoreEntry] = useState(false);
+  const [playerScoreForm, setPlayerScoreForm] = useState({
+    playerId: '',
+    weekId: '',
+    totalScore: '',
+    birdieHoles: [],
+    eagleHoles: []
+  });
+
   // Load data from Supabase on mount
   useEffect(() => {
     async function loadData() {
@@ -626,6 +636,115 @@ export default function ArlingtonLakesGolfLeague() {
     await resetTeeSheets();
     await resetGiantSkins();
     setShowResetConfirm(null);
+  };
+
+  // Handle player self-service score submission
+  const handlePlayerScoreSubmit = async () => {
+    const { playerId, weekId, totalScore, birdieHoles, eagleHoles } = playerScoreForm;
+
+    if (!playerId || !weekId || !totalScore) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    const playerIdNum = parseInt(playerId);
+    const weekIdNum = parseInt(weekId);
+    const week = weeks.find(w => w.id === weekIdNum);
+
+    if (!week) return;
+
+    // Determine which holes are being played this week
+    const holesThisWeek = week.nineHoles === 'front'
+      ? courseHoles.slice(0, 9)
+      : courseHoles.slice(9, 18);
+
+    // Process birdies - check against giant skins
+    const updatedGiantSkins = [...giantSkins];
+
+    for (const holeNum of birdieHoles) {
+      const hole = courseHoles.find(h => h.number === holeNum);
+      if (!hole) continue;
+
+      const birdieScore = hole.par - 1;
+      const skinIdx = holeNum - 1;
+      const currentSkin = updatedGiantSkins[skinIdx];
+
+      // Update giant skin if this birdie beats the current record
+      if (currentSkin.lowScore === null || birdieScore < currentSkin.lowScore) {
+        updatedGiantSkins[skinIdx] = {
+          ...currentSkin,
+          lowScore: birdieScore,
+          playerId: playerIdNum,
+          weekId: weekIdNum
+        };
+        // Save to Supabase
+        await saveGiantSkinToSupabase(holeNum, birdieScore, playerIdNum, weekIdNum);
+      }
+    }
+
+    // Process eagles - check against giant skins
+    for (const holeNum of eagleHoles) {
+      const hole = courseHoles.find(h => h.number === holeNum);
+      if (!hole) continue;
+
+      const eagleScore = hole.par - 2;
+      const skinIdx = holeNum - 1;
+      const currentSkin = updatedGiantSkins[skinIdx];
+
+      // Update giant skin if this eagle beats the current record
+      if (currentSkin.lowScore === null || eagleScore < currentSkin.lowScore) {
+        updatedGiantSkins[skinIdx] = {
+          ...currentSkin,
+          lowScore: eagleScore,
+          playerId: playerIdNum,
+          weekId: weekIdNum
+        };
+        // Save to Supabase
+        await saveGiantSkinToSupabase(holeNum, eagleScore, playerIdNum, weekIdNum);
+      }
+    }
+
+    setGiantSkins(updatedGiantSkins);
+
+    // Reset form and close
+    setPlayerScoreForm({
+      playerId: '',
+      weekId: '',
+      totalScore: '',
+      birdieHoles: [],
+      eagleHoles: []
+    });
+    setShowPlayerScoreEntry(false);
+
+    alert('Score submitted successfully! Any birdies or eagles have been checked against Giant Skins.');
+  };
+
+  // Toggle hole selection for birdie/eagle
+  const toggleHoleSelection = (holeNum, type) => {
+    const field = type === 'birdie' ? 'birdieHoles' : 'eagleHoles';
+    const otherField = type === 'birdie' ? 'eagleHoles' : 'birdieHoles';
+
+    setPlayerScoreForm(prev => {
+      const currentHoles = prev[field];
+      const otherHoles = prev[otherField];
+
+      // Remove from other field if present (can't be both birdie and eagle)
+      const newOtherHoles = otherHoles.filter(h => h !== holeNum);
+
+      if (currentHoles.includes(holeNum)) {
+        return {
+          ...prev,
+          [field]: currentHoles.filter(h => h !== holeNum),
+          [otherField]: newOtherHoles
+        };
+      } else {
+        return {
+          ...prev,
+          [field]: [...currentHoles, holeNum],
+          [otherField]: newOtherHoles
+        };
+      }
+    });
   };
 
   const currentWeek = weeks.find(w => w.id === selectedWeek);
@@ -1196,9 +1315,15 @@ export default function ArlingtonLakesGolfLeague() {
         {/* Schedule Tab */}
         {activeTab === 'schedule' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <h2 className="text-xl font-serif text-white">Weekly Schedule</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={() => setShowPlayerScoreEntry(true)}
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium flex items-center gap-2"
+                >
+                  <span>📝</span> Submit My Score
+                </button>
                 <button
                   onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
                   disabled={selectedWeek === 1}
@@ -1315,6 +1440,150 @@ export default function ArlingtonLakesGolfLeague() {
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Player Score Entry Modal */}
+            {showPlayerScoreEntry && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                  <div className="bg-green-800 px-6 py-4 sticky top-0">
+                    <h3 className="text-xl font-bold text-white">📝 Submit My Score</h3>
+                    <p className="text-green-200 text-sm">Enter your score and mark any birdies or eagles</p>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    {/* Player Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                      <select
+                        value={playerScoreForm.playerId}
+                        onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, playerId: e.target.value })}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select your name...</option>
+                        {players.filter(p => p.type === 'full-time').sort((a, b) => a.name.localeCompare(b.name)).map(p => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Week Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Week</label>
+                      <select
+                        value={playerScoreForm.weekId}
+                        onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, weekId: e.target.value, birdieHoles: [], eagleHoles: [] })}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select week...</option>
+                        {weeks.filter(w => w.teeSheet.length > 0).map(w => (
+                          <option key={w.id} value={w.id}>
+                            Week {w.id} - {formatShortDate(w.date)} ({w.nineHoles === 'front' ? 'Front 9' : 'Back 9'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Total Score */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Total Score (9 holes)</label>
+                      <input
+                        type="number"
+                        value={playerScoreForm.totalScore}
+                        onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, totalScore: e.target.value })}
+                        placeholder="e.g., 42"
+                        className="w-full border rounded-lg px-3 py-2"
+                        min="20"
+                        max="80"
+                      />
+                    </div>
+
+                    {/* Birdie/Eagle Selection */}
+                    {playerScoreForm.weekId && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Mark Birdies & Eagles (tap to select)
+                        </label>
+                        <p className="text-xs text-gray-500 mb-3">
+                          These will automatically update Giant Skins if they beat the current low score.
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(weeks.find(w => w.id === parseInt(playerScoreForm.weekId))?.nineHoles === 'front'
+                            ? courseHoles.slice(0, 9)
+                            : courseHoles.slice(9, 18)
+                          ).map(hole => {
+                            const isBirdie = playerScoreForm.birdieHoles.includes(hole.number);
+                            const isEagle = playerScoreForm.eagleHoles.includes(hole.number);
+                            return (
+                              <div key={hole.number} className="border rounded-lg p-2 text-center">
+                                <div className="text-xs text-gray-500 mb-1">Hole {hole.number} (Par {hole.par})</div>
+                                <div className="flex gap-1 justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleHoleSelection(hole.number, 'birdie')}
+                                    className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                      isBirdie
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-gray-100 text-gray-600 hover:bg-green-100'
+                                    }`}
+                                  >
+                                    🐦 Birdie
+                                  </button>
+                                  {hole.par >= 4 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleHoleSelection(hole.number, 'eagle')}
+                                      className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                        isEagle
+                                          ? 'bg-yellow-500 text-white'
+                                          : 'bg-gray-100 text-gray-600 hover:bg-yellow-100'
+                                      }`}
+                                    >
+                                      🦅 Eagle
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {(playerScoreForm.birdieHoles.length > 0 || playerScoreForm.eagleHoles.length > 0) && (
+                          <div className="mt-3 p-3 bg-green-50 rounded-lg text-sm">
+                            {playerScoreForm.birdieHoles.length > 0 && (
+                              <p className="text-green-700">
+                                🐦 Birdies on: Hole {playerScoreForm.birdieHoles.sort((a,b) => a-b).join(', Hole ')}
+                              </p>
+                            )}
+                            {playerScoreForm.eagleHoles.length > 0 && (
+                              <p className="text-yellow-700">
+                                🦅 Eagles on: Hole {playerScoreForm.eagleHoles.sort((a,b) => a-b).join(', Hole ')}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Submit Buttons */}
+                    <div className="flex gap-3 pt-4">
+                      <button
+                        onClick={handlePlayerScoreSubmit}
+                        className="flex-1 bg-green-700 text-white py-3 rounded-lg hover:bg-green-800 font-medium"
+                      >
+                        Submit Score
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowPlayerScoreEntry(false);
+                          setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [] });
+                        }}
+                        className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
