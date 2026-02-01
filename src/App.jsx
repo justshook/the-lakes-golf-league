@@ -1238,26 +1238,27 @@ export default function ArlingtonLakesGolfLeague() {
 
       {/* Navigation */}
       <nav className="bg-green-950/80 border-b border-green-700">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-1">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4">
+          <div className="flex w-full">
             {[
-              { id: 'schedule', label: 'Schedule', icon: '📅' },
-              { id: 'leaderboard', label: 'Leaderboard', icon: '💰' },
-              { id: 'players', label: 'Players', icon: '👥' },
-              { id: 'giantskins', label: 'Giant Skins', icon: '🏆' },
-              ...(isAdminAuthenticated ? [{ id: 'admin', label: 'Admin', icon: '⚙️' }] : []),
+              { id: 'schedule', label: 'Schedule', shortLabel: 'Sched', icon: '📅' },
+              { id: 'leaderboard', label: 'Leaderboard', shortLabel: 'Money', icon: '💰' },
+              { id: 'players', label: 'Players', shortLabel: 'Players', icon: '👥' },
+              { id: 'giantskins', label: 'Giant Skins', shortLabel: 'Skins', icon: '🏆' },
+              ...(isAdminAuthenticated ? [{ id: 'admin', label: 'Admin', shortLabel: 'Admin', icon: '⚙️' }] : []),
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setSelectedPlayer(null); }}
-                className={`px-5 py-3 font-medium transition-all ${
+                className={`flex-1 px-1 sm:px-4 py-3 font-medium transition-all text-xs sm:text-sm ${
                   activeTab === tab.id
                     ? 'bg-green-700 text-white border-b-2 border-yellow-500'
                     : 'text-green-300 hover:bg-green-800 hover:text-white'
                 }`}
               >
-                <span className="mr-2">{tab.icon}</span>
-                {tab.label}
+                <span className="sm:mr-1">{tab.icon}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
               </button>
             ))}
           </div>
@@ -1307,41 +1308,39 @@ export default function ArlingtonLakesGolfLeague() {
 
             {currentWeek && (
               <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-green-800 px-6 py-4">
-                  <div className="flex items-center justify-between">
+                <div className="bg-green-800 px-4 sm:px-6 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div>
                       <h3 className="text-xl font-serif text-white">Week {currentWeek.id}</h3>
-                      <p className="text-green-200">{formatDate(currentWeek.date)}</p>
+                      <p className="text-green-200 text-sm">{formatDate(currentWeek.date)}</p>
                     </div>
-                    <div className="text-right">
-                      <div className={`inline-block px-4 py-2 rounded-full font-bold ${
-                        currentWeek.nineHoles === 'front'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-purple-100 text-purple-800'
-                      }`}>
-                        {currentWeek.nineHoles === 'front' ? 'Front 9 (Holes 1-9)' : 'Back 9 (Holes 10-18)'}
-                      </div>
+                    <div className={`inline-block px-4 py-2 rounded-full font-bold text-sm self-start sm:self-auto ${
+                      currentWeek.nineHoles === 'front'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-purple-100 text-purple-800'
+                    }`}>
+                      {currentWeek.nineHoles === 'front' ? 'Front 9 (Holes 1-9)' : 'Back 9 (Holes 10-18)'}
                     </div>
                   </div>
                 </div>
 
                 {/* Game Info Section */}
                 {currentGame && (
-                  <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-yellow-50 p-6">
-                    <div className="grid grid-cols-2 gap-6">
+                  <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-yellow-50 p-4 sm:p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-2xl">🎯</span>
-                          <h4 className="font-bold text-lg text-green-800">{currentGame.gameName}</h4>
+                          <span className="text-xl sm:text-2xl">🎯</span>
+                          <h4 className="font-bold text-base sm:text-lg text-green-800">{currentGame.gameName}</h4>
                         </div>
-                        <p className="text-gray-700 text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
+                        <p className="text-gray-700 text-xs sm:text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-2xl">⭐</span>
-                          <h4 className="font-bold text-lg text-yellow-700">Side Game: {currentGame.sideGame}</h4>
+                          <span className="text-xl sm:text-2xl">⭐</span>
+                          <h4 className="font-bold text-base sm:text-lg text-yellow-700">Side Game: {currentGame.sideGame}</h4>
                         </div>
-                        <p className="text-gray-700 text-sm">{currentGame.sideGameDescription}</p>
+                        <p className="text-gray-700 text-xs sm:text-sm">{currentGame.sideGameDescription}</p>
                       </div>
                     </div>
                   </div>
