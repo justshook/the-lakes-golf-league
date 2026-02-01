@@ -864,129 +864,74 @@ export default function ArlingtonLakesGolfLeague() {
     return score;
   };
 
-  // Auto-schedule algorithm
+  // Auto-schedule algorithm - SMART VERSION
+  // Guarantees all players get assigned by processing most constrained players first
+  // and always placing them in their available slot with most remaining capacity
   const autoScheduleWeek = () => {
     // Get full-time players only (exclude substitutes)
     const eligiblePlayers = players.filter(p => p.type === 'full-time');
 
-    // Sort players by availability count (most constrained first)
-    const sortedByConstraint = [...eligiblePlayers].sort(
-      (a, b) => a.availability.length - b.availability.length
-    );
-
-    // Track assigned players and build tee sheet
-    const assigned = new Set();
+    // Initialize tee sheet
     const newTeeSheet = teeTimes.map(time => ({ time, players: [] }));
+    const assigned = new Set();
 
-    // First pass: assign most constrained players (1-2 available times)
-    sortedByConstraint
-      .filter(p => p.availability.length <= 2)
-      .forEach(player => {
-        const availableTimes = player.availability;
-        for (const time of availableTimes) {
-          const slotIndex = teeTimes.indexOf(time);
-          if (slotIndex !== -1 && newTeeSheet[slotIndex].players.length < 4) {
-            newTeeSheet[slotIndex].players.push(player.id);
-            assigned.add(player.id);
-            break;
-          }
-        }
-      });
-
-    // Second pass: fill remaining slots with handicap balancing and rotation
-    teeTimes.forEach((time, slotIndex) => {
-      const slot = newTeeSheet[slotIndex];
-
-      // Get available players for this time who aren't assigned yet
-      let available = eligiblePlayers.filter(
-        p => !assigned.has(p.id) && p.availability.includes(time)
-      );
-
-      while (slot.players.length < 4 && available.length > 0) {
-        // Sort available players by handicap
-        available.sort((a, b) => a.handicap - b.handicap);
-
-        // Determine which handicap tier to pick from based on current group composition
-        const currentGroup = slot.players.map(id => players.find(p => p.id === id));
-        const currentHandicaps = currentGroup.map(p => p?.handicap || 0);
-        const avgHandicap = currentHandicaps.length > 0
-          ? currentHandicaps.reduce((a, b) => a + b, 0) / currentHandicaps.length
-          : 10;
-
-        // Split into quartiles
-        const q1 = Math.floor(available.length * 0.25);
-        const q2 = Math.floor(available.length * 0.5);
-        const q3 = Math.floor(available.length * 0.75);
-
-        let targetTier;
-        if (slot.players.length === 0) {
-          targetTier = available.slice(0, Math.max(1, q1)); // Low handicap
-        } else if (slot.players.length === 1) {
-          targetTier = available.slice(q3); // High handicap
-        } else if (slot.players.length === 2) {
-          targetTier = avgHandicap < 10
-            ? available.slice(q2, q3) // Mid-high
-            : available.slice(q1, q2); // Mid-low
-        } else {
-          // Last player - balance the group
-          targetTier = avgHandicap < 10
-            ? available.slice(q2) // Higher half
-            : available.slice(0, q2); // Lower half
-        }
-
-        if (targetTier.length === 0) targetTier = available;
-
-        // From target tier, pick player with lowest pairing score (most diversity)
-        let bestPlayer = targetTier[0];
-        let bestScore = Infinity;
-
-        targetTier.forEach(candidate => {
-          const score = slot.players.reduce(
-            (sum, existingId) => sum + getPairingCount(candidate.id, existingId),
-            0
-          );
-          if (score < bestScore) {
-            bestScore = score;
-            bestPlayer = candidate;
-          }
-        });
-
-        slot.players.push(bestPlayer.id);
-        assigned.add(bestPlayer.id);
-        available = available.filter(p => p.id !== bestPlayer.id);
+    // Sort ALL players by constraint level (fewest available times first)
+    // Secondary sort by handicap for variety
+    const sortedPlayers = [...eligiblePlayers].sort((a, b) => {
+      if (a.availability.length !== b.availability.length) {
+        return a.availability.length - b.availability.length;
       }
+      return a.handicap - b.handicap;
     });
 
-    // Third pass: assign any remaining unassigned players
-    // If their preferred times are full, put them in the next available tee time (no 5-player groups)
-    const unassigned = eligiblePlayers.filter(p => !assigned.has(p.id));
-
-    unassigned.forEach(player => {
-      // First, try to find a slot in their preferred times with room (<4 players)
-      const preferredSlots = player.availability
+    // Assign each player in order of constraint
+    sortedPlayers.forEach(player => {
+      // Find all slots this player can play in
+      const availableSlots = player.availability
         .map(time => {
           const idx = teeTimes.indexOf(time);
-          return idx !== -1 ? { idx, slot: newTeeSheet[idx] } : null;
+          return idx !== -1 ? { idx, slot: newTeeSheet[idx], time } : null;
         })
-        .filter(s => s && s.slot.players.length < 4);
+        .filter(s => s !== null);
 
-      if (preferredSlots.length > 0) {
-        // Assign to preferred time with fewest players
-        preferredSlots.sort((a, b) => a.slot.players.length - b.slot.players.length);
-        preferredSlots[0].slot.players.push(player.id);
+      // Find slots with room (< 4 players)
+      const slotsWithRoom = availableSlots.filter(s => s.slot.players.length < 4);
+
+      if (slotsWithRoom.length > 0) {
+        // Pick the slot with the MOST remaining capacity (spreads players out)
+        // If tied, pick based on pairing diversity
+        slotsWithRoom.sort((a, b) => {
+          const capacityDiff = a.slot.players.length - b.slot.players.length;
+          if (capacityDiff !== 0) return capacityDiff;
+
+          // If same capacity, pick slot with least repeat pairings
+          const scoreA = a.slot.players.reduce((sum, id) => sum + getPairingCount(player.id, id), 0);
+          const scoreB = b.slot.players.reduce((sum, id) => sum + getPairingCount(player.id, id), 0);
+          return scoreA - scoreB;
+        });
+
+        slotsWithRoom[0].slot.players.push(player.id);
         assigned.add(player.id);
       } else {
-        // All preferred times are full - find the next available tee time
-        // Start from their latest preferred time and look forward, then backward
+        // All preferred times are full - find the CLOSEST time slot with room
         const preferredIndices = player.availability
           .map(t => teeTimes.indexOf(t))
           .filter(i => i !== -1);
 
-        const latestPreferredIdx = preferredIndices.length > 0
-          ? Math.max(...preferredIndices)
-          : 0;
+        if (preferredIndices.length === 0) {
+          // Player has no valid availability - assign to any slot with room
+          const anySlot = newTeeSheet.find(s => s.players.length < 4);
+          if (anySlot) {
+            anySlot.players.push(player.id);
+            assigned.add(player.id);
+          }
+          return;
+        }
 
-        // Look forward first (later tee times)
+        const latestPreferredIdx = Math.max(...preferredIndices);
+        const earliestPreferredIdx = Math.min(...preferredIndices);
+
+        // Look forward from latest preferred time
         let assignedSlot = null;
         for (let i = latestPreferredIdx + 1; i < teeTimes.length; i++) {
           if (newTeeSheet[i].players.length < 4) {
@@ -995,11 +940,8 @@ export default function ArlingtonLakesGolfLeague() {
           }
         }
 
-        // If no later slot found, look backward (earlier tee times)
+        // If no later slot, look backward from earliest preferred time
         if (!assignedSlot) {
-          const earliestPreferredIdx = preferredIndices.length > 0
-            ? Math.min(...preferredIndices)
-            : teeTimes.length - 1;
           for (let i = earliestPreferredIdx - 1; i >= 0; i--) {
             if (newTeeSheet[i].players.length < 4) {
               assignedSlot = newTeeSheet[i];
@@ -1008,12 +950,25 @@ export default function ArlingtonLakesGolfLeague() {
           }
         }
 
+        // Last resort: find ANY slot with room
+        if (!assignedSlot) {
+          assignedSlot = newTeeSheet.find(s => s.players.length < 4);
+        }
+
         if (assignedSlot) {
           assignedSlot.players.push(player.id);
           assigned.add(player.id);
         }
       }
     });
+
+    // Log results for debugging
+    const totalAssigned = newTeeSheet.reduce((sum, s) => sum + s.players.length, 0);
+    console.log(`Auto-schedule: ${totalAssigned}/${eligiblePlayers.length} players assigned`);
+    if (totalAssigned < eligiblePlayers.length) {
+      const missing = eligiblePlayers.filter(p => !assigned.has(p.id));
+      console.log('Unassigned players:', missing.map(p => p.name));
+    }
 
     // Update pairing history
     const newPairingHistory = { ...pairingHistory };
