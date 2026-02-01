@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from './supabaseClient';
 
 // Real player data from CSV - handicap values are 18-hole CDGA handicaps
 const initialPlayers = [
@@ -342,6 +343,157 @@ export default function ArlingtonLakesGolfLeague() {
 
   const [playerFilter, setPlayerFilter] = useState('all');
   const [leaderboardView, setLeaderboardView] = useState('season');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load data from Supabase on mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        // Load tee sheets
+        const { data: teeSheetData, error: teeSheetError } = await supabase
+          .from('tee_sheets')
+          .select('*');
+
+        if (teeSheetError) throw teeSheetError;
+
+        // Update weeks with saved tee sheets
+        if (teeSheetData && teeSheetData.length > 0) {
+          setWeeks(prevWeeks => prevWeeks.map(week => {
+            const savedSheet = teeSheetData.find(ts => ts.week_id === week.id);
+            if (savedSheet) {
+              return {
+                ...week,
+                teeSheet: savedSheet.tee_sheet || [],
+                scoresEntered: savedSheet.scores_entered || false,
+                moneyEntered: savedSheet.money_entered || false
+              };
+            }
+            return week;
+          }));
+        }
+
+        // Load player money
+        const { data: moneyData, error: moneyError } = await supabase
+          .from('player_money')
+          .select('*');
+
+        if (moneyError) throw moneyError;
+
+        // Update players with saved money
+        if (moneyData && moneyData.length > 0) {
+          setPlayers(prevPlayers => prevPlayers.map(player => {
+            const playerMoney = moneyData.filter(m => m.player_id === player.id);
+            if (playerMoney.length > 0) {
+              const weeklyMoney = {};
+              let totalMoney = 0;
+              const weeksWithMoney = new Set();
+
+              playerMoney.forEach(m => {
+                if (!weeklyMoney[m.week_id]) {
+                  weeklyMoney[m.week_id] = {};
+                }
+                weeklyMoney[m.week_id][m.category] = m.amount;
+                totalMoney += m.amount;
+                weeksWithMoney.add(m.week_id);
+              });
+
+              return {
+                ...player,
+                weeklyMoney,
+                totalMoney,
+                weeksPlayed: weeksWithMoney.size
+              };
+            }
+            return player;
+          }));
+        }
+
+        // Load giant skins
+        const { data: skinsData, error: skinsError } = await supabase
+          .from('giant_skins')
+          .select('*');
+
+        if (skinsError) throw skinsError;
+
+        // Update giant skins with saved data
+        if (skinsData && skinsData.length > 0) {
+          setGiantSkins(prevSkins => prevSkins.map(skin => {
+            const savedSkin = skinsData.find(s => s.hole_number === skin.number);
+            if (savedSkin && savedSkin.low_score) {
+              return {
+                ...skin,
+                lowScore: savedSkin.low_score,
+                playerId: savedSkin.player_id,
+                weekId: savedSkin.week_id
+              };
+            }
+            return skin;
+          }));
+        }
+
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
+
+  // Save tee sheet to Supabase
+  const saveTeeSheetToSupabase = async (weekId, teeSheet, scoresEntered = false, moneyEntered = false) => {
+    try {
+      const { error } = await supabase
+        .from('tee_sheets')
+        .upsert({
+          week_id: weekId,
+          tee_sheet: teeSheet,
+          scores_entered: scoresEntered,
+          money_entered: moneyEntered
+        }, { onConflict: 'week_id' });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving tee sheet:', error);
+    }
+  };
+
+  // Save player money to Supabase
+  const saveMoneyToSupabase = async (playerId, weekId, category, amount) => {
+    try {
+      const { error } = await supabase
+        .from('player_money')
+        .upsert({
+          player_id: playerId,
+          week_id: weekId,
+          category: category,
+          amount: amount
+        }, { onConflict: 'player_id,week_id,category' });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving money:', error);
+    }
+  };
+
+  // Save giant skin to Supabase
+  const saveGiantSkinToSupabase = async (holeNumber, lowScore, playerId, weekId) => {
+    try {
+      const { error } = await supabase
+        .from('giant_skins')
+        .update({
+          low_score: lowScore,
+          player_id: playerId,
+          week_id: weekId
+        })
+        .eq('hole_number', holeNumber);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving giant skin:', error);
+    }
+  };
 
   const currentWeek = weeks.find(w => w.id === selectedWeek);
   const currentGame = weeklyGames.find(g => g.weekId === selectedWeek);
@@ -577,6 +729,9 @@ export default function ArlingtonLakesGolfLeague() {
     setWeeks(weeks.map(w =>
       w.id === selectedWeek ? { ...w, teeSheet: newTeeSheet } : w
     ));
+
+    // Save to Supabase
+    saveTeeSheetToSupabase(selectedWeek, newTeeSheet, false, false);
   };
 
   // Load existing schedule for editing
@@ -653,6 +808,9 @@ export default function ArlingtonLakesGolfLeague() {
       w.id === selectedWeek ? { ...w, teeSheet } : w
     ));
 
+    // Save to Supabase
+    saveTeeSheetToSupabase(selectedWeek, teeSheet, currentWeek?.scoresEntered || false, currentWeek?.moneyEntered || false);
+
     setPlayers(players.map(p => {
       if (addedPlayers.includes(p.id)) {
         return { ...p, weeksPlayed: p.weeksPlayed + 1 };
@@ -669,18 +827,24 @@ export default function ArlingtonLakesGolfLeague() {
 
   // Enter scores
   const handleEnterScores = () => {
+    const updatedWeek = { ...currentWeek, scoresEntered: true };
     setWeeks(weeks.map(w =>
-      w.id === selectedWeek ? { ...w, scoresEntered: true } : w
+      w.id === selectedWeek ? updatedWeek : w
     ));
+
+    // Save to Supabase
+    saveTeeSheetToSupabase(selectedWeek, currentWeek?.teeSheet || [], true, currentWeek?.moneyEntered || false);
+
     setShowScoreEntry(false);
     setScoreEntries({});
   };
 
   // Enter money
-  const handleEnterMoney = () => {
+  const handleEnterMoney = async () => {
     const updatedPlayers = [...players];
+    const currentWeek = weeks.find(w => w.id === selectedWeek);
 
-    Object.entries(moneyEntries).forEach(([key, amount]) => {
+    for (const [key, amount] of Object.entries(moneyEntries)) {
       const [playerId, category] = key.split('-');
       const playerIdx = updatedPlayers.findIndex(p => p.id === parseInt(playerId));
       if (playerIdx !== -1 && amount) {
@@ -690,19 +854,26 @@ export default function ArlingtonLakesGolfLeague() {
           updatedPlayers[playerIdx].weeklyMoney[selectedWeek] = {};
         }
         updatedPlayers[playerIdx].weeklyMoney[selectedWeek][category] = amountNum;
+
+        // Save to Supabase
+        await saveMoneyToSupabase(parseInt(playerId), selectedWeek, category, amountNum);
       }
-    });
+    }
 
     setPlayers(updatedPlayers);
     setWeeks(weeks.map(w =>
       w.id === selectedWeek ? { ...w, moneyEntered: true } : w
     ));
+
+    // Update tee sheet with moneyEntered flag
+    saveTeeSheetToSupabase(selectedWeek, currentWeek?.teeSheet || [], currentWeek?.scoresEntered || false, true);
+
     setShowMoneyEntry(false);
     setMoneyEntries({});
   };
 
   // Update giant skins
-  const handleUpdateGiantSkin = () => {
+  const handleUpdateGiantSkin = async () => {
     const { hole, score, playerId } = giantSkinsEntry;
     if (!hole || !score || !playerId) return;
 
@@ -711,11 +882,15 @@ export default function ArlingtonLakesGolfLeague() {
     const currentLow = giantSkins[holeIdx].lowScore;
 
     if (currentLow === null || scoreNum < currentLow) {
-      setGiantSkins(giantSkins.map((h, idx) =>
+      const newGiantSkins = giantSkins.map((h, idx) =>
         idx === holeIdx
           ? { ...h, lowScore: scoreNum, playerId: parseInt(playerId), weekId: selectedWeek }
           : h
-      ));
+      );
+      setGiantSkins(newGiantSkins);
+
+      // Save to Supabase
+      await saveGiantSkinToSupabase(parseInt(hole), scoreNum, parseInt(playerId), selectedWeek);
     }
 
     setGiantSkinsEntry({ hole: 1, score: '', playerId: '' });
@@ -755,22 +930,33 @@ export default function ArlingtonLakesGolfLeague() {
     );
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-green-900 via-green-800 to-green-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-yellow-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading league data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-900 via-green-800 to-green-900">
       {/* Header */}
       <header className="bg-green-950 border-b-4 border-yellow-600 shadow-lg">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-full flex items-center justify-center shadow-md flex-shrink-0">
-                <span className="text-xl sm:text-3xl">⛳</span>
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-md">
+                <span className="text-3xl">⛳</span>
               </div>
               <div>
-                <h1 className="text-lg sm:text-2xl font-serif font-bold text-white tracking-wide">Arlington Lakes Golf League</h1>
-                <p className="text-green-300 text-xs sm:text-sm">2026 Season • April - August</p>
+                <h1 className="text-2xl font-serif font-bold text-white tracking-wide">Arlington Lakes Golf League</h1>
+                <p className="text-green-300 text-sm">2026 Season • April - August</p>
               </div>
             </div>
-            <div className="text-left sm:text-right text-green-200 text-xs sm:text-sm pl-13 sm:pl-0">
+            <div className="text-right text-green-200 text-sm">
               <div>{players.filter(p => p.type === 'full-time').length} Members • {players.filter(p => p.type === 'substitute').length} Subs • {weeks.length} Weeks</div>
               <div className="text-yellow-500 font-medium">Every Monday • 9 Holes</div>
             </div>
@@ -780,27 +966,26 @@ export default function ArlingtonLakesGolfLeague() {
 
       {/* Navigation */}
       <nav className="bg-green-950/80 border-b border-green-700">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex overflow-x-auto scrollbar-hide">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex gap-1">
             {[
-              { id: 'schedule', label: 'Schedule', shortLabel: 'Sched', icon: '📅' },
-              { id: 'leaderboard', label: 'Leaderboard', shortLabel: 'Money', icon: '💰' },
-              { id: 'players', label: 'Players', shortLabel: 'Players', icon: '👥' },
-              { id: 'giantskins', label: 'Giant Skins', shortLabel: 'Skins', icon: '🏆' },
-              { id: 'admin', label: 'Admin', shortLabel: 'Admin', icon: '⚙️' },
+              { id: 'schedule', label: 'Schedule', icon: '📅' },
+              { id: 'leaderboard', label: 'Leaderboard', icon: '💰' },
+              { id: 'players', label: 'Players', icon: '👥' },
+              { id: 'giantskins', label: 'Giant Skins', icon: '🏆' },
+              { id: 'admin', label: 'Admin', icon: '⚙️' },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => { setActiveTab(tab.id); setSelectedPlayer(null); }}
-                className={`px-2 sm:px-5 py-2.5 sm:py-3 font-medium transition-all whitespace-nowrap text-xs sm:text-base flex-shrink-0 flex flex-col sm:flex-row items-center gap-0.5 sm:gap-2 ${
+                className={`px-5 py-3 font-medium transition-all ${
                   activeTab === tab.id
                     ? 'bg-green-700 text-white border-b-2 border-yellow-500'
                     : 'text-green-300 hover:bg-green-800 hover:text-white'
                 }`}
               >
-                <span>{tab.icon}</span>
-                <span className="hidden sm:inline">{tab.label}</span>
-                <span className="sm:hidden text-xs">{tab.shortLabel}</span>
+                <span className="mr-2">{tab.icon}</span>
+                {tab.label}
               </button>
             ))}
           </div>
@@ -808,25 +993,25 @@ export default function ArlingtonLakesGolfLeague() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main className="max-w-7xl mx-auto px-4 py-6">
 
         {/* Schedule Tab */}
         {activeTab === 'schedule' && (
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <h2 className="text-lg sm:text-xl font-serif text-white">Weekly Schedule</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-serif text-white">Weekly Schedule</h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
                   disabled={selectedWeek === 1}
-                  className="px-2 sm:px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-sm sm:text-base"
+                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700"
                 >
-                  ←
+                  ← Prev
                 </button>
                 <select
                   value={selectedWeek}
                   onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-                  className="px-2 sm:px-4 py-2 rounded-lg bg-white border-0 font-medium text-sm sm:text-base flex-1 min-w-0"
+                  className="px-4 py-2 rounded-lg bg-white border-0 font-medium"
                 >
                   {weeks.map(w => (
                     <option key={w.id} value={w.id}>Week {w.id} - {formatShortDate(w.date)}</option>
@@ -835,23 +1020,23 @@ export default function ArlingtonLakesGolfLeague() {
                 <button
                   onClick={() => setSelectedWeek(Math.min(weeks.length, selectedWeek + 1))}
                   disabled={selectedWeek === weeks.length}
-                  className="px-2 sm:px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-sm sm:text-base"
+                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700"
                 >
-                  →
+                  Next →
                 </button>
               </div>
             </div>
 
             {currentWeek && (
               <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-green-800 px-4 sm:px-6 py-3 sm:py-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="bg-green-800 px-6 py-4">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-lg sm:text-xl font-serif text-white">Week {currentWeek.id}</h3>
-                      <p className="text-green-200 text-sm">{formatDate(currentWeek.date)}</p>
+                      <h3 className="text-xl font-serif text-white">Week {currentWeek.id}</h3>
+                      <p className="text-green-200">{formatDate(currentWeek.date)}</p>
                     </div>
-                    <div className="sm:text-right">
-                      <div className={`inline-block px-3 sm:px-4 py-1 sm:py-2 rounded-full font-bold text-sm sm:text-base ${
+                    <div className="text-right">
+                      <div className={`inline-block px-4 py-2 rounded-full font-bold ${
                         currentWeek.nineHoles === 'front'
                           ? 'bg-blue-100 text-blue-800'
                           : 'bg-purple-100 text-purple-800'
@@ -864,66 +1049,66 @@ export default function ArlingtonLakesGolfLeague() {
 
                 {/* Game Info Section */}
                 {currentGame && (
-                  <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-yellow-50 p-4 sm:p-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-yellow-50 p-6">
+                    <div className="grid grid-cols-2 gap-6">
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xl sm:text-2xl">🎯</span>
-                          <h4 className="font-bold text-base sm:text-lg text-green-800">{currentGame.gameName}</h4>
+                          <span className="text-2xl">🎯</span>
+                          <h4 className="font-bold text-lg text-green-800">{currentGame.gameName}</h4>
                         </div>
-                        <p className="text-gray-700 text-xs sm:text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
+                        <p className="text-gray-700 text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xl sm:text-2xl">⭐</span>
-                          <h4 className="font-bold text-base sm:text-lg text-yellow-700">Side Game: {currentGame.sideGame}</h4>
+                          <span className="text-2xl">⭐</span>
+                          <h4 className="font-bold text-lg text-yellow-700">Side Game: {currentGame.sideGame}</h4>
                         </div>
-                        <p className="text-gray-700 text-xs sm:text-sm">{currentGame.sideGameDescription}</p>
+                        <p className="text-gray-700 text-sm">{currentGame.sideGameDescription}</p>
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="p-3 sm:p-6">
+                <div className="p-6">
                   {currentWeek.teeSheet.length === 0 ? (
-                    <div className="text-center py-8 sm:py-12 text-gray-500">
-                      <div className="text-3xl sm:text-4xl mb-4">📋</div>
-                      <p className="text-base sm:text-lg">No tee sheet created yet</p>
-                      <p className="text-xs sm:text-sm mt-2">Go to Admin to build or auto-generate the schedule for this week</p>
+                    <div className="text-center py-12 text-gray-500">
+                      <div className="text-4xl mb-4">📋</div>
+                      <p className="text-lg">No tee sheet created yet</p>
+                      <p className="text-sm mt-2">Go to Admin to build or auto-generate the schedule for this week</p>
                     </div>
                   ) : (
-                    <div className="space-y-2 sm:space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm text-gray-500 mb-4 gap-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                         <span>{currentWeek.teeSheet.reduce((sum, t) => sum + t.players.length, 0)} players scheduled</span>
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="flex gap-2">
                           {currentWeek.scoresEntered && (
-                            <span className="bg-green-100 text-green-700 px-2 sm:px-3 py-1 rounded-full text-xs font-medium">✓ Scores</span>
+                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">✓ Scores Entered</span>
                           )}
                           {currentWeek.moneyEntered && (
-                            <span className="bg-yellow-100 text-yellow-700 px-2 sm:px-3 py-1 rounded-full text-xs font-medium">✓ Money</span>
+                            <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">✓ Money Entered</span>
                           )}
                         </div>
                       </div>
 
                       {currentWeek.teeSheet.map((slot, idx) => (
-                        <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                          <div className="w-full sm:w-20 font-bold text-green-800 text-base sm:text-lg">{slot.time}</div>
-                          <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                        <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+                          <div className="w-24 font-bold text-green-800 text-lg">{slot.time}</div>
+                          <div className="flex-1 grid grid-cols-4 gap-3">
                             {slot.players.map((playerId, pIdx) => {
                               const player = getPlayerById(playerId);
                               return (
                                 <div
                                   key={pIdx}
-                                  className="bg-white px-2 sm:px-3 py-2 rounded border border-gray-200 cursor-pointer hover:border-green-500 transition-colors"
+                                  className="bg-white px-3 py-2 rounded border border-gray-200 cursor-pointer hover:border-green-500 transition-colors"
                                   onClick={() => { setSelectedPlayer(player); setActiveTab('players'); }}
                                 >
-                                  <div className="font-medium text-gray-800 text-xs sm:text-sm truncate">{player?.name}</div>
+                                  <div className="font-medium text-gray-800 text-sm">{player?.name}</div>
                                   <div className="text-xs text-gray-500">HCP {calc9HoleHandicap(player?.handicap)}</div>
                                 </div>
                               );
                             })}
                             {[...Array(4 - slot.players.length)].map((_, i) => (
-                              <div key={`empty-${i}`} className="bg-gray-100 px-2 sm:px-3 py-2 rounded border border-dashed border-gray-300 text-gray-400 text-xs sm:text-sm text-center">
+                              <div key={`empty-${i}`} className="bg-gray-100 px-3 py-2 rounded border border-dashed border-gray-300 text-gray-400 text-sm text-center">
                                 Open
                               </div>
                             ))}
@@ -941,12 +1126,12 @@ export default function ArlingtonLakesGolfLeague() {
         {/* Leaderboard Tab */}
         {activeTab === 'leaderboard' && (
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <h2 className="text-lg sm:text-xl font-serif text-white">Money Leaderboard</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-serif text-white">Money Leaderboard</h2>
               <div className="flex gap-2">
                 <button
                   onClick={() => setLeaderboardView('season')}
-                  className={`px-3 sm:px-4 py-2 rounded-full font-medium transition-all text-sm sm:text-base ${
+                  className={`px-4 py-2 rounded-full font-medium transition-all ${
                     leaderboardView === 'season'
                       ? 'bg-yellow-600 text-white'
                       : 'bg-green-800 text-green-200 hover:bg-green-700'
@@ -956,7 +1141,7 @@ export default function ArlingtonLakesGolfLeague() {
                 </button>
                 <button
                   onClick={() => setLeaderboardView('weekly')}
-                  className={`px-3 sm:px-4 py-2 rounded-full font-medium transition-all text-sm sm:text-base ${
+                  className={`px-4 py-2 rounded-full font-medium transition-all ${
                     leaderboardView === 'weekly'
                       ? 'bg-yellow-600 text-white'
                       : 'bg-green-800 text-green-200 hover:bg-green-700'
@@ -969,59 +1154,57 @@ export default function ArlingtonLakesGolfLeague() {
 
             {leaderboardView === 'season' ? (
               <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-green-800 px-4 sm:px-6 py-3 sm:py-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                    <h3 className="text-base sm:text-lg font-medium text-white">Season Money Leaders</h3>
-                    <div className="text-yellow-300 font-bold text-sm sm:text-base">
+                <div className="bg-green-800 px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-white">Season Money Leaders</h3>
+                    <div className="text-yellow-300 font-bold">
                       Total Pot: ${sortedByMoney.reduce((sum, p) => sum + p.totalMoney, 0).toLocaleString()}
                     </div>
                   </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium text-gray-600 text-xs sm:text-sm">#</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-left font-medium text-gray-600 text-xs sm:text-sm">Player</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-center font-medium text-gray-600 text-xs sm:text-sm hidden sm:table-cell">Weeks</th>
-                        <th className="px-2 sm:px-4 py-2 sm:py-3 text-right font-medium text-gray-600 text-xs sm:text-sm">Won</th>
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">Rank</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-600">Player</th>
+                      <th className="px-4 py-3 text-center font-medium text-gray-600">Weeks</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">Total Won</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedByMoney.filter(p => p.totalMoney > 0).map((player, index) => (
+                      <tr
+                        key={player.id}
+                        className={`border-b border-gray-100 hover:bg-green-50 transition-colors ${
+                          index === 0 ? 'bg-yellow-50' : ''
+                        }`}
+                      >
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <span>🥇</span>}
+                            {index === 1 && <span>🥈</span>}
+                            {index === 2 && <span>🥉</span>}
+                            <span className="font-bold text-gray-600">{index + 1}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 font-semibold text-gray-800">{player.name}</td>
+                        <td className="px-4 py-4 text-center text-gray-600">{player.weeksPlayed}</td>
+                        <td className="px-4 py-4 text-right">
+                          <span className="bg-green-100 text-green-800 px-4 py-1 rounded-full font-bold">
+                            ${player.totalMoney.toLocaleString()}
+                          </span>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {sortedByMoney.filter(p => p.totalMoney > 0).map((player, index) => (
-                        <tr
-                          key={player.id}
-                          className={`border-b border-gray-100 hover:bg-green-50 transition-colors ${
-                            index === 0 ? 'bg-yellow-50' : ''
-                          }`}
-                        >
-                          <td className="px-2 sm:px-4 py-3 sm:py-4">
-                            <div className="flex items-center gap-1">
-                              {index === 0 && <span>🥇</span>}
-                              {index === 1 && <span>🥈</span>}
-                              {index === 2 && <span>🥉</span>}
-                              {index > 2 && <span className="font-bold text-gray-600 text-sm">{index + 1}</span>}
-                            </div>
-                          </td>
-                          <td className="px-2 sm:px-4 py-3 sm:py-4 font-semibold text-gray-800 text-sm">{player.name}</td>
-                          <td className="px-2 sm:px-4 py-3 sm:py-4 text-center text-gray-600 text-sm hidden sm:table-cell">{player.weeksPlayed}</td>
-                          <td className="px-2 sm:px-4 py-3 sm:py-4 text-right">
-                            <span className="bg-green-100 text-green-800 px-2 sm:px-4 py-1 rounded-full font-bold text-xs sm:text-sm">
-                              ${player.totalMoney.toLocaleString()}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                      {sortedByMoney.filter(p => p.totalMoney > 0).length === 0 && (
-                        <tr>
-                          <td colSpan={4} className="px-4 py-8 sm:py-12 text-center text-gray-500 text-sm">
-                            No money entered yet. Use Admin to enter weekly winnings.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                    {sortedByMoney.filter(p => p.totalMoney > 0).length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-12 text-center text-gray-500">
+                          No money entered yet. Use Admin to enter weekly winnings.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             ) : (
               <div className="space-y-4">
@@ -1029,7 +1212,7 @@ export default function ArlingtonLakesGolfLeague() {
                   <select
                     value={selectedWeek}
                     onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-                    className="px-3 sm:px-4 py-2 rounded-lg bg-white font-medium text-sm sm:text-base"
+                    className="px-4 py-2 rounded-lg bg-white font-medium"
                   >
                     {weeks.map(w => (
                       <option key={w.id} value={w.id}>Week {w.id} - {formatShortDate(w.date)}</option>
@@ -1038,36 +1221,36 @@ export default function ArlingtonLakesGolfLeague() {
                 </div>
 
                 <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-                  <div className="bg-green-800 px-4 sm:px-6 py-3 sm:py-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
-                      <h3 className="text-base sm:text-lg font-medium text-white">Week {selectedWeek} Winnings</h3>
-                      <div className="text-yellow-300 font-bold text-sm sm:text-base">
+                  <div className="bg-green-800 px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium text-white">Week {selectedWeek} Winnings</h3>
+                      <div className="text-yellow-300 font-bold">
                         Week Total: ${getWeeklyMoneyTotal(selectedWeek).toLocaleString()}
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-4 sm:p-6">
+                  <div className="p-6">
                     {getWeeklyMoneyTotal(selectedWeek) === 0 ? (
-                      <div className="text-center py-8 text-gray-500 text-sm">
+                      <div className="text-center py-8 text-gray-500">
                         No money entered for this week yet
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                      <div className="grid grid-cols-2 gap-6">
                         <div>
-                          <h4 className="font-semibold text-gray-700 mb-3 text-base sm:text-lg">Main Game</h4>
+                          <h4 className="font-semibold text-gray-700 mb-3 text-lg">Main Game</h4>
                           <div className="space-y-2">
                             {['1st', '2nd', '3rd'].map(place => {
                               const cat = moneyCategories.find(c => c.id === place);
                               const winner = players.find(p => p.weeklyMoney[selectedWeek]?.[place]);
                               if (!winner) return null;
                               return (
-                                <div key={place} className="flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg">
+                                <div key={place} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                   <div className="flex items-center gap-2">
-                                    <span className="text-lg sm:text-xl">{cat.icon}</span>
-                                    <span className="font-medium text-sm sm:text-base">{winner.name}</span>
+                                    <span className="text-xl">{cat.icon}</span>
+                                    <span className="font-medium">{winner.name}</span>
                                   </div>
-                                  <span className="font-bold text-green-700 text-sm sm:text-base">${winner.weeklyMoney[selectedWeek][place]}</span>
+                                  <span className="font-bold text-green-700">${winner.weeklyMoney[selectedWeek][place]}</span>
                                 </div>
                               );
                             })}
@@ -1108,21 +1291,21 @@ export default function ArlingtonLakesGolfLeague() {
               <div className="space-y-4">
                 <button
                   onClick={() => setSelectedPlayer(null)}
-                  className="text-green-300 hover:text-white transition-colors flex items-center gap-2 text-sm"
+                  className="text-green-300 hover:text-white transition-colors flex items-center gap-2"
                 >
                   ← Back to All Players
                 </button>
 
                 <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-                  <div className="bg-green-800 p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="w-14 h-14 sm:w-20 sm:h-20 bg-white rounded-full flex items-center justify-center text-2xl sm:text-4xl shadow-md flex-shrink-0">
+                  <div className="bg-green-800 p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-4xl shadow-md">
                           👤
                         </div>
                         <div>
-                          <h3 className="text-xl sm:text-2xl font-serif font-bold text-white">{selectedPlayer.name}</h3>
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-green-200 text-sm">
+                          <h3 className="text-2xl font-serif font-bold text-white">{selectedPlayer.name}</h3>
+                          <div className="flex items-center gap-3 text-green-200">
                             <span>9-Hole HCP: {calc9HoleHandicap(selectedPlayer.handicap)}</span>
                             <span className="text-green-300 text-xs">(18-hole: {selectedPlayer.handicap})</span>
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -1134,37 +1317,37 @@ export default function ArlingtonLakesGolfLeague() {
                         </div>
                       </div>
                       {selectedPlayer.cdgaId && selectedPlayer.cdgaId !== 'N/A' && (
-                        <div className="sm:text-right pl-17 sm:pl-0">
-                          <div className="text-green-300 text-xs sm:text-sm">CDGA ID</div>
-                          <div className="text-white font-mono text-sm">{selectedPlayer.cdgaId}</div>
+                        <div className="text-right">
+                          <div className="text-green-300 text-sm">CDGA ID</div>
+                          <div className="text-white font-mono">{selectedPlayer.cdgaId}</div>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="p-4 sm:p-6">
-                    <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                      <div className="bg-green-50 rounded-lg p-3 sm:p-4 text-center">
-                        <div className="text-2xl sm:text-3xl font-bold text-green-700">{selectedPlayer.weeksPlayed}</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Weeks Played</div>
+                  <div className="p-6">
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="bg-green-50 rounded-lg p-4 text-center">
+                        <div className="text-3xl font-bold text-green-700">{selectedPlayer.weeksPlayed}</div>
+                        <div className="text-sm text-gray-600">Weeks Played</div>
                       </div>
-                      <div className="bg-yellow-50 rounded-lg p-3 sm:p-4 text-center">
-                        <div className="text-2xl sm:text-3xl font-bold text-yellow-700">${selectedPlayer.totalMoney}</div>
-                        <div className="text-xs sm:text-sm text-gray-600">Total Won</div>
+                      <div className="bg-yellow-50 rounded-lg p-4 text-center">
+                        <div className="text-3xl font-bold text-yellow-700">${selectedPlayer.totalMoney}</div>
+                        <div className="text-sm text-gray-600">Total Won</div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="grid grid-cols-2 gap-6">
                       <div className="border-t pt-4">
-                        <h4 className="font-semibold text-gray-700 mb-2 text-sm sm:text-base">Contact Information</h4>
-                        <div className="text-gray-600 space-y-1 text-sm">
-                          <div className="break-all">📧 {selectedPlayer.email}</div>
+                        <h4 className="font-semibold text-gray-700 mb-2">Contact Information</h4>
+                        <div className="text-gray-600 space-y-1">
+                          <div>📧 {selectedPlayer.email}</div>
                           <div>📱 {selectedPlayer.phone}</div>
                         </div>
                       </div>
 
                       <div className="border-t pt-4">
-                        <h4 className="font-semibold text-gray-700 mb-2 text-sm sm:text-base">Available Tee Times</h4>
+                        <h4 className="font-semibold text-gray-700 mb-2">Available Tee Times</h4>
                         <div className="flex flex-wrap gap-1">
                           {selectedPlayer.availability.map(time => (
                             <span key={time} className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
@@ -1177,12 +1360,12 @@ export default function ArlingtonLakesGolfLeague() {
 
                     {Object.keys(selectedPlayer.weeklyMoney).length > 0 && (
                       <div className="border-t pt-4 mt-4">
-                        <h4 className="font-semibold text-gray-700 mb-3 text-sm sm:text-base">Weekly Winnings</h4>
+                        <h4 className="font-semibold text-gray-700 mb-3">Weekly Winnings</h4>
                         <div className="space-y-2">
                           {Object.entries(selectedPlayer.weeklyMoney).map(([weekId, categories]) => (
-                            <div key={weekId} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 bg-gray-50 rounded-lg gap-2">
-                              <span className="text-gray-600 text-sm">Week {weekId}</span>
-                              <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                            <div key={weekId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                              <span className="text-gray-600">Week {weekId}</span>
+                              <div className="flex items-center gap-2">
                                 {Object.entries(categories).map(([cat, amount]) => (
                                   <span key={cat} className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
                                     {moneyCategories.find(c => c.id === cat)?.name}: ${amount}
@@ -1199,8 +1382,8 @@ export default function ArlingtonLakesGolfLeague() {
               </div>
             ) : (
               <>
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h2 className="text-lg sm:text-xl font-serif text-white">League Players ({filteredPlayers.length})</h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-serif text-white">League Players ({filteredPlayers.length})</h2>
                   <div className="flex gap-2">
                     {['all', 'full-time', 'substitute'].map(filter => (
                       <button
@@ -1218,25 +1401,25 @@ export default function ArlingtonLakesGolfLeague() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   {filteredPlayers.sort((a, b) => a.name.localeCompare(b.name)).map(player => (
                     <div
                       key={player.id}
                       onClick={() => setSelectedPlayer(player)}
-                      className="bg-white/95 rounded-lg shadow p-2 sm:p-3 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
+                      className="bg-white/95 rounded-lg shadow p-3 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
                     >
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm sm:text-base flex-shrink-0 ${
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                           player.type === 'substitute' ? 'bg-yellow-100' : 'bg-green-100'
                         }`}>
                           👤
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-800 text-xs sm:text-sm truncate">{player.name}</div>
+                          <div className="font-semibold text-gray-800 text-sm truncate">{player.name}</div>
                           <div className="text-xs text-gray-500">HCP {calc9HoleHandicap(player.handicap)} • {player.availability.length} times</div>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-green-600 font-bold text-xs sm:text-sm">${player.totalMoney}</div>
+                        <div className="text-right">
+                          <div className="text-green-600 font-bold text-sm">${player.totalMoney}</div>
                           <div className="text-xs text-gray-500">{player.weeksPlayed}w</div>
                         </div>
                       </div>
@@ -1251,38 +1434,40 @@ export default function ArlingtonLakesGolfLeague() {
         {/* Giant Skins Tab */}
         {activeTab === 'giantskins' && (
           <div className="space-y-4">
-            <div>
-              <h2 className="text-lg sm:text-xl font-serif text-white">Giant Skins</h2>
-              <p className="text-green-300 text-xs sm:text-sm">Lowest score on each hole for the entire season wins</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-serif text-white">Giant Skins</h2>
+                <p className="text-green-300 text-sm">Lowest score on each hole for the entire season wins</p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-blue-700 px-3 sm:px-4 py-2 sm:py-3">
-                  <h3 className="text-white font-medium text-sm sm:text-base">Front 9 (Holes 1-9)</h3>
+                <div className="bg-blue-700 px-4 py-3">
+                  <h3 className="text-white font-medium">Front 9 (Holes 1-9)</h3>
                 </div>
                 <div className="divide-y">
                   {giantSkins.slice(0, 9).map(hole => {
                     const holder = hole.playerId ? getPlayerById(hole.playerId) : null;
                     return (
-                      <div key={hole.number} className="flex items-center justify-between p-2 sm:p-4 hover:bg-gray-50">
-                        <div className="flex items-center gap-2 sm:gap-4">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-800 text-sm sm:text-base flex-shrink-0">
+                      <div key={hole.number} className="flex items-center justify-between p-4 hover:bg-gray-50">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-800">
                             {hole.number}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-800 text-sm">Hole {hole.number}</div>
-                            <div className="text-xs text-gray-500">Par {hole.par} • {hole.yards} yds</div>
+                            <div className="font-medium text-gray-800">Hole {hole.number}</div>
+                            <div className="text-sm text-gray-500">Par {hole.par} • {hole.yards} yds</div>
                           </div>
                         </div>
                         <div className="text-right">
                           {holder ? (
                             <>
-                              <div className="text-xl sm:text-2xl font-bold text-green-700">{hole.lowScore}</div>
-                              <div className="text-xs sm:text-sm text-gray-600 truncate max-w-24">{holder.name}</div>
+                              <div className="text-2xl font-bold text-green-700">{hole.lowScore}</div>
+                              <div className="text-sm text-gray-600">{holder.name}</div>
                             </>
                           ) : (
-                            <div className="text-gray-400 text-xs sm:text-sm">No score</div>
+                            <div className="text-gray-400 text-sm">No score yet</div>
                           )}
                         </div>
                       </div>
@@ -1292,31 +1477,31 @@ export default function ArlingtonLakesGolfLeague() {
               </div>
 
               <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-purple-700 px-3 sm:px-4 py-2 sm:py-3">
-                  <h3 className="text-white font-medium text-sm sm:text-base">Back 9 (Holes 10-18)</h3>
+                <div className="bg-purple-700 px-4 py-3">
+                  <h3 className="text-white font-medium">Back 9 (Holes 10-18)</h3>
                 </div>
                 <div className="divide-y">
                   {giantSkins.slice(9, 18).map(hole => {
                     const holder = hole.playerId ? getPlayerById(hole.playerId) : null;
                     return (
-                      <div key={hole.number} className="flex items-center justify-between p-2 sm:p-4 hover:bg-gray-50">
-                        <div className="flex items-center gap-2 sm:gap-4">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center font-bold text-purple-800 text-sm sm:text-base flex-shrink-0">
+                      <div key={hole.number} className="flex items-center justify-between p-4 hover:bg-gray-50">
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center font-bold text-purple-800">
                             {hole.number}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-800 text-sm">Hole {hole.number}</div>
-                            <div className="text-xs text-gray-500">Par {hole.par} • {hole.yards} yds</div>
+                            <div className="font-medium text-gray-800">Hole {hole.number}</div>
+                            <div className="text-sm text-gray-500">Par {hole.par} • {hole.yards} yds</div>
                           </div>
                         </div>
                         <div className="text-right">
                           {holder ? (
                             <>
-                              <div className="text-xl sm:text-2xl font-bold text-purple-700">{hole.lowScore}</div>
-                              <div className="text-xs sm:text-sm text-gray-600 truncate max-w-24">{holder.name}</div>
+                              <div className="text-2xl font-bold text-purple-700">{hole.lowScore}</div>
+                              <div className="text-sm text-gray-600">{holder.name}</div>
                             </>
                           ) : (
-                            <div className="text-gray-400 text-xs sm:text-sm">No score</div>
+                            <div className="text-gray-400 text-sm">No score yet</div>
                           )}
                         </div>
                       </div>
@@ -1326,7 +1511,7 @@ export default function ArlingtonLakesGolfLeague() {
               </div>
             </div>
 
-            <div className="bg-green-800/50 rounded-lg p-3 sm:p-4 text-green-100 text-xs sm:text-sm">
+            <div className="bg-green-800/50 rounded-lg p-4 text-green-100 text-sm">
               <strong>How it works:</strong> The player with the lowest score on each hole across the entire season wins that hole's pot.
               Ties at season end split the money.
             </div>
