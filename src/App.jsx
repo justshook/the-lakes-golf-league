@@ -1539,6 +1539,9 @@ export default function ArlingtonLakesGolfLeague() {
                           onChange={(e) => { setAdminPassword(e.target.value); setPasswordError(false); }}
                           onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
                           placeholder="Enter admin password"
+                          autoComplete="off"
+                          data-1p-ignore="true"
+                          data-lpignore="true"
                           className={`w-full border rounded-lg px-4 py-3 text-center text-lg ${
                             passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300'
                           }`}
