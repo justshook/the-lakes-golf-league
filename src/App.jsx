@@ -956,10 +956,17 @@ export default function ArlingtonLakesGolfLeague() {
                 <p className="text-green-300 text-sm">2026 Season • April - August</p>
               </div>
             </div>
-            <div className="text-right text-green-200 text-sm">
-              <div>{players.filter(p => p.type === 'full-time').length} Members • {players.filter(p => p.type === 'substitute').length} Subs • {weeks.length} Weeks</div>
-              <div className="text-yellow-500 font-medium">Every Monday • 9 Holes</div>
-            </div>
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                isAdminAuthenticated
+                  ? 'bg-green-700 text-white hover:bg-green-600'
+                  : 'bg-yellow-600 text-white hover:bg-yellow-500'
+              }`}
+            >
+              <span>⚙️</span>
+              <span>{isAdminAuthenticated ? 'Admin' : 'Login'}</span>
+            </button>
           </div>
         </div>
       </header>
