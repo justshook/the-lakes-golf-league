@@ -495,6 +495,139 @@ export default function ArlingtonLakesGolfLeague() {
     }
   };
 
+  // Reset functions for admin panel
+  const [showResetConfirm, setShowResetConfirm] = useState(null);
+  const [resetWeekId, setResetWeekId] = useState(null);
+
+  const resetSingleWeek = async (weekId) => {
+    try {
+      // Delete tee sheet for this week
+      const { error: teeError } = await supabase
+        .from('tee_sheets')
+        .delete()
+        .eq('week_id', weekId);
+      if (teeError) throw teeError;
+
+      // Delete money entries for this week
+      const { error: moneyError } = await supabase
+        .from('player_money')
+        .delete()
+        .eq('week_id', weekId);
+      if (moneyError) throw moneyError;
+
+      // Reset giant skins that were set in this week
+      const { error: skinsError } = await supabase
+        .from('giant_skins')
+        .update({ low_score: null, player_id: null, week_id: null })
+        .eq('week_id', weekId);
+      if (skinsError) throw skinsError;
+
+      // Update local state - reset the week
+      setWeeks(prevWeeks => prevWeeks.map(w =>
+        w.id === weekId
+          ? { ...w, teeSheet: [], scoresEntered: false, moneyEntered: false }
+          : w
+      ));
+
+      // Update players - remove money for this week
+      setPlayers(prevPlayers => prevPlayers.map(player => {
+        const weekMoney = player.weeklyMoney[weekId];
+        if (!weekMoney) return player;
+
+        const weekTotal = Object.values(weekMoney).reduce((sum, amt) => sum + amt, 0);
+        const newWeeklyMoney = { ...player.weeklyMoney };
+        delete newWeeklyMoney[weekId];
+
+        return {
+          ...player,
+          weeklyMoney: newWeeklyMoney,
+          totalMoney: player.totalMoney - weekTotal,
+          weeksPlayed: Object.keys(newWeeklyMoney).length
+        };
+      }));
+
+      // Update giant skins - clear any set in this week
+      setGiantSkins(prevSkins => prevSkins.map(skin =>
+        skin.weekId === weekId
+          ? { ...skin, lowScore: null, playerId: null, weekId: null }
+          : skin
+      ));
+
+      setShowResetConfirm(null);
+      setResetWeekId(null);
+    } catch (error) {
+      console.error('Error resetting week:', error);
+    }
+  };
+
+  const resetMoneyData = async () => {
+    try {
+      const { error } = await supabase.from('player_money').delete().neq('id', 0);
+      if (error) throw error;
+
+      // Reset local state
+      setPlayers(prevPlayers => prevPlayers.map(p => ({
+        ...p,
+        totalMoney: 0,
+        weeklyMoney: {},
+        weeksPlayed: 0
+      })));
+
+      // Reset moneyEntered flags on weeks
+      setWeeks(prevWeeks => prevWeeks.map(w => ({ ...w, moneyEntered: false })));
+
+      setShowResetConfirm(null);
+    } catch (error) {
+      console.error('Error resetting money:', error);
+    }
+  };
+
+  const resetTeeSheets = async () => {
+    try {
+      const { error } = await supabase.from('tee_sheets').delete().neq('id', 0);
+      if (error) throw error;
+
+      // Reset local state
+      setWeeks(prevWeeks => prevWeeks.map(w => ({
+        ...w,
+        teeSheet: [],
+        scoresEntered: false,
+        moneyEntered: false
+      })));
+
+      setShowResetConfirm(null);
+    } catch (error) {
+      console.error('Error resetting tee sheets:', error);
+    }
+  };
+
+  const resetGiantSkins = async () => {
+    try {
+      const { error } = await supabase.from('giant_skins').delete().neq('id', 0);
+      if (error) throw error;
+
+      // Reset local state
+      setGiantSkins(courseHoles.map(h => ({
+        number: h.number,
+        par: h.par,
+        lowScore: null,
+        playerId: null,
+        weekId: null
+      })));
+
+      setShowResetConfirm(null);
+    } catch (error) {
+      console.error('Error resetting giant skins:', error);
+    }
+  };
+
+  const resetAllData = async () => {
+    await resetMoneyData();
+    await resetTeeSheets();
+    await resetGiantSkins();
+    setShowResetConfirm(null);
+  };
+
   const currentWeek = weeks.find(w => w.id === selectedWeek);
   const currentGame = weeklyGames.find(g => g.weekId === selectedWeek);
 
@@ -2239,6 +2372,124 @@ export default function ArlingtonLakesGolfLeague() {
                 )}
               </div>
             </div>
+
+            {/* Reset Data */}
+            <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
+              <div className="bg-red-800 px-4 py-3">
+                <h3 className="text-white font-medium">🗑️ Reset Data</h3>
+              </div>
+              <div className="p-4 space-y-4">
+                {/* Reset Single Week */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-800 mb-2">Reset Single Week</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Clear all data (schedule, scores, money, giant skins) for a specific week only.
+                  </p>
+                  <div className="flex gap-2">
+                    <select
+                      value={resetWeekId || ''}
+                      onChange={(e) => setResetWeekId(e.target.value ? parseInt(e.target.value) : null)}
+                      className="flex-1 border rounded-lg px-3 py-2"
+                    >
+                      <option value="">Select a week...</option>
+                      {weeks.filter(w => w.teeSheet.length > 0 || w.scoresEntered || w.moneyEntered).map(w => (
+                        <option key={w.id} value={w.id}>
+                          Week {w.id} - {formatShortDate(w.date)}
+                          {w.teeSheet.length > 0 ? ' (has schedule)' : ''}
+                          {w.moneyEntered ? ' (has money)' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => resetWeekId && setShowResetConfirm('week')}
+                      disabled={!resetWeekId}
+                      className={`px-4 py-2 rounded-lg font-medium text-sm ${
+                        resetWeekId
+                          ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Reset Week
+                    </button>
+                  </div>
+                </div>
+
+                {/* Reset All Options */}
+                <div>
+                  <h4 className="font-medium text-gray-800 mb-2">Reset All Season Data</h4>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Clear data across the entire season. This cannot be undone.
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <button
+                      onClick={() => setShowResetConfirm('money')}
+                      className="bg-orange-100 text-orange-700 px-4 py-3 rounded-lg hover:bg-orange-200 font-medium text-sm"
+                    >
+                      💰 All Money
+                    </button>
+                    <button
+                      onClick={() => setShowResetConfirm('teeSheets')}
+                      className="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg hover:bg-blue-200 font-medium text-sm"
+                    >
+                      📅 All Schedules
+                    </button>
+                    <button
+                      onClick={() => setShowResetConfirm('giantSkins')}
+                      className="bg-purple-100 text-purple-700 px-4 py-3 rounded-lg hover:bg-purple-200 font-medium text-sm"
+                    >
+                      🏆 All Giant Skins
+                    </button>
+                    <button
+                      onClick={() => setShowResetConfirm('all')}
+                      className="bg-red-100 text-red-700 px-4 py-3 rounded-lg hover:bg-red-200 font-medium text-sm"
+                    >
+                      ⚠️ Everything
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Reset Confirmation Modal */}
+            {showResetConfirm && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
+                  <div className="bg-red-700 px-6 py-4">
+                    <h3 className="text-xl font-bold text-white">⚠️ Confirm Reset</h3>
+                  </div>
+                  <div className="p-6">
+                    <p className="text-gray-700 mb-4">
+                      {showResetConfirm === 'week' && `This will delete all data for Week ${resetWeekId} (schedule, scores, money, and any giant skins set that week).`}
+                      {showResetConfirm === 'money' && 'This will delete all money entries and reset player totals to $0.'}
+                      {showResetConfirm === 'teeSheets' && 'This will delete all tee sheets, scores, and schedule data.'}
+                      {showResetConfirm === 'giantSkins' && 'This will reset all Giant Skins standings.'}
+                      {showResetConfirm === 'all' && 'This will delete ALL data: money, schedules, scores, and giant skins.'}
+                    </p>
+                    <p className="text-red-600 font-medium text-sm mb-6">This action cannot be undone!</p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          if (showResetConfirm === 'week') resetSingleWeek(resetWeekId);
+                          else if (showResetConfirm === 'money') resetMoneyData();
+                          else if (showResetConfirm === 'teeSheets') resetTeeSheets();
+                          else if (showResetConfirm === 'giantSkins') resetGiantSkins();
+                          else if (showResetConfirm === 'all') resetAllData();
+                        }}
+                        className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium"
+                      >
+                        Yes, Reset
+                      </button>
+                      <button
+                        onClick={() => { setShowResetConfirm(null); setResetWeekId(null); }}
+                        className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             </>
             )}
           </div>
