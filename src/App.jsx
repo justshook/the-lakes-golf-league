@@ -1368,24 +1368,24 @@ export default function ArlingtonLakesGolfLeague() {
                       </div>
 
                       {currentWeek.teeSheet.map((slot, idx) => (
-                        <div key={idx} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                          <div className="w-24 font-bold text-green-800 text-lg">{slot.time}</div>
-                          <div className="flex-1 grid grid-cols-4 gap-3">
+                        <div key={idx} className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                          <div className="font-bold text-green-800 text-lg mb-2 sm:mb-0 sm:float-left sm:w-24 sm:mr-4">{slot.time}</div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                             {slot.players.map((playerId, pIdx) => {
                               const player = getPlayerById(playerId);
                               return (
                                 <div
                                   key={pIdx}
-                                  className="bg-white px-3 py-2 rounded border border-gray-200 cursor-pointer hover:border-green-500 transition-colors"
+                                  className="bg-white px-2 sm:px-3 py-2 rounded border border-gray-200 cursor-pointer hover:border-green-500 transition-colors"
                                   onClick={() => { setSelectedPlayer(player); setActiveTab('players'); }}
                                 >
-                                  <div className="font-medium text-gray-800 text-sm">{player?.name}</div>
+                                  <div className="font-medium text-gray-800 text-xs sm:text-sm truncate">{player?.name}</div>
                                   <div className="text-xs text-gray-500">HCP {calc9HoleHandicap(player?.handicap)}</div>
                                 </div>
                               );
                             })}
                             {[...Array(4 - slot.players.length)].map((_, i) => (
-                              <div key={`empty-${i}`} className="bg-gray-100 px-3 py-2 rounded border border-dashed border-gray-300 text-gray-400 text-sm text-center">
+                              <div key={`empty-${i}`} className="bg-gray-100 px-2 sm:px-3 py-2 rounded border border-dashed border-gray-300 text-gray-400 text-xs sm:text-sm text-center">
                                 Open
                               </div>
                             ))}
@@ -1586,10 +1586,9 @@ export default function ArlingtonLakesGolfLeague() {
                 <table className="w-full">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">Rank</th>
-                      <th className="px-4 py-3 text-left font-medium text-gray-600">Player</th>
-                      <th className="px-4 py-3 text-center font-medium text-gray-600">Weeks</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">Total Won</th>
+                      <th className="px-2 sm:px-4 py-3 text-left font-medium text-gray-600">Rank</th>
+                      <th className="px-2 sm:px-4 py-3 text-left font-medium text-gray-600">Player</th>
+                      <th className="px-2 sm:px-4 py-3 text-right font-medium text-gray-600">Total Won</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1600,18 +1599,17 @@ export default function ArlingtonLakesGolfLeague() {
                           index === 0 ? 'bg-yellow-50' : ''
                         }`}
                       >
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-2">
+                        <td className="px-2 sm:px-4 py-4">
+                          <div className="flex items-center gap-1 sm:gap-2">
                             {index === 0 && <span>🥇</span>}
                             {index === 1 && <span>🥈</span>}
                             {index === 2 && <span>🥉</span>}
                             <span className="font-bold text-gray-600">{index + 1}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-4 font-semibold text-gray-800">{player.name}</td>
-                        <td className="px-4 py-4 text-center text-gray-600">{player.weeksPlayed}</td>
-                        <td className="px-4 py-4 text-right">
-                          <span className="bg-green-100 text-green-800 px-4 py-1 rounded-full font-bold">
+                        <td className="px-2 sm:px-4 py-4 font-semibold text-gray-800 text-sm sm:text-base">{player.name}</td>
+                        <td className="px-2 sm:px-4 py-4 text-right">
+                          <span className="bg-green-100 text-green-800 px-2 sm:px-4 py-1 rounded-full font-bold text-sm sm:text-base">
                             ${player.totalMoney.toLocaleString()}
                           </span>
                         </td>
@@ -1619,7 +1617,7 @@ export default function ArlingtonLakesGolfLeague() {
                     ))}
                     {sortedByMoney.filter(p => p.totalMoney > 0).length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-4 py-12 text-center text-gray-500">
+                        <td colSpan={3} className="px-4 py-12 text-center text-gray-500">
                           No money entered yet. Use Admin to enter weekly winnings.
                         </td>
                       </tr>
@@ -1822,7 +1820,7 @@ export default function ArlingtonLakesGolfLeague() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {filteredPlayers.sort((a, b) => a.name.localeCompare(b.name)).map(player => (
                     <div
                       key={player.id}
@@ -1862,7 +1860,7 @@ export default function ArlingtonLakesGolfLeague() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
                 <div className="bg-blue-700 px-4 py-3">
                   <h3 className="text-white font-medium">Front 9 (Holes 1-9)</h3>
@@ -1871,24 +1869,24 @@ export default function ArlingtonLakesGolfLeague() {
                   {giantSkins.slice(0, 9).map(hole => {
                     const holder = hole.playerId ? getPlayerById(hole.playerId) : null;
                     return (
-                      <div key={hole.number} className="flex items-center justify-between p-4 hover:bg-gray-50">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-800">
+                      <div key={hole.number} className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-800 text-sm sm:text-base">
                             {hole.number}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-800">Hole {hole.number}</div>
-                            <div className="text-sm text-gray-500">Par {hole.par} • {hole.yards} yds</div>
+                            <div className="font-medium text-gray-800 text-sm sm:text-base">Hole {hole.number}</div>
+                            <div className="text-xs sm:text-sm text-gray-500">Par {hole.par}</div>
                           </div>
                         </div>
                         <div className="text-right">
                           {holder ? (
                             <>
-                              <div className="text-2xl font-bold text-green-700">{hole.lowScore}</div>
-                              <div className="text-sm text-gray-600">{holder.name}</div>
+                              <div className="text-xl sm:text-2xl font-bold text-green-700">{hole.lowScore}</div>
+                              <div className="text-xs sm:text-sm text-gray-600">{holder.name}</div>
                             </>
                           ) : (
-                            <div className="text-gray-400 text-sm">No score yet</div>
+                            <div className="text-gray-400 text-xs sm:text-sm">No score yet</div>
                           )}
                         </div>
                       </div>
@@ -1905,24 +1903,24 @@ export default function ArlingtonLakesGolfLeague() {
                   {giantSkins.slice(9, 18).map(hole => {
                     const holder = hole.playerId ? getPlayerById(hole.playerId) : null;
                     return (
-                      <div key={hole.number} className="flex items-center justify-between p-4 hover:bg-gray-50">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center font-bold text-purple-800">
+                      <div key={hole.number} className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center font-bold text-purple-800 text-sm sm:text-base">
                             {hole.number}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-800">Hole {hole.number}</div>
-                            <div className="text-sm text-gray-500">Par {hole.par} • {hole.yards} yds</div>
+                            <div className="font-medium text-gray-800 text-sm sm:text-base">Hole {hole.number}</div>
+                            <div className="text-xs sm:text-sm text-gray-500">Par {hole.par}</div>
                           </div>
                         </div>
                         <div className="text-right">
                           {holder ? (
                             <>
-                              <div className="text-2xl font-bold text-purple-700">{hole.lowScore}</div>
-                              <div className="text-sm text-gray-600">{holder.name}</div>
+                              <div className="text-xl sm:text-2xl font-bold text-purple-700">{hole.lowScore}</div>
+                              <div className="text-xs sm:text-sm text-gray-600">{holder.name}</div>
                             </>
                           ) : (
-                            <div className="text-gray-400 text-sm">No score yet</div>
+                            <div className="text-gray-400 text-xs sm:text-sm">No score yet</div>
                           )}
                         </div>
                       </div>
