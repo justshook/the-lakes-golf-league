@@ -1218,7 +1218,7 @@ export default function ArlingtonLakesGolfLeague() {
               </div>
               <div>
                 <h1 className="text-2xl font-serif font-bold text-white tracking-wide">Arlington Lakes Golf League</h1>
-                <p className="text-green-300 text-sm">2026 Season • April - August</p>
+                <p className="text-green-300 text-sm">2026 Season</p>
               </div>
             </div>
             <button
@@ -1864,14 +1864,14 @@ export default function ArlingtonLakesGolfLeague() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-blue-700 px-4 py-3">
+                <div className="bg-green-800 px-4 py-3">
                   <h3 className="text-white font-medium">Front 9 (Holes 1-9)</h3>
                 </div>
                 <div className="divide-y">
                   {giantSkins.slice(0, 9).map(hole => {
                     const holder = hole.playerId ? getPlayerById(hole.playerId) : null;
                     return (
-                      <div key={hole.number} className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50">
+                      <div key={hole.number} className="flex items-center justify-between p-3 sm:p-4 hover:bg-green-50">
                         <div className="flex items-center gap-3 sm:gap-4">
                           <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-800 text-sm sm:text-base">
                             {hole.number}
@@ -1884,7 +1884,7 @@ export default function ArlingtonLakesGolfLeague() {
                         <div className="text-right">
                           {holder ? (
                             <>
-                              <div className="text-xl sm:text-2xl font-bold text-green-700">{hole.lowScore}</div>
+                              <div className="text-xl sm:text-2xl font-bold text-yellow-600">{hole.lowScore}</div>
                               <div className="text-xs sm:text-sm text-gray-600">{holder.name}</div>
                             </>
                           ) : (
@@ -1898,16 +1898,16 @@ export default function ArlingtonLakesGolfLeague() {
               </div>
 
               <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-                <div className="bg-purple-700 px-4 py-3">
+                <div className="bg-green-800 px-4 py-3">
                   <h3 className="text-white font-medium">Back 9 (Holes 10-18)</h3>
                 </div>
                 <div className="divide-y">
                   {giantSkins.slice(9, 18).map(hole => {
                     const holder = hole.playerId ? getPlayerById(hole.playerId) : null;
                     return (
-                      <div key={hole.number} className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50">
+                      <div key={hole.number} className="flex items-center justify-between p-3 sm:p-4 hover:bg-green-50">
                         <div className="flex items-center gap-3 sm:gap-4">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-full flex items-center justify-center font-bold text-purple-800 text-sm sm:text-base">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-800 text-sm sm:text-base">
                             {hole.number}
                           </div>
                           <div>
@@ -1918,7 +1918,7 @@ export default function ArlingtonLakesGolfLeague() {
                         <div className="text-right">
                           {holder ? (
                             <>
-                              <div className="text-xl sm:text-2xl font-bold text-purple-700">{hole.lowScore}</div>
+                              <div className="text-xl sm:text-2xl font-bold text-yellow-600">{hole.lowScore}</div>
                               <div className="text-xs sm:text-sm text-gray-600">{holder.name}</div>
                             </>
                           ) : (
@@ -2780,7 +2780,7 @@ export default function ArlingtonLakesGolfLeague() {
       {/* Footer */}
       <footer className="bg-green-950 border-t border-green-800 mt-8 py-4">
         <div className="max-w-7xl mx-auto px-4 text-center text-green-400 text-sm">
-          Arlington Lakes Golf League • 2026 Season • Prototype Demo
+          Arlington Lakes Golf League • 2026 Season
         </div>
       </footer>
     </div>
