@@ -546,12 +546,12 @@ export default function ArlingtonLakesGolfLeague() {
     try {
       const { error } = await supabase
         .from('giant_skins')
-        .update({
+        .upsert({
+          hole_number: holeNumber,
           low_score: lowScore,
           player_id: playerId,
           week_id: weekId
-        })
-        .eq('hole_number', holeNumber);
+        }, { onConflict: 'hole_number' });
 
       if (error) throw error;
     } catch (error) {
@@ -791,8 +791,16 @@ export default function ArlingtonLakesGolfLeague() {
   const handlePlayerScoreSubmit = async () => {
     const { playerId, weekId, totalScore, birdieHoles, eagleHoles } = playerScoreForm;
 
-    if (!playerId || !weekId || !totalScore) {
-      alert('Please fill in all required fields');
+    // Validate all required fields
+    if (!playerId || !weekId) {
+      alert('Please select your name and week');
+      return;
+    }
+
+    // Validate score is a valid positive number
+    const scoreNum = parseInt(totalScore);
+    if (!totalScore || isNaN(scoreNum) || scoreNum < 1) {
+      alert('Please enter a valid score');
       return;
     }
 
