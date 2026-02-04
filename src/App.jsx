@@ -295,7 +295,7 @@ export default function ArlingtonLakesGolfLeague() {
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [giantSkins, setGiantSkins] = useState(
-    courseHoles.map(hole => ({ ...hole, lowScore: null, playerId: null, weekId: null }))
+    courseHoles.map(hole => ({ ...hole, lowScore: null, players: [] }))
   );
 
   // Pairing history - tracks how many times each pair has played together
@@ -442,11 +442,16 @@ export default function ArlingtonLakesGolfLeague() {
           setGiantSkins(prevSkins => prevSkins.map(skin => {
             const savedSkin = skinsData.find(s => s.hole_number === skin.number);
             if (savedSkin && savedSkin.low_score) {
+              // Handle both old format (player_id) and new format (players array)
+              let players = savedSkin.players || [];
+              if (players.length === 0 && savedSkin.player_id) {
+                // Migrate old format
+                players = [{ playerId: savedSkin.player_id, weekId: savedSkin.week_id }];
+              }
               return {
                 ...skin,
                 lowScore: savedSkin.low_score,
-                playerId: savedSkin.player_id,
-                weekId: savedSkin.week_id
+                players: players
               };
             }
             return skin;
@@ -542,15 +547,14 @@ export default function ArlingtonLakesGolfLeague() {
   };
 
   // Save giant skin to Supabase
-  const saveGiantSkinToSupabase = async (holeNumber, lowScore, playerId, weekId) => {
+  const saveGiantSkinToSupabase = async (holeNumber, lowScore, players) => {
     try {
       const { error } = await supabase
         .from('giant_skins')
         .upsert({
           hole_number: holeNumber,
           low_score: lowScore,
-          player_id: playerId,
-          week_id: weekId
+          players: players // JSON array of {playerId, weekId}
         }, { onConflict: 'hole_number' });
 
       if (error) throw error;
@@ -681,12 +685,20 @@ export default function ArlingtonLakesGolfLeague() {
         };
       }));
 
-      // Update giant skins - clear any set in this week
-      setGiantSkins(prevSkins => prevSkins.map(skin =>
-        skin.weekId === weekId
-          ? { ...skin, lowScore: null, playerId: null, weekId: null }
-          : skin
-      ));
+      // Update giant skins - remove players added in this week
+      setGiantSkins(prevSkins => prevSkins.map(skin => {
+        if (!skin.players || skin.players.length === 0) return skin;
+
+        const filteredPlayers = skin.players.filter(p => p.weekId !== weekId);
+        if (filteredPlayers.length === 0) {
+          // No players left, reset the hole
+          return { ...skin, lowScore: null, players: [] };
+        } else if (filteredPlayers.length < skin.players.length) {
+          // Some players were removed
+          return { ...skin, players: filteredPlayers };
+        }
+        return skin;
+      }));
 
       // Delete player scores for this week
       const { error: scoresError } = await supabase
@@ -756,8 +768,7 @@ export default function ArlingtonLakesGolfLeague() {
         number: h.number,
         par: h.par,
         lowScore: null,
-        playerId: null,
-        weekId: null
+        players: []
       })));
 
       setShowResetConfirm(null);
@@ -825,17 +836,28 @@ export default function ArlingtonLakesGolfLeague() {
       const birdieScore = hole.par - 1;
       const skinIdx = holeNum - 1;
       const currentSkin = updatedGiantSkins[skinIdx];
+      const newPlayerEntry = { playerId: playerIdNum, weekId: weekIdNum };
 
-      // Update giant skin if this birdie beats the current record
+      // Check if this player already has this score on this hole
+      const alreadyHasScore = currentSkin.players?.some(p => p.playerId === playerIdNum);
+      if (alreadyHasScore) continue;
+
       if (currentSkin.lowScore === null || birdieScore < currentSkin.lowScore) {
+        // New record - replace all players
         updatedGiantSkins[skinIdx] = {
           ...currentSkin,
           lowScore: birdieScore,
-          playerId: playerIdNum,
-          weekId: weekIdNum
+          players: [newPlayerEntry]
         };
-        // Save to Supabase
-        await saveGiantSkinToSupabase(holeNum, birdieScore, playerIdNum, weekIdNum);
+        await saveGiantSkinToSupabase(holeNum, birdieScore, [newPlayerEntry]);
+      } else if (birdieScore === currentSkin.lowScore) {
+        // Tie - add player to the list
+        const updatedPlayers = [...(currentSkin.players || []), newPlayerEntry];
+        updatedGiantSkins[skinIdx] = {
+          ...currentSkin,
+          players: updatedPlayers
+        };
+        await saveGiantSkinToSupabase(holeNum, birdieScore, updatedPlayers);
       }
     }
 
@@ -847,17 +869,28 @@ export default function ArlingtonLakesGolfLeague() {
       const eagleScore = hole.par - 2;
       const skinIdx = holeNum - 1;
       const currentSkin = updatedGiantSkins[skinIdx];
+      const newPlayerEntry = { playerId: playerIdNum, weekId: weekIdNum };
 
-      // Update giant skin if this eagle beats the current record
+      // Check if this player already has this score on this hole
+      const alreadyHasScore = currentSkin.players?.some(p => p.playerId === playerIdNum);
+      if (alreadyHasScore) continue;
+
       if (currentSkin.lowScore === null || eagleScore < currentSkin.lowScore) {
+        // New record - replace all players
         updatedGiantSkins[skinIdx] = {
           ...currentSkin,
           lowScore: eagleScore,
-          playerId: playerIdNum,
-          weekId: weekIdNum
+          players: [newPlayerEntry]
         };
-        // Save to Supabase
-        await saveGiantSkinToSupabase(holeNum, eagleScore, playerIdNum, weekIdNum);
+        await saveGiantSkinToSupabase(holeNum, eagleScore, [newPlayerEntry]);
+      } else if (eagleScore === currentSkin.lowScore) {
+        // Tie - add player to the list
+        const updatedPlayers = [...(currentSkin.players || []), newPlayerEntry];
+        updatedGiantSkins[skinIdx] = {
+          ...currentSkin,
+          players: updatedPlayers
+        };
+        await saveGiantSkinToSupabase(holeNum, eagleScore, updatedPlayers);
       }
     }
 
@@ -1318,18 +1351,31 @@ export default function ArlingtonLakesGolfLeague() {
 
     const scoreNum = parseInt(score);
     const holeIdx = parseInt(hole) - 1;
-    const currentLow = giantSkins[holeIdx].lowScore;
+    const currentSkin = giantSkins[holeIdx];
+    const newPlayerEntry = { playerId: parseInt(playerId), weekId: selectedWeek };
 
-    if (currentLow === null || scoreNum < currentLow) {
+    // Check if this player already has this score on this hole
+    const alreadyHasScore = currentSkin.players?.some(p => p.playerId === parseInt(playerId));
+
+    if (currentSkin.lowScore === null || scoreNum < currentSkin.lowScore) {
+      // New record - replace all players
       const newGiantSkins = giantSkins.map((h, idx) =>
         idx === holeIdx
-          ? { ...h, lowScore: scoreNum, playerId: parseInt(playerId), weekId: selectedWeek }
+          ? { ...h, lowScore: scoreNum, players: [newPlayerEntry] }
           : h
       );
       setGiantSkins(newGiantSkins);
-
-      // Save to Supabase
-      await saveGiantSkinToSupabase(parseInt(hole), scoreNum, parseInt(playerId), selectedWeek);
+      await saveGiantSkinToSupabase(parseInt(hole), scoreNum, [newPlayerEntry]);
+    } else if (scoreNum === currentSkin.lowScore && !alreadyHasScore) {
+      // Tie - add player to the list
+      const updatedPlayers = [...(currentSkin.players || []), newPlayerEntry];
+      const newGiantSkins = giantSkins.map((h, idx) =>
+        idx === holeIdx
+          ? { ...h, players: updatedPlayers }
+          : h
+      );
+      setGiantSkins(newGiantSkins);
+      await saveGiantSkinToSupabase(parseInt(hole), scoreNum, updatedPlayers);
     }
 
     setGiantSkinsEntry({ hole: 1, score: '', playerId: '' });
@@ -2244,7 +2290,7 @@ export default function ArlingtonLakesGolfLeague() {
                 </div>
                 <div className="divide-y">
                   {giantSkins.slice(0, 9).map(hole => {
-                    const holder = hole.playerId ? getPlayerById(hole.playerId) : null;
+                    const hasPlayers = hole.players && hole.players.length > 0;
                     return (
                       <div key={hole.number} className="flex items-center justify-between p-3 sm:p-4 hover:bg-green-50">
                         <div className="flex items-center gap-3 sm:gap-4">
@@ -2257,10 +2303,20 @@ export default function ArlingtonLakesGolfLeague() {
                           </div>
                         </div>
                         <div className="text-right">
-                          {holder ? (
+                          {hasPlayers ? (
                             <>
                               <div className="text-xl sm:text-2xl font-bold text-yellow-600">{hole.lowScore}</div>
-                              <div className="text-xs sm:text-sm text-gray-600">{holder.name}</div>
+                              <div className="text-xs sm:text-sm text-gray-600">
+                                {hole.players.map((p, idx) => {
+                                  const player = getPlayerById(p.playerId);
+                                  return (
+                                    <span key={p.playerId}>
+                                      {player?.name || 'Unknown'}
+                                      {idx < hole.players.length - 1 && ', '}
+                                    </span>
+                                  );
+                                })}
+                              </div>
                             </>
                           ) : (
                             <div className="text-gray-400 text-xs sm:text-sm">No score yet</div>
@@ -2278,7 +2334,7 @@ export default function ArlingtonLakesGolfLeague() {
                 </div>
                 <div className="divide-y">
                   {giantSkins.slice(9, 18).map(hole => {
-                    const holder = hole.playerId ? getPlayerById(hole.playerId) : null;
+                    const hasPlayers = hole.players && hole.players.length > 0;
                     return (
                       <div key={hole.number} className="flex items-center justify-between p-3 sm:p-4 hover:bg-green-50">
                         <div className="flex items-center gap-3 sm:gap-4">
@@ -2291,10 +2347,20 @@ export default function ArlingtonLakesGolfLeague() {
                           </div>
                         </div>
                         <div className="text-right">
-                          {holder ? (
+                          {hasPlayers ? (
                             <>
                               <div className="text-xl sm:text-2xl font-bold text-yellow-600">{hole.lowScore}</div>
-                              <div className="text-xs sm:text-sm text-gray-600">{holder.name}</div>
+                              <div className="text-xs sm:text-sm text-gray-600">
+                                {hole.players.map((p, idx) => {
+                                  const player = getPlayerById(p.playerId);
+                                  return (
+                                    <span key={p.playerId}>
+                                      {player?.name || 'Unknown'}
+                                      {idx < hole.players.length - 1 && ', '}
+                                    </span>
+                                  );
+                                })}
+                              </div>
                             </>
                           ) : (
                             <div className="text-gray-400 text-xs sm:text-sm">No score yet</div>
