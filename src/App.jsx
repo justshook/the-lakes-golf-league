@@ -355,6 +355,15 @@ export default function ArlingtonLakesGolfLeague() {
     eagleHoles: []
   });
 
+  // Player scores tracking
+  const [playerScores, setPlayerScores] = useState([]);
+
+  // Score management state (admin)
+  const [showScoreManager, setShowScoreManager] = useState(false);
+  const [editingScore, setEditingScore] = useState(null);
+  const [scoreManagerWeek, setScoreManagerWeek] = useState(1);
+  const [adminAddScore, setAdminAddScore] = useState({ playerId: '', grossScore: '' });
+
   // Load data from Supabase on mount
   useEffect(() => {
     async function loadData() {
@@ -441,6 +450,17 @@ export default function ArlingtonLakesGolfLeague() {
           }));
         }
 
+        // Load player scores
+        const { data: scoresData, error: scoresError } = await supabase
+          .from('player_scores')
+          .select('*');
+
+        if (scoresError) throw scoresError;
+
+        if (scoresData && scoresData.length > 0) {
+          setPlayerScores(scoresData);
+        }
+
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -505,6 +525,77 @@ export default function ArlingtonLakesGolfLeague() {
     }
   };
 
+  // Save player score to Supabase
+  const savePlayerScoreToSupabase = async (playerId, weekId, grossScore, netScore, handicapUsed) => {
+    try {
+      const { error } = await supabase
+        .from('player_scores')
+        .upsert({
+          player_id: playerId,
+          week_id: weekId,
+          gross_score: grossScore,
+          net_score: netScore,
+          handicap_used: handicapUsed
+        }, { onConflict: 'player_id,week_id' });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving player score:', error);
+    }
+  };
+
+  // Update existing player score
+  const updatePlayerScore = async (playerId, weekId, newGrossScore) => {
+    const player = players.find(p => p.id === playerId);
+    if (!player) return;
+
+    const handicap9 = calc9HoleHandicap(player.handicap);
+    const newNetScore = newGrossScore - handicap9;
+
+    try {
+      const { error } = await supabase
+        .from('player_scores')
+        .update({
+          gross_score: newGrossScore,
+          net_score: newNetScore,
+          handicap_used: handicap9
+        })
+        .eq('player_id', playerId)
+        .eq('week_id', weekId);
+
+      if (error) throw error;
+
+      // Update local state
+      setPlayerScores(prev => prev.map(s =>
+        s.player_id === playerId && s.week_id === weekId
+          ? { ...s, gross_score: newGrossScore, net_score: newNetScore, handicap_used: handicap9 }
+          : s
+      ));
+
+      setEditingScore(null);
+    } catch (error) {
+      console.error('Error updating player score:', error);
+    }
+  };
+
+  // Delete a player score
+  const deletePlayerScore = async (playerId, weekId) => {
+    try {
+      const { error } = await supabase
+        .from('player_scores')
+        .delete()
+        .eq('player_id', playerId)
+        .eq('week_id', weekId);
+
+      if (error) throw error;
+
+      // Update local state
+      setPlayerScores(prev => prev.filter(s => !(s.player_id === playerId && s.week_id === weekId)));
+    } catch (error) {
+      console.error('Error deleting player score:', error);
+    }
+  };
+
   // Reset functions for admin panel
   const [showResetConfirm, setShowResetConfirm] = useState(null);
   const [resetWeekId, setResetWeekId] = useState(null);
@@ -562,6 +653,16 @@ export default function ArlingtonLakesGolfLeague() {
           ? { ...skin, lowScore: null, playerId: null, weekId: null }
           : skin
       ));
+
+      // Delete player scores for this week
+      const { error: scoresError } = await supabase
+        .from('player_scores')
+        .delete()
+        .eq('week_id', weekId);
+      if (scoresError) throw scoresError;
+
+      // Update local player scores state
+      setPlayerScores(prev => prev.filter(s => s.week_id !== weekId));
 
       setShowResetConfirm(null);
       setResetWeekId(null);
@@ -631,10 +732,24 @@ export default function ArlingtonLakesGolfLeague() {
     }
   };
 
+  const resetPlayerScores = async () => {
+    try {
+      const { error } = await supabase.from('player_scores').delete().neq('id', 0);
+      if (error) throw error;
+
+      // Reset local state
+      setPlayerScores([]);
+      setShowResetConfirm(null);
+    } catch (error) {
+      console.error('Error resetting player scores:', error);
+    }
+  };
+
   const resetAllData = async () => {
     await resetMoneyData();
     await resetTeeSheets();
     await resetGiantSkins();
+    await resetPlayerScores();
     setShowResetConfirm(null);
   };
 
@@ -706,6 +821,36 @@ export default function ArlingtonLakesGolfLeague() {
 
     setGiantSkins(updatedGiantSkins);
 
+    // Calculate and save player score
+    const player = players.find(p => p.id === playerIdNum);
+    if (player) {
+      const grossScore = parseInt(totalScore);
+      const handicap9 = calc9HoleHandicap(player.handicap);
+      const netScore = grossScore - handicap9;
+
+      // Save to Supabase
+      await savePlayerScoreToSupabase(playerIdNum, weekIdNum, grossScore, netScore, handicap9);
+
+      // Update local state
+      const newScore = {
+        player_id: playerIdNum,
+        week_id: weekIdNum,
+        gross_score: grossScore,
+        net_score: netScore,
+        handicap_used: handicap9
+      };
+
+      setPlayerScores(prev => {
+        const existingIdx = prev.findIndex(s => s.player_id === playerIdNum && s.week_id === weekIdNum);
+        if (existingIdx >= 0) {
+          const updated = [...prev];
+          updated[existingIdx] = newScore;
+          return updated;
+        }
+        return [...prev, newScore];
+      });
+    }
+
     // Reset form and close
     setPlayerScoreForm({
       playerId: '',
@@ -716,7 +861,7 @@ export default function ArlingtonLakesGolfLeague() {
     });
     setShowPlayerScoreEntry(false);
 
-    alert('Score submitted successfully! Any birdies or eagles have been checked against Giant Skins.');
+    alert('Score submitted successfully! Your gross and net scores have been recorded.');
   };
 
   // Toggle hole selection for birdie/eagle
@@ -1702,6 +1847,82 @@ export default function ArlingtonLakesGolfLeague() {
                 </div>
               </div>
             )}
+
+            {/* Score Leaderboard */}
+            <div className="mt-8">
+              <h2 className="text-xl font-serif text-white mb-4">Score Leaderboard</h2>
+              <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
+                <div className="bg-green-800 px-6 py-4">
+                  <h3 className="text-lg font-medium text-white">Season Score Leaders (by Avg Net)</h3>
+                </div>
+                <table className="w-full">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="px-2 sm:px-4 py-3 text-left font-medium text-gray-600">Rank</th>
+                      <th className="px-2 sm:px-4 py-3 text-left font-medium text-gray-600">Player</th>
+                      <th className="px-2 sm:px-4 py-3 text-center font-medium text-gray-600">Rounds</th>
+                      <th className="px-2 sm:px-4 py-3 text-center font-medium text-gray-600">Avg Gross</th>
+                      <th className="px-2 sm:px-4 py-3 text-center font-medium text-gray-600">Avg Net</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      // Calculate averages for each player
+                      const playerAverages = players.map(player => {
+                        const scores = playerScores.filter(s => s.player_id === player.id);
+                        if (scores.length === 0) return null;
+                        return {
+                          ...player,
+                          rounds: scores.length,
+                          avgGross: (scores.reduce((sum, s) => sum + s.gross_score, 0) / scores.length).toFixed(1),
+                          avgNet: (scores.reduce((sum, s) => sum + s.net_score, 0) / scores.length).toFixed(1)
+                        };
+                      }).filter(p => p !== null).sort((a, b) => parseFloat(a.avgNet) - parseFloat(b.avgNet));
+
+                      if (playerAverages.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={5} className="px-4 py-12 text-center text-gray-500">
+                              No scores entered yet. Players can submit their scores on the Schedule page.
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return playerAverages.map((player, index) => (
+                        <tr
+                          key={player.id}
+                          className={`border-b border-gray-100 hover:bg-green-50 transition-colors ${
+                            index === 0 ? 'bg-yellow-50' : ''
+                          }`}
+                        >
+                          <td className="px-2 sm:px-4 py-4">
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              {index === 0 && <span>🥇</span>}
+                              {index === 1 && <span>🥈</span>}
+                              {index === 2 && <span>🥉</span>}
+                              <span className="font-bold text-gray-600">{index + 1}</span>
+                            </div>
+                          </td>
+                          <td className="px-2 sm:px-4 py-4 font-semibold text-gray-800 text-sm sm:text-base">{player.name}</td>
+                          <td className="px-2 sm:px-4 py-4 text-center text-gray-600">{player.rounds}</td>
+                          <td className="px-2 sm:px-4 py-4 text-center">
+                            <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium text-sm">
+                              {player.avgGross}
+                            </span>
+                          </td>
+                          <td className="px-2 sm:px-4 py-4 text-center">
+                            <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full font-bold text-sm">
+                              {player.avgNet}
+                            </span>
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1778,6 +1999,55 @@ export default function ArlingtonLakesGolfLeague() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Score Statistics */}
+                    {(() => {
+                      const playerScoreData = playerScores.filter(s => s.player_id === selectedPlayer.id);
+                      if (playerScoreData.length === 0) return null;
+
+                      const avgGross = (playerScoreData.reduce((sum, s) => sum + s.gross_score, 0) / playerScoreData.length).toFixed(1);
+                      const avgNet = (playerScoreData.reduce((sum, s) => sum + s.net_score, 0) / playerScoreData.length).toFixed(1);
+
+                      return (
+                        <div className="border-t pt-4 mt-4">
+                          <h4 className="font-semibold text-gray-700 mb-3">Score Statistics</h4>
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="bg-blue-50 rounded-lg p-3 text-center">
+                              <div className="text-2xl font-bold text-blue-700">{avgGross}</div>
+                              <div className="text-sm text-gray-600">Avg Gross</div>
+                            </div>
+                            <div className="bg-purple-50 rounded-lg p-3 text-center">
+                              <div className="text-2xl font-bold text-purple-700">{avgNet}</div>
+                              <div className="text-sm text-gray-600">Avg Net</div>
+                            </div>
+                          </div>
+
+                          <h4 className="font-semibold text-gray-700 mb-2">Weekly Scores</h4>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead className="bg-gray-100">
+                                <tr>
+                                  <th className="text-left p-2 rounded-tl-lg">Week</th>
+                                  <th className="text-center p-2">Gross</th>
+                                  <th className="text-center p-2">HCP</th>
+                                  <th className="text-center p-2 rounded-tr-lg">Net</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {playerScoreData.sort((a, b) => a.week_id - b.week_id).map(score => (
+                                  <tr key={score.week_id} className="border-b">
+                                    <td className="p-2 text-gray-600">Week {score.week_id}</td>
+                                    <td className="p-2 text-center font-medium">{score.gross_score}</td>
+                                    <td className="p-2 text-center text-gray-500">-{score.handicap_used}</td>
+                                    <td className="p-2 text-center font-bold text-purple-700">{score.net_score}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {Object.keys(selectedPlayer.weeklyMoney).length > 0 && (
                       <div className="border-t pt-4 mt-4">
@@ -2382,6 +2652,200 @@ export default function ArlingtonLakesGolfLeague() {
               )}
             </div>
 
+            {/* Manage Player Scores */}
+            <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
+              <div className="bg-green-800 px-4 py-3 flex items-center justify-between">
+                <h3 className="text-white font-medium">📊 Manage Player Scores</h3>
+                {!showScoreManager && (
+                  <button
+                    onClick={() => setShowScoreManager(true)}
+                    className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
+                  >
+                    View/Edit Scores
+                  </button>
+                )}
+              </div>
+
+              {showScoreManager && (
+                <div className="p-4">
+                  <div className="flex items-center gap-4 mb-4">
+                    <label className="text-sm font-medium text-gray-700">View Week:</label>
+                    <select
+                      value={scoreManagerWeek}
+                      onChange={(e) => setScoreManagerWeek(parseInt(e.target.value))}
+                      className="border rounded-lg px-3 py-2"
+                    >
+                      {weeks.map(w => (
+                        <option key={w.id} value={w.id}>
+                          Week {w.id} - {formatShortDate(w.date)}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => setShowScoreManager(false)}
+                      className="ml-auto text-gray-500 hover:text-gray-700"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+
+                  {/* Add Score Form */}
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="text-sm font-medium text-gray-700">Add Score:</span>
+                      <select
+                        value={adminAddScore.playerId}
+                        onChange={(e) => setAdminAddScore({ ...adminAddScore, playerId: e.target.value })}
+                        className="border rounded-lg px-3 py-2 text-sm"
+                      >
+                        <option value="">Select player...</option>
+                        {players
+                          .filter(p => !playerScores.some(s => s.player_id === p.id && s.week_id === scoreManagerWeek))
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map(p => (
+                            <option key={p.id} value={p.id}>{p.name} (HCP: {calc9HoleHandicap(p.handicap)})</option>
+                          ))}
+                      </select>
+                      <input
+                        type="number"
+                        placeholder="Gross Score"
+                        value={adminAddScore.grossScore}
+                        onChange={(e) => setAdminAddScore({ ...adminAddScore, grossScore: e.target.value })}
+                        className="border rounded-lg px-3 py-2 w-28 text-sm"
+                      />
+                      <button
+                        onClick={async () => {
+                          if (!adminAddScore.playerId || !adminAddScore.grossScore) {
+                            alert('Please select a player and enter a score');
+                            return;
+                          }
+                          const playerId = parseInt(adminAddScore.playerId);
+                          const grossScore = parseInt(adminAddScore.grossScore);
+                          const player = players.find(p => p.id === playerId);
+                          const handicap9 = calc9HoleHandicap(player.handicap);
+                          const netScore = grossScore - handicap9;
+
+                          await savePlayerScoreToSupabase(playerId, scoreManagerWeek, grossScore, netScore, handicap9);
+
+                          setPlayerScores(prev => [...prev, {
+                            player_id: playerId,
+                            week_id: scoreManagerWeek,
+                            gross_score: grossScore,
+                            net_score: netScore,
+                            handicap_used: handicap9
+                          }]);
+
+                          setAdminAddScore({ playerId: '', grossScore: '' });
+                        }}
+                        disabled={!adminAddScore.playerId || !adminAddScore.grossScore}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                          adminAddScore.playerId && adminAddScore.grossScore
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const weekScores = playerScores.filter(s => s.week_id === scoreManagerWeek);
+                    if (weekScores.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-gray-500">
+                          No scores recorded for Week {scoreManagerWeek}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th className="text-left p-2">Player</th>
+                              <th className="text-center p-2">Gross</th>
+                              <th className="text-center p-2">HCP</th>
+                              <th className="text-center p-2">Net</th>
+                              <th className="text-center p-2">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {weekScores
+                              .sort((a, b) => a.net_score - b.net_score)
+                              .map(score => {
+                                const player = players.find(p => p.id === score.player_id);
+                                const isEditing = editingScore?.player_id === score.player_id && editingScore?.week_id === score.week_id;
+
+                                return (
+                                  <tr key={`${score.player_id}-${score.week_id}`} className="border-b">
+                                    <td className="p-2 font-medium">{player?.name || 'Unknown'}</td>
+                                    <td className="p-2 text-center">
+                                      {isEditing ? (
+                                        <input
+                                          type="number"
+                                          value={editingScore.gross_score}
+                                          onChange={(e) => setEditingScore({ ...editingScore, gross_score: parseInt(e.target.value) || 0 })}
+                                          className="w-16 border rounded px-2 py-1 text-center"
+                                        />
+                                      ) : (
+                                        score.gross_score
+                                      )}
+                                    </td>
+                                    <td className="p-2 text-center text-gray-500">-{score.handicap_used}</td>
+                                    <td className="p-2 text-center font-bold text-purple-700">
+                                      {isEditing ? (editingScore.gross_score - calc9HoleHandicap(player?.handicap || 0)) : score.net_score}
+                                    </td>
+                                    <td className="p-2 text-center">
+                                      {isEditing ? (
+                                        <div className="flex gap-1 justify-center">
+                                          <button
+                                            onClick={() => updatePlayerScore(score.player_id, score.week_id, editingScore.gross_score)}
+                                            className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
+                                          >
+                                            Save
+                                          </button>
+                                          <button
+                                            onClick={() => setEditingScore(null)}
+                                            className="bg-gray-300 text-gray-700 px-2 py-1 rounded text-xs hover:bg-gray-400"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="flex gap-1 justify-center">
+                                          <button
+                                            onClick={() => setEditingScore({ ...score })}
+                                            className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200"
+                                          >
+                                            Edit
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              if (confirm(`Delete score for ${player?.name}?`)) {
+                                                deletePlayerScore(score.player_id, score.week_id);
+                                              }
+                                            }}
+                                            className="bg-red-100 text-red-700 px-2 py-1 rounded text-xs hover:bg-red-200"
+                                          >
+                                            Delete
+                                          </button>
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
             {/* Weekly Games Editor */}
             <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
               <div className="bg-green-800 px-4 py-3 flex items-center justify-between">
@@ -2701,12 +3165,18 @@ export default function ArlingtonLakesGolfLeague() {
                   <p className="text-sm text-gray-600 mb-3">
                     Clear data across the entire season. This cannot be undone.
                   </p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <button
                       onClick={() => setShowResetConfirm('money')}
                       className="bg-orange-100 text-orange-700 px-4 py-3 rounded-lg hover:bg-orange-200 font-medium text-sm"
                     >
                       💰 All Money
+                    </button>
+                    <button
+                      onClick={() => setShowResetConfirm('scores')}
+                      className="bg-cyan-100 text-cyan-700 px-4 py-3 rounded-lg hover:bg-cyan-200 font-medium text-sm"
+                    >
+                      📊 All Scores
                     </button>
                     <button
                       onClick={() => setShowResetConfirm('teeSheets')}
@@ -2742,6 +3212,7 @@ export default function ArlingtonLakesGolfLeague() {
                     <p className="text-gray-700 mb-4">
                       {showResetConfirm === 'week' && `This will delete all data for Week ${resetWeekId} (schedule, scores, money, and any giant skins set that week).`}
                       {showResetConfirm === 'money' && 'This will delete all money entries and reset player totals to $0.'}
+                      {showResetConfirm === 'scores' && 'This will delete all player scores and reset the Score Leaderboard.'}
                       {showResetConfirm === 'teeSheets' && 'This will delete all tee sheets, scores, and schedule data.'}
                       {showResetConfirm === 'giantSkins' && 'This will reset all Giant Skins standings.'}
                       {showResetConfirm === 'all' && 'This will delete ALL data: money, schedules, scores, and giant skins.'}
@@ -2752,6 +3223,7 @@ export default function ArlingtonLakesGolfLeague() {
                         onClick={() => {
                           if (showResetConfirm === 'week') resetSingleWeek(resetWeekId);
                           else if (showResetConfirm === 'money') resetMoneyData();
+                          else if (showResetConfirm === 'scores') resetPlayerScores();
                           else if (showResetConfirm === 'teeSheets') resetTeeSheets();
                           else if (showResetConfirm === 'giantSkins') resetGiantSkins();
                           else if (showResetConfirm === 'all') resetAllData();
