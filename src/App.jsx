@@ -1271,26 +1271,28 @@ export default function ArlingtonLakesGolfLeague() {
         {/* Schedule Tab */}
         {activeTab === 'schedule' && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <h2 className="text-xl font-serif text-white">Weekly Schedule</h2>
-              <div className="flex items-center gap-2 flex-wrap">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-serif text-white">Weekly Schedule</h2>
                 <button
                   onClick={() => setShowPlayerScoreEntry(true)}
-                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium flex items-center gap-2"
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium flex items-center gap-2 text-sm sm:text-base"
                 >
                   <span>📝</span> Submit My Score
                 </button>
+              </div>
+              <div className="flex items-center gap-2 justify-center sm:justify-end">
                 <button
                   onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
                   disabled={selectedWeek === 1}
-                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700"
+                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-sm"
                 >
                   ← Prev
                 </button>
                 <select
                   value={selectedWeek}
                   onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-                  className="px-4 py-2 rounded-lg bg-white border-0 font-medium"
+                  className="px-3 sm:px-4 py-2 rounded-lg bg-white border-0 font-medium text-sm sm:text-base"
                 >
                   {weeks.map(w => (
                     <option key={w.id} value={w.id}>Week {w.id} - {formatShortDate(w.date)}</option>
@@ -1299,7 +1301,7 @@ export default function ArlingtonLakesGolfLeague() {
                 <button
                   onClick={() => setSelectedWeek(Math.min(weeks.length, selectedWeek + 1))}
                   disabled={selectedWeek === weeks.length}
-                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700"
+                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-sm"
                 >
                   Next →
                 </button>
