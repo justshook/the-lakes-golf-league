@@ -479,6 +479,105 @@ export default function ArlingtonLakesGolfLeague() {
     loadData();
   }, []);
 
+  // Refresh data from Supabase (called when switching tabs)
+  const refreshData = async () => {
+    try {
+      // Refresh giant skins
+      const { data: skinsData } = await supabase
+        .from('giant_skins')
+        .select('*');
+
+      if (skinsData) {
+        setGiantSkins(prevSkins => prevSkins.map(skin => {
+          const savedSkin = skinsData.find(s => s.hole_number === skin.number);
+          if (savedSkin && savedSkin.low_score) {
+            let players = savedSkin.players || [];
+            if (players.length === 0 && savedSkin.player_id) {
+              players = [{ playerId: savedSkin.player_id, weekId: savedSkin.week_id }];
+            }
+            return {
+              ...skin,
+              lowScore: savedSkin.low_score,
+              players: players
+            };
+          }
+          return { ...skin, lowScore: null, players: [] };
+        }));
+      }
+
+      // Refresh player scores
+      const { data: scoresData } = await supabase
+        .from('player_scores')
+        .select('*');
+
+      if (scoresData) {
+        setPlayerScores(scoresData);
+      }
+
+      // Refresh tee sheets
+      const { data: teeSheetData } = await supabase
+        .from('tee_sheets')
+        .select('*');
+
+      if (teeSheetData && teeSheetData.length > 0) {
+        setWeeks(prevWeeks => prevWeeks.map(week => {
+          const savedSheet = teeSheetData.find(ts => ts.week_id === week.id);
+          if (savedSheet) {
+            return {
+              ...week,
+              teeSheet: savedSheet.tee_sheet || [],
+              scoresEntered: savedSheet.scores_entered || false,
+              moneyEntered: savedSheet.money_entered || false
+            };
+          }
+          return week;
+        }));
+      }
+
+      // Refresh player money
+      const { data: moneyData } = await supabase
+        .from('player_money')
+        .select('*');
+
+      if (moneyData && moneyData.length > 0) {
+        setPlayers(prevPlayers => prevPlayers.map(player => {
+          const playerMoney = moneyData.filter(m => m.player_id === player.id);
+          if (playerMoney.length > 0) {
+            const weeklyMoney = {};
+            let totalMoney = 0;
+            const weeksWithMoney = new Set();
+
+            playerMoney.forEach(m => {
+              if (!weeklyMoney[m.week_id]) {
+                weeklyMoney[m.week_id] = {};
+              }
+              weeklyMoney[m.week_id][m.category] = m.amount;
+              totalMoney += m.amount;
+              weeksWithMoney.add(m.week_id);
+            });
+
+            return {
+              ...player,
+              weeklyMoney,
+              totalMoney,
+              weeksPlayed: weeksWithMoney.size
+            };
+          }
+          return player;
+        }));
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    }
+  };
+
+  // Handle tab switching with data refresh
+  const handleTabSwitch = (tabId, callback = null) => {
+    setActiveTab(tabId);
+    refreshData();
+    if (callback) callback();
+  };
+
   // Save tee sheet to Supabase
   const saveTeeSheetToSupabase = async (weekId, teeSheet, scoresEntered = false, moneyEntered = false) => {
     try {
@@ -1521,7 +1620,7 @@ export default function ArlingtonLakesGolfLeague() {
               </div>
             </div>
             <button
-              onClick={() => setActiveTab('admin')}
+              onClick={() => handleTabSwitch('admin')}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
                 isAdminAuthenticated
                   ? 'bg-green-700 text-white hover:bg-green-600'
@@ -1548,7 +1647,7 @@ export default function ArlingtonLakesGolfLeague() {
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => { setActiveTab(tab.id); setSelectedPlayer(null); }}
+                onClick={() => handleTabSwitch(tab.id, () => setSelectedPlayer(null))}
                 className={`flex-1 px-1 sm:px-4 py-3 font-medium transition-all text-xs sm:text-sm ${
                   activeTab === tab.id
                     ? 'bg-green-700 text-white border-b-2 border-yellow-500'
@@ -1673,7 +1772,7 @@ export default function ArlingtonLakesGolfLeague() {
                                 <div
                                   key={pIdx}
                                   className="bg-white px-2 sm:px-3 py-2 rounded border border-gray-200 cursor-pointer hover:border-green-500 transition-colors"
-                                  onClick={() => { setSelectedPlayer(player); setActiveTab('players'); }}
+                                  onClick={() => { setSelectedPlayer(player); handleTabSwitch('players'); }}
                                 >
                                   <div className="font-medium text-gray-800 text-xs sm:text-sm truncate">{player?.name}</div>
                                   <div className="text-xs text-gray-500">HCP {calc9HoleHandicap(player?.handicap)}</div>
