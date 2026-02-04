@@ -362,6 +362,11 @@ export default function ArlingtonLakesGolfLeague() {
   const [scoreManagerWeek, setScoreManagerWeek] = useState(1);
   const [adminAddScore, setAdminAddScore] = useState({ playerId: '', grossScore: '' });
 
+  // Sub signup state
+  const [showSubSignup, setShowSubSignup] = useState(false);
+  const [subSignupSlot, setSubSignupSlot] = useState(null); // { weekId, slotIndex, time }
+  const [selectedSubId, setSelectedSubId] = useState('');
+
   // Load data from Supabase on mount
   useEffect(() => {
     async function loadData() {
@@ -485,6 +490,37 @@ export default function ArlingtonLakesGolfLeague() {
     } catch (error) {
       console.error('Error saving tee sheet:', error);
     }
+  };
+
+  // Handle sub signup for open tee time
+  const handleSubSignup = async () => {
+    if (!subSignupSlot || !selectedSubId) return;
+
+    const { weekId, slotIndex } = subSignupSlot;
+    const subId = parseInt(selectedSubId);
+    const week = weeks.find(w => w.id === weekId);
+    if (!week) return;
+
+    // Update the tee sheet
+    const updatedTeeSheet = week.teeSheet.map((slot, idx) => {
+      if (idx === slotIndex) {
+        return { ...slot, players: [...slot.players, subId] };
+      }
+      return slot;
+    });
+
+    // Update weeks state
+    setWeeks(weeks.map(w =>
+      w.id === weekId ? { ...w, teeSheet: updatedTeeSheet } : w
+    ));
+
+    // Save to Supabase
+    await saveTeeSheetToSupabase(weekId, updatedTeeSheet, week.scoresEntered || false, week.moneyEntered || false);
+
+    // Close modal and reset
+    setShowSubSignup(false);
+    setSubSignupSlot(null);
+    setSelectedSubId('');
   };
 
   // Save player money to Supabase
@@ -1489,14 +1525,9 @@ export default function ArlingtonLakesGolfLeague() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                         <span>{currentWeek.teeSheet.reduce((sum, t) => sum + t.players.length, 0)} players scheduled</span>
-                        <div className="flex gap-2">
-                          {currentWeek.scoresEntered && (
-                            <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">✓ Scores Entered</span>
-                          )}
-                          {currentWeek.moneyEntered && (
-                            <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">✓ Money Entered</span>
-                          )}
-                        </div>
+                        {currentWeek.moneyEntered && (
+                          <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">✓ Money Entered</span>
+                        )}
                       </div>
 
                       {currentWeek.teeSheet.map((slot, idx) => (
@@ -1517,8 +1548,16 @@ export default function ArlingtonLakesGolfLeague() {
                               );
                             })}
                             {[...Array(4 - slot.players.length)].map((_, i) => (
-                              <div key={`empty-${i}`} className="bg-gray-100 px-2 sm:px-3 py-2 rounded border border-dashed border-gray-300 text-gray-400 text-xs sm:text-sm text-center">
-                                Open
+                              <div
+                                key={`empty-${i}`}
+                                onClick={() => {
+                                  setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
+                                  setSelectedSubId('');
+                                  setShowSubSignup(true);
+                                }}
+                                className="bg-green-50 px-2 sm:px-3 py-2 rounded border border-dashed border-green-400 text-green-600 text-xs sm:text-sm text-center cursor-pointer hover:bg-green-100 hover:border-green-500 transition-colors"
+                              >
+                                + Sign Up
                               </div>
                             ))}
                           </div>
@@ -1663,6 +1702,79 @@ export default function ArlingtonLakesGolfLeague() {
                         onClick={() => {
                           setShowPlayerScoreEntry(false);
                           setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [] });
+                        }}
+                        className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sub Signup Modal */}
+            {showSubSignup && subSignupSlot && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+                  <div className="bg-green-800 px-6 py-4">
+                    <h3 className="text-xl font-bold text-white">Sign Up for Tee Time</h3>
+                    <p className="text-green-200 text-sm">Week {subSignupSlot.weekId} • {subSignupSlot.time}</p>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <p className="text-gray-600 text-sm">
+                      Select your name to sign up for this open tee time slot.
+                    </p>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Substitute Name</label>
+                      <select
+                        value={selectedSubId}
+                        onChange={(e) => setSelectedSubId(e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select your name...</option>
+                        {players
+                          .filter(p => p.type === 'substitute')
+                          .filter(p => {
+                            // Exclude subs already in this week's tee sheet
+                            const week = weeks.find(w => w.id === subSignupSlot.weekId);
+                            if (!week) return true;
+                            const playersInWeek = week.teeSheet.flatMap(s => s.players);
+                            return !playersInWeek.includes(p.id);
+                          })
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map(p => (
+                            <option key={p.id} value={p.id}>{p.name} (HCP: {calc9HoleHandicap(p.handicap)})</option>
+                          ))}
+                      </select>
+                    </div>
+
+                    {selectedSubId && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <p className="text-green-800 text-sm">
+                          You'll be added to the <strong>{subSignupSlot.time}</strong> tee time for Week {subSignupSlot.weekId}.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={handleSubSignup}
+                        disabled={!selectedSubId}
+                        className={`flex-1 py-3 rounded-lg font-medium ${
+                          selectedSubId
+                            ? 'bg-green-700 text-white hover:bg-green-800'
+                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        }`}
+                      >
+                        Confirm Sign Up
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowSubSignup(false);
+                          setSubSignupSlot(null);
+                          setSelectedSubId('');
                         }}
                         className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
                       >
@@ -2273,7 +2385,6 @@ export default function ArlingtonLakesGolfLeague() {
                   </div>
                   <div className="flex gap-2">
                     {currentWeek.teeSheet.length > 0 && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">✓ Scheduled</span>}
-                    {currentWeek.scoresEntered && <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs">✓ Scores</span>}
                     {currentWeek.moneyEntered && <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs">✓ Money</span>}
                   </div>
                 </div>
