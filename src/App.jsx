@@ -582,6 +582,51 @@ export default function ArlingtonLakesGolfLeague() {
     }
   };
 
+  // Remove a player from Giant Skins for a specific week
+  const removePlayerFromGiantSkins = async (playerId, weekId) => {
+    const updatedGiantSkins = giantSkins.map(skin => {
+      if (!skin.players || skin.players.length === 0) return skin;
+
+      const filteredPlayers = skin.players.filter(
+        p => !(p.playerId === playerId && p.weekId === weekId)
+      );
+
+      if (filteredPlayers.length === skin.players.length) {
+        // No change for this hole
+        return skin;
+      }
+
+      if (filteredPlayers.length === 0) {
+        // No players left, reset the hole
+        return { ...skin, lowScore: null, players: [] };
+      }
+
+      // Some players remain
+      return { ...skin, players: filteredPlayers };
+    });
+
+    // Find which holes changed and update Supabase
+    for (let i = 0; i < giantSkins.length; i++) {
+      const oldSkin = giantSkins[i];
+      const newSkin = updatedGiantSkins[i];
+
+      // Check if this hole's players changed
+      const oldPlayerCount = oldSkin.players?.length || 0;
+      const newPlayerCount = newSkin.players?.length || 0;
+
+      if (oldPlayerCount !== newPlayerCount) {
+        // Update Supabase for this hole
+        await saveGiantSkinToSupabase(
+          newSkin.number,
+          newSkin.lowScore,
+          newSkin.players
+        );
+      }
+    }
+
+    setGiantSkins(updatedGiantSkins);
+  };
+
   // Update existing player score
   const updatePlayerScore = async (playerId, weekId, newGrossScore) => {
     const player = players.find(p => p.id === playerId);
@@ -610,6 +655,9 @@ export default function ArlingtonLakesGolfLeague() {
           : s
       ));
 
+      // Remove player from Giant Skins for this week (since we can't verify birdie/eagle anymore)
+      await removePlayerFromGiantSkins(playerId, weekId);
+
       setEditingScore(null);
     } catch (error) {
       console.error('Error updating player score:', error);
@@ -629,6 +677,9 @@ export default function ArlingtonLakesGolfLeague() {
 
       // Update local state
       setPlayerScores(prev => prev.filter(s => !(s.player_id === playerId && s.week_id === weekId)));
+
+      // Remove player from Giant Skins for this week
+      await removePlayerFromGiantSkins(playerId, weekId);
     } catch (error) {
       console.error('Error deleting player score:', error);
     }
@@ -826,6 +877,26 @@ export default function ArlingtonLakesGolfLeague() {
       ? courseHoles.slice(0, 9)
       : courseHoles.slice(9, 18);
 
+    // Fetch fresh giant skins data from Supabase to avoid stale state issues
+    const { data: freshSkinsData } = await supabase
+      .from('giant_skins')
+      .select('*');
+
+    // Build a map of current skins from Supabase
+    const freshSkinsMap = {};
+    if (freshSkinsData) {
+      freshSkinsData.forEach(skin => {
+        let players = skin.players || [];
+        if (players.length === 0 && skin.player_id) {
+          players = [{ playerId: skin.player_id, weekId: skin.week_id }];
+        }
+        freshSkinsMap[skin.hole_number] = {
+          lowScore: skin.low_score,
+          players: players
+        };
+      });
+    }
+
     // Process birdies - check against giant skins
     const updatedGiantSkins = [...giantSkins];
 
@@ -835,26 +906,30 @@ export default function ArlingtonLakesGolfLeague() {
 
       const birdieScore = hole.par - 1;
       const skinIdx = holeNum - 1;
-      const currentSkin = updatedGiantSkins[skinIdx];
       const newPlayerEntry = { playerId: playerIdNum, weekId: weekIdNum };
 
+      // Use fresh data from Supabase, not potentially stale local state
+      const freshSkin = freshSkinsMap[holeNum] || { lowScore: null, players: [] };
+
       // Check if this player already has this score on this hole
-      const alreadyHasScore = currentSkin.players?.some(p => p.playerId === playerIdNum);
+      const alreadyHasScore = freshSkin.players?.some(p => p.playerId === playerIdNum);
       if (alreadyHasScore) continue;
 
-      if (currentSkin.lowScore === null || birdieScore < currentSkin.lowScore) {
+      if (freshSkin.lowScore === null || birdieScore < freshSkin.lowScore) {
         // New record - replace all players
+        const newPlayers = [newPlayerEntry];
         updatedGiantSkins[skinIdx] = {
-          ...currentSkin,
+          ...updatedGiantSkins[skinIdx],
           lowScore: birdieScore,
-          players: [newPlayerEntry]
+          players: newPlayers
         };
-        await saveGiantSkinToSupabase(holeNum, birdieScore, [newPlayerEntry]);
-      } else if (birdieScore === currentSkin.lowScore) {
+        await saveGiantSkinToSupabase(holeNum, birdieScore, newPlayers);
+      } else if (birdieScore === freshSkin.lowScore) {
         // Tie - add player to the list
-        const updatedPlayers = [...(currentSkin.players || []), newPlayerEntry];
+        const updatedPlayers = [...(freshSkin.players || []), newPlayerEntry];
         updatedGiantSkins[skinIdx] = {
-          ...currentSkin,
+          ...updatedGiantSkins[skinIdx],
+          lowScore: birdieScore,
           players: updatedPlayers
         };
         await saveGiantSkinToSupabase(holeNum, birdieScore, updatedPlayers);
@@ -868,26 +943,30 @@ export default function ArlingtonLakesGolfLeague() {
 
       const eagleScore = hole.par - 2;
       const skinIdx = holeNum - 1;
-      const currentSkin = updatedGiantSkins[skinIdx];
       const newPlayerEntry = { playerId: playerIdNum, weekId: weekIdNum };
 
+      // Use fresh data from Supabase, not potentially stale local state
+      const freshSkin = freshSkinsMap[holeNum] || { lowScore: null, players: [] };
+
       // Check if this player already has this score on this hole
-      const alreadyHasScore = currentSkin.players?.some(p => p.playerId === playerIdNum);
+      const alreadyHasScore = freshSkin.players?.some(p => p.playerId === playerIdNum);
       if (alreadyHasScore) continue;
 
-      if (currentSkin.lowScore === null || eagleScore < currentSkin.lowScore) {
+      if (freshSkin.lowScore === null || eagleScore < freshSkin.lowScore) {
         // New record - replace all players
+        const newPlayers = [newPlayerEntry];
         updatedGiantSkins[skinIdx] = {
-          ...currentSkin,
+          ...updatedGiantSkins[skinIdx],
           lowScore: eagleScore,
-          players: [newPlayerEntry]
+          players: newPlayers
         };
-        await saveGiantSkinToSupabase(holeNum, eagleScore, [newPlayerEntry]);
-      } else if (eagleScore === currentSkin.lowScore) {
+        await saveGiantSkinToSupabase(holeNum, eagleScore, newPlayers);
+      } else if (eagleScore === freshSkin.lowScore) {
         // Tie - add player to the list
-        const updatedPlayers = [...(currentSkin.players || []), newPlayerEntry];
+        const updatedPlayers = [...(freshSkin.players || []), newPlayerEntry];
         updatedGiantSkins[skinIdx] = {
-          ...currentSkin,
+          ...updatedGiantSkins[skinIdx],
+          lowScore: eagleScore,
           players: updatedPlayers
         };
         await saveGiantSkinToSupabase(holeNum, eagleScore, updatedPlayers);
