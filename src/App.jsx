@@ -303,11 +303,9 @@ export default function ArlingtonLakesGolfLeague() {
 
   // Admin state
   const [showScheduleBuilder, setShowScheduleBuilder] = useState(false);
-  const [showScoreEntry, setShowScoreEntry] = useState(false);
   const [showMoneyEntry, setShowMoneyEntry] = useState(false);
   const [showGiantSkinsEntry, setShowGiantSkinsEntry] = useState(false);
   const [scheduleSelections, setScheduleSelections] = useState({});
-  const [scoreEntries, setScoreEntries] = useState({});
   const [moneyEntries, setMoneyEntries] = useState({});
   const [giantSkinsEntry, setGiantSkinsEntry] = useState({ hole: 1, score: '', playerId: '' });
 
@@ -1236,19 +1234,6 @@ export default function ArlingtonLakesGolfLeague() {
   };
 
   // Enter scores
-  const handleEnterScores = () => {
-    const updatedWeek = { ...currentWeek, scoresEntered: true };
-    setWeeks(weeks.map(w =>
-      w.id === selectedWeek ? updatedWeek : w
-    ));
-
-    // Save to Supabase
-    saveTeeSheetToSupabase(selectedWeek, currentWeek?.teeSheet || [], true, currentWeek?.moneyEntered || false);
-
-    setShowScoreEntry(false);
-    setScoreEntries({});
-  };
-
   // Enter money
   const handleEnterMoney = async () => {
     const updatedPlayers = [...players];
@@ -2388,64 +2373,6 @@ export default function ArlingtonLakesGolfLeague() {
                   <p><strong>Auto-Generate:</strong> Creates optimal schedule based on availability, handicap mixing, and rotation diversity.</p>
                   <p><strong>Manual Build:</strong> Pick players yourself for each tee time (only shows available players).</p>
                 </div>
-              )}
-            </div>
-
-            {/* Enter Scores */}
-            <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-              <div className="bg-green-800 px-4 py-3 flex items-center justify-between">
-                <h3 className="text-white font-medium">📝 Enter Scores</h3>
-                {!showScoreEntry && currentWeek?.teeSheet.length > 0 && (
-                  <button
-                    onClick={() => setShowScoreEntry(true)}
-                    className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
-                  >
-                    Enter Scores
-                  </button>
-                )}
-              </div>
-
-              {showScoreEntry && currentWeek && (
-                <div className="p-4">
-                  <div className="grid grid-cols-2 gap-4 max-h-80 overflow-y-auto">
-                    {getPlayersForWeek(selectedWeek).map(playerId => {
-                      const player = getPlayerById(playerId);
-                      return (
-                        <div key={playerId} className="flex items-center gap-3 p-2 border-b">
-                          <div className="flex-1">
-                            <span className="font-medium text-sm">{player.name}</span>
-                            <span className="text-xs text-gray-500 ml-2">HCP {calc9HoleHandicap(player.handicap)}</span>
-                          </div>
-                          <input
-                            type="number"
-                            placeholder="Score"
-                            value={scoreEntries[playerId] || ''}
-                            onChange={(e) => setScoreEntries({ ...scoreEntries, [playerId]: e.target.value })}
-                            className="w-20 border rounded px-2 py-1 text-center"
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={handleEnterScores}
-                      className="flex-1 bg-green-700 text-white py-2 rounded-lg hover:bg-green-800 font-medium"
-                    >
-                      Save Scores
-                    </button>
-                    <button
-                      onClick={() => { setShowScoreEntry(false); setScoreEntries({}); }}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {!showScoreEntry && !currentWeek?.teeSheet.length && (
-                <div className="p-4 text-gray-500 text-center">Create a schedule first</div>
               )}
             </div>
 
