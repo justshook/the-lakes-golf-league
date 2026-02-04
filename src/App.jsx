@@ -304,10 +304,8 @@ export default function ArlingtonLakesGolfLeague() {
   // Admin state
   const [showScheduleBuilder, setShowScheduleBuilder] = useState(false);
   const [showMoneyEntry, setShowMoneyEntry] = useState(false);
-  const [showGiantSkinsEntry, setShowGiantSkinsEntry] = useState(false);
   const [scheduleSelections, setScheduleSelections] = useState({});
   const [moneyEntries, setMoneyEntries] = useState({});
-  const [giantSkinsEntry, setGiantSkinsEntry] = useState({ hole: 1, score: '', playerId: '' });
 
   // Weekly games state
   const [weeklyGames, setWeeklyGames] = useState(initialWeeklyGames);
@@ -360,7 +358,7 @@ export default function ArlingtonLakesGolfLeague() {
   const [showScoreManager, setShowScoreManager] = useState(false);
   const [editingScore, setEditingScore] = useState(null);
   const [scoreManagerWeek, setScoreManagerWeek] = useState(1);
-  const [adminAddScore, setAdminAddScore] = useState({ playerId: '', grossScore: '' });
+  const [adminAddScore, setAdminAddScore] = useState({ playerId: '', grossScore: '', birdieHoles: [], eagleHoles: [] });
 
   // Sub signup state
   const [showSubSignup, setShowSubSignup] = useState(false);
@@ -663,7 +661,7 @@ export default function ArlingtonLakesGolfLeague() {
   };
 
   // Save player score to Supabase
-  const savePlayerScoreToSupabase = async (playerId, weekId, grossScore, netScore, handicapUsed) => {
+  const savePlayerScoreToSupabase = async (playerId, weekId, grossScore, netScore, handicapUsed, birdieHoles = [], eagleHoles = []) => {
     try {
       const { error } = await supabase
         .from('player_scores')
@@ -672,7 +670,9 @@ export default function ArlingtonLakesGolfLeague() {
           week_id: weekId,
           gross_score: grossScore,
           net_score: netScore,
-          handicap_used: handicapUsed
+          handicap_used: handicapUsed,
+          birdie_holes: birdieHoles,
+          eagle_holes: eagleHoles
         }, { onConflict: 'player_id,week_id' });
 
       if (error) throw error;
@@ -681,53 +681,93 @@ export default function ArlingtonLakesGolfLeague() {
     }
   };
 
-  // Remove a player from Giant Skins for a specific week
-  const removePlayerFromGiantSkins = async (playerId, weekId) => {
-    const updatedGiantSkins = giantSkins.map(skin => {
-      if (!skin.players || skin.players.length === 0) return skin;
+  // Recalculate Giant Skins from all player scores
+  // This is the single source of truth - Giant Skins are derived from score data
+  const recalculateGiantSkins = async () => {
+    try {
+      // Fetch all scores with birdie/eagle data
+      const { data: allScores, error } = await supabase
+        .from('player_scores')
+        .select('*');
 
-      const filteredPlayers = skin.players.filter(
-        p => !(p.playerId === playerId && p.weekId === weekId)
-      );
+      if (error) throw error;
 
-      if (filteredPlayers.length === skin.players.length) {
-        // No change for this hole
-        return skin;
+      // Build a map of the best scores for each hole
+      const holeBestScores = {};
+
+      for (const score of (allScores || [])) {
+        const birdieHoles = score.birdie_holes || [];
+        const eagleHoles = score.eagle_holes || [];
+
+        // Process birdies
+        for (const holeNum of birdieHoles) {
+          const hole = courseHoles.find(h => h.number === holeNum);
+          if (!hole) continue;
+          const birdieScore = hole.par - 1;
+          const playerEntry = { playerId: score.player_id, weekId: score.week_id };
+
+          if (!holeBestScores[holeNum]) {
+            holeBestScores[holeNum] = { lowScore: birdieScore, players: [playerEntry] };
+          } else if (birdieScore < holeBestScores[holeNum].lowScore) {
+            // New best score
+            holeBestScores[holeNum] = { lowScore: birdieScore, players: [playerEntry] };
+          } else if (birdieScore === holeBestScores[holeNum].lowScore) {
+            // Tie - add player if not already there
+            const exists = holeBestScores[holeNum].players.some(
+              p => p.playerId === score.player_id && p.weekId === score.week_id
+            );
+            if (!exists) {
+              holeBestScores[holeNum].players.push(playerEntry);
+            }
+          }
+        }
+
+        // Process eagles
+        for (const holeNum of eagleHoles) {
+          const hole = courseHoles.find(h => h.number === holeNum);
+          if (!hole) continue;
+          const eagleScore = hole.par - 2;
+          const playerEntry = { playerId: score.player_id, weekId: score.week_id };
+
+          if (!holeBestScores[holeNum]) {
+            holeBestScores[holeNum] = { lowScore: eagleScore, players: [playerEntry] };
+          } else if (eagleScore < holeBestScores[holeNum].lowScore) {
+            // New best score (eagle beats birdie)
+            holeBestScores[holeNum] = { lowScore: eagleScore, players: [playerEntry] };
+          } else if (eagleScore === holeBestScores[holeNum].lowScore) {
+            // Tie - add player if not already there
+            const exists = holeBestScores[holeNum].players.some(
+              p => p.playerId === score.player_id && p.weekId === score.week_id
+            );
+            if (!exists) {
+              holeBestScores[holeNum].players.push(playerEntry);
+            }
+          }
+        }
       }
 
-      if (filteredPlayers.length === 0) {
-        // No players left, reset the hole
-        return { ...skin, lowScore: null, players: [] };
+      // Update giant_skins table and local state
+      const updatedGiantSkins = courseHoles.map(hole => {
+        const best = holeBestScores[hole.number];
+        if (best) {
+          return { ...hole, lowScore: best.lowScore, players: best.players };
+        }
+        return { ...hole, lowScore: null, players: [] };
+      });
+
+      // Sync to Supabase - update each hole
+      for (const skin of updatedGiantSkins) {
+        await saveGiantSkinToSupabase(skin.number, skin.lowScore, skin.players || []);
       }
 
-      // Some players remain
-      return { ...skin, players: filteredPlayers };
-    });
-
-    // Find which holes changed and update Supabase
-    for (let i = 0; i < giantSkins.length; i++) {
-      const oldSkin = giantSkins[i];
-      const newSkin = updatedGiantSkins[i];
-
-      // Check if this hole's players changed
-      const oldPlayerCount = oldSkin.players?.length || 0;
-      const newPlayerCount = newSkin.players?.length || 0;
-
-      if (oldPlayerCount !== newPlayerCount) {
-        // Update Supabase for this hole
-        await saveGiantSkinToSupabase(
-          newSkin.number,
-          newSkin.lowScore,
-          newSkin.players
-        );
-      }
+      setGiantSkins(updatedGiantSkins);
+    } catch (error) {
+      console.error('Error recalculating giant skins:', error);
     }
-
-    setGiantSkins(updatedGiantSkins);
   };
 
-  // Update existing player score
-  const updatePlayerScore = async (playerId, weekId, newGrossScore) => {
+  // Update existing player score (now includes birdie/eagle holes)
+  const updatePlayerScore = async (playerId, weekId, newGrossScore, newBirdieHoles = [], newEagleHoles = []) => {
     const player = players.find(p => p.id === playerId);
     if (!player) return;
 
@@ -740,7 +780,9 @@ export default function ArlingtonLakesGolfLeague() {
         .update({
           gross_score: newGrossScore,
           net_score: newNetScore,
-          handicap_used: handicap9
+          handicap_used: handicap9,
+          birdie_holes: newBirdieHoles,
+          eagle_holes: newEagleHoles
         })
         .eq('player_id', playerId)
         .eq('week_id', weekId);
@@ -750,12 +792,12 @@ export default function ArlingtonLakesGolfLeague() {
       // Update local state
       setPlayerScores(prev => prev.map(s =>
         s.player_id === playerId && s.week_id === weekId
-          ? { ...s, gross_score: newGrossScore, net_score: newNetScore, handicap_used: handicap9 }
+          ? { ...s, gross_score: newGrossScore, net_score: newNetScore, handicap_used: handicap9, birdie_holes: newBirdieHoles, eagle_holes: newEagleHoles }
           : s
       ));
 
-      // Remove player from Giant Skins for this week (since we can't verify birdie/eagle anymore)
-      await removePlayerFromGiantSkins(playerId, weekId);
+      // Recalculate Giant Skins from all scores
+      await recalculateGiantSkins();
 
       setEditingScore(null);
     } catch (error) {
@@ -777,8 +819,8 @@ export default function ArlingtonLakesGolfLeague() {
       // Update local state
       setPlayerScores(prev => prev.filter(s => !(s.player_id === playerId && s.week_id === weekId)));
 
-      // Remove player from Giant Skins for this week
-      await removePlayerFromGiantSkins(playerId, weekId);
+      // Recalculate Giant Skins from remaining scores
+      await recalculateGiantSkins();
     } catch (error) {
       console.error('Error deleting player score:', error);
     }
@@ -967,142 +1009,40 @@ export default function ArlingtonLakesGolfLeague() {
 
     const playerIdNum = parseInt(playerId);
     const weekIdNum = parseInt(weekId);
-    const week = weeks.find(w => w.id === weekIdNum);
-
-    if (!week) return;
-
-    // Determine which holes are being played this week
-    const holesThisWeek = week.nineHoles === 'front'
-      ? courseHoles.slice(0, 9)
-      : courseHoles.slice(9, 18);
-
-    // Fetch fresh giant skins data from Supabase to avoid stale state issues
-    const { data: freshSkinsData } = await supabase
-      .from('giant_skins')
-      .select('*');
-
-    // Build a map of current skins from Supabase
-    const freshSkinsMap = {};
-    if (freshSkinsData) {
-      freshSkinsData.forEach(skin => {
-        let players = skin.players || [];
-        if (players.length === 0 && skin.player_id) {
-          players = [{ playerId: skin.player_id, weekId: skin.week_id }];
-        }
-        freshSkinsMap[skin.hole_number] = {
-          lowScore: skin.low_score,
-          players: players
-        };
-      });
-    }
-
-    // Process birdies - check against giant skins
-    const updatedGiantSkins = [...giantSkins];
-
-    for (const holeNum of birdieHoles) {
-      const hole = courseHoles.find(h => h.number === holeNum);
-      if (!hole) continue;
-
-      const birdieScore = hole.par - 1;
-      const skinIdx = holeNum - 1;
-      const newPlayerEntry = { playerId: playerIdNum, weekId: weekIdNum };
-
-      // Use fresh data from Supabase, not potentially stale local state
-      const freshSkin = freshSkinsMap[holeNum] || { lowScore: null, players: [] };
-
-      // Check if this player already has this score on this hole
-      const alreadyHasScore = freshSkin.players?.some(p => p.playerId === playerIdNum);
-      if (alreadyHasScore) continue;
-
-      if (freshSkin.lowScore === null || birdieScore < freshSkin.lowScore) {
-        // New record - replace all players
-        const newPlayers = [newPlayerEntry];
-        updatedGiantSkins[skinIdx] = {
-          ...updatedGiantSkins[skinIdx],
-          lowScore: birdieScore,
-          players: newPlayers
-        };
-        await saveGiantSkinToSupabase(holeNum, birdieScore, newPlayers);
-      } else if (birdieScore === freshSkin.lowScore) {
-        // Tie - add player to the list
-        const updatedPlayers = [...(freshSkin.players || []), newPlayerEntry];
-        updatedGiantSkins[skinIdx] = {
-          ...updatedGiantSkins[skinIdx],
-          lowScore: birdieScore,
-          players: updatedPlayers
-        };
-        await saveGiantSkinToSupabase(holeNum, birdieScore, updatedPlayers);
-      }
-    }
-
-    // Process eagles - check against giant skins
-    for (const holeNum of eagleHoles) {
-      const hole = courseHoles.find(h => h.number === holeNum);
-      if (!hole) continue;
-
-      const eagleScore = hole.par - 2;
-      const skinIdx = holeNum - 1;
-      const newPlayerEntry = { playerId: playerIdNum, weekId: weekIdNum };
-
-      // Use fresh data from Supabase, not potentially stale local state
-      const freshSkin = freshSkinsMap[holeNum] || { lowScore: null, players: [] };
-
-      // Check if this player already has this score on this hole
-      const alreadyHasScore = freshSkin.players?.some(p => p.playerId === playerIdNum);
-      if (alreadyHasScore) continue;
-
-      if (freshSkin.lowScore === null || eagleScore < freshSkin.lowScore) {
-        // New record - replace all players
-        const newPlayers = [newPlayerEntry];
-        updatedGiantSkins[skinIdx] = {
-          ...updatedGiantSkins[skinIdx],
-          lowScore: eagleScore,
-          players: newPlayers
-        };
-        await saveGiantSkinToSupabase(holeNum, eagleScore, newPlayers);
-      } else if (eagleScore === freshSkin.lowScore) {
-        // Tie - add player to the list
-        const updatedPlayers = [...(freshSkin.players || []), newPlayerEntry];
-        updatedGiantSkins[skinIdx] = {
-          ...updatedGiantSkins[skinIdx],
-          lowScore: eagleScore,
-          players: updatedPlayers
-        };
-        await saveGiantSkinToSupabase(holeNum, eagleScore, updatedPlayers);
-      }
-    }
-
-    setGiantSkins(updatedGiantSkins);
-
-    // Calculate and save player score
     const player = players.find(p => p.id === playerIdNum);
-    if (player) {
-      const grossScore = parseInt(totalScore);
-      const handicap9 = calc9HoleHandicap(player.handicap);
-      const netScore = grossScore - handicap9;
 
-      // Save to Supabase
-      await savePlayerScoreToSupabase(playerIdNum, weekIdNum, grossScore, netScore, handicap9);
+    if (!player) return;
 
-      // Update local state
-      const newScore = {
-        player_id: playerIdNum,
-        week_id: weekIdNum,
-        gross_score: grossScore,
-        net_score: netScore,
-        handicap_used: handicap9
-      };
+    const grossScore = parseInt(totalScore);
+    const handicap9 = calc9HoleHandicap(player.handicap);
+    const netScore = grossScore - handicap9;
 
-      setPlayerScores(prev => {
-        const existingIdx = prev.findIndex(s => s.player_id === playerIdNum && s.week_id === weekIdNum);
-        if (existingIdx >= 0) {
-          const updated = [...prev];
-          updated[existingIdx] = newScore;
-          return updated;
-        }
-        return [...prev, newScore];
-      });
-    }
+    // Save score with birdie/eagle holes to Supabase
+    await savePlayerScoreToSupabase(playerIdNum, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles);
+
+    // Update local state
+    const newScore = {
+      player_id: playerIdNum,
+      week_id: weekIdNum,
+      gross_score: grossScore,
+      net_score: netScore,
+      handicap_used: handicap9,
+      birdie_holes: birdieHoles,
+      eagle_holes: eagleHoles
+    };
+
+    setPlayerScores(prev => {
+      const existingIdx = prev.findIndex(s => s.player_id === playerIdNum && s.week_id === weekIdNum);
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = newScore;
+        return updated;
+      }
+      return [...prev, newScore];
+    });
+
+    // Recalculate Giant Skins from all scores (single source of truth)
+    await recalculateGiantSkins();
 
     // Reset form and close
     setPlayerScoreForm({
@@ -1520,44 +1460,6 @@ export default function ArlingtonLakesGolfLeague() {
 
     setShowMoneyEntry(false);
     setMoneyEntries({});
-  };
-
-  // Update giant skins
-  const handleUpdateGiantSkin = async () => {
-    const { hole, score, playerId } = giantSkinsEntry;
-    if (!hole || !score || !playerId) return;
-
-    const scoreNum = parseInt(score);
-    const holeIdx = parseInt(hole) - 1;
-    const currentSkin = giantSkins[holeIdx];
-    const newPlayerEntry = { playerId: parseInt(playerId), weekId: selectedWeek };
-
-    // Check if this player already has this score on this hole
-    const alreadyHasScore = currentSkin.players?.some(p => p.playerId === parseInt(playerId));
-
-    if (currentSkin.lowScore === null || scoreNum < currentSkin.lowScore) {
-      // New record - replace all players
-      const newGiantSkins = giantSkins.map((h, idx) =>
-        idx === holeIdx
-          ? { ...h, lowScore: scoreNum, players: [newPlayerEntry] }
-          : h
-      );
-      setGiantSkins(newGiantSkins);
-      await saveGiantSkinToSupabase(parseInt(hole), scoreNum, [newPlayerEntry]);
-    } else if (scoreNum === currentSkin.lowScore && !alreadyHasScore) {
-      // Tie - add player to the list
-      const updatedPlayers = [...(currentSkin.players || []), newPlayerEntry];
-      const newGiantSkins = giantSkins.map((h, idx) =>
-        idx === holeIdx
-          ? { ...h, players: updatedPlayers }
-          : h
-      );
-      setGiantSkins(newGiantSkins);
-      await saveGiantSkinToSupabase(parseInt(hole), scoreNum, updatedPlayers);
-    }
-
-    setGiantSkinsEntry({ hole: 1, score: '', playerId: '' });
-    setShowGiantSkinsEntry(false);
   };
 
   const getPlayerById = (id) => players.find(p => p.id === id);
@@ -2865,81 +2767,24 @@ export default function ArlingtonLakesGolfLeague() {
               )}
             </div>
 
-            {/* Update Giant Skins */}
+            {/* Giant Skins Info */}
             <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-              <div className="bg-green-800 px-4 py-3 flex items-center justify-between">
-                <h3 className="text-white font-medium">🏆 Update Giant Skins</h3>
-                {!showGiantSkinsEntry && (
-                  <button
-                    onClick={() => setShowGiantSkinsEntry(true)}
-                    className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
-                  >
-                    Record Low Score
-                  </button>
-                )}
+              <div className="bg-green-800 px-4 py-3">
+                <h3 className="text-white font-medium">🏆 Giant Skins</h3>
               </div>
-
-              {showGiantSkinsEntry && (
-                <div className="p-4">
-                  <p className="text-sm text-gray-600 mb-4">
-                    Record a new low score for a hole. Only updates if it beats the current low.
+              <div className="p-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Giant Skins are automatically calculated</strong> from player scores.
+                    When you add or edit a player's score in the "Manage Player Scores" section below,
+                    select which holes they got birdies or eagles on. The Giant Skins leaderboard
+                    will automatically update to show the lowest scores.
                   </p>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Hole</label>
-                      <select
-                        value={giantSkinsEntry.hole}
-                        onChange={(e) => setGiantSkinsEntry({ ...giantSkinsEntry, hole: e.target.value })}
-                        className="w-full border rounded-lg px-3 py-2"
-                      >
-                        {courseHoles.map(h => (
-                          <option key={h.number} value={h.number}>
-                            Hole {h.number} (Par {h.par}, {h.yards} yds)
-                            {giantSkins[h.number - 1].lowScore ? ` [Current: ${giantSkins[h.number - 1].lowScore}]` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Player</label>
-                      <select
-                        value={giantSkinsEntry.playerId}
-                        onChange={(e) => setGiantSkinsEntry({ ...giantSkinsEntry, playerId: e.target.value })}
-                        className="w-full border rounded-lg px-3 py-2"
-                      >
-                        <option value="">Select player...</option>
-                        {players.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Score</label>
-                      <input
-                        type="number"
-                        placeholder="Score"
-                        value={giantSkinsEntry.score}
-                        onChange={(e) => setGiantSkinsEntry({ ...giantSkinsEntry, score: e.target.value })}
-                        className="w-full border rounded-lg px-3 py-2"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={handleUpdateGiantSkin}
-                      className="flex-1 bg-green-700 text-white py-2 rounded-lg hover:bg-green-800 font-medium"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => { setShowGiantSkinsEntry(false); setGiantSkinsEntry({ hole: 1, score: '', playerId: '' }); }}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                  </div>
                 </div>
-              )}
+                <div className="mt-3 text-sm text-gray-600">
+                  <strong>Current Giant Skins:</strong> {giantSkins.filter(s => s.lowScore !== null).length} of 18 holes have recorded low scores.
+                </div>
+              </div>
             </div>
 
             {/* Manage Player Scores */}
@@ -2981,7 +2826,7 @@ export default function ArlingtonLakesGolfLeague() {
 
                   {/* Add Score Form */}
                   <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                    <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-3 flex-wrap mb-3">
                       <span className="text-sm font-medium text-gray-700">Add Score:</span>
                       <select
                         value={adminAddScore.playerId}
@@ -3003,40 +2848,106 @@ export default function ArlingtonLakesGolfLeague() {
                         onChange={(e) => setAdminAddScore({ ...adminAddScore, grossScore: e.target.value })}
                         className="border rounded-lg px-3 py-2 w-28 text-sm"
                       />
-                      <button
-                        onClick={async () => {
-                          if (!adminAddScore.playerId || !adminAddScore.grossScore) {
-                            alert('Please select a player and enter a score');
-                            return;
-                          }
-                          const playerId = parseInt(adminAddScore.playerId);
-                          const grossScore = parseInt(adminAddScore.grossScore);
-                          const player = players.find(p => p.id === playerId);
-                          const handicap9 = calc9HoleHandicap(player.handicap);
-                          const netScore = grossScore - handicap9;
-
-                          await savePlayerScoreToSupabase(playerId, scoreManagerWeek, grossScore, netScore, handicap9);
-
-                          setPlayerScores(prev => [...prev, {
-                            player_id: playerId,
-                            week_id: scoreManagerWeek,
-                            gross_score: grossScore,
-                            net_score: netScore,
-                            handicap_used: handicap9
-                          }]);
-
-                          setAdminAddScore({ playerId: '', grossScore: '' });
-                        }}
-                        disabled={!adminAddScore.playerId || !adminAddScore.grossScore}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                          adminAddScore.playerId && adminAddScore.grossScore
-                            ? 'bg-green-600 text-white hover:bg-green-700'
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        }`}
-                      >
-                        Add
-                      </button>
                     </div>
+
+                    {/* Birdie/Eagle Holes Selection for Add Score */}
+                    {adminAddScore.playerId && adminAddScore.grossScore && (() => {
+                      const week = weeks.find(w => w.id === scoreManagerWeek);
+                      const holesThisWeek = week?.nineHoles === 'front'
+                        ? courseHoles.slice(0, 9)
+                        : courseHoles.slice(9, 18);
+
+                      return (
+                        <div className="mb-3">
+                          <div className="text-xs text-gray-600 mb-2">Select birdie/eagle holes (optional):</div>
+                          <div className="flex flex-wrap gap-1">
+                            {holesThisWeek.map(hole => {
+                              const isBirdie = adminAddScore.birdieHoles.includes(hole.number);
+                              const isEagle = adminAddScore.eagleHoles.includes(hole.number);
+                              return (
+                                <button
+                                  key={hole.number}
+                                  onClick={() => {
+                                    if (isEagle) {
+                                      // Remove eagle
+                                      setAdminAddScore(prev => ({
+                                        ...prev,
+                                        eagleHoles: prev.eagleHoles.filter(h => h !== hole.number)
+                                      }));
+                                    } else if (isBirdie) {
+                                      // Upgrade to eagle
+                                      setAdminAddScore(prev => ({
+                                        ...prev,
+                                        birdieHoles: prev.birdieHoles.filter(h => h !== hole.number),
+                                        eagleHoles: [...prev.eagleHoles, hole.number]
+                                      }));
+                                    } else {
+                                      // Add birdie
+                                      setAdminAddScore(prev => ({
+                                        ...prev,
+                                        birdieHoles: [...prev.birdieHoles, hole.number]
+                                      }));
+                                    }
+                                  }}
+                                  className={`w-10 h-8 rounded text-xs font-bold transition-colors ${
+                                    isEagle
+                                      ? 'bg-yellow-500 text-white'
+                                      : isBirdie
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                  }`}
+                                  title={`Hole ${hole.number} (Par ${hole.par}) - Click: ${isEagle ? 'Remove' : isBirdie ? 'Eagle' : 'Birdie'}`}
+                                >
+                                  {hole.number}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Click once = Birdie (green), twice = Eagle (gold), third = remove
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <button
+                      onClick={async () => {
+                        if (!adminAddScore.playerId || !adminAddScore.grossScore) {
+                          alert('Please select a player and enter a score');
+                          return;
+                        }
+                        const playerId = parseInt(adminAddScore.playerId);
+                        const grossScore = parseInt(adminAddScore.grossScore);
+                        const player = players.find(p => p.id === playerId);
+                        const handicap9 = calc9HoleHandicap(player.handicap);
+                        const netScore = grossScore - handicap9;
+
+                        await savePlayerScoreToSupabase(playerId, scoreManagerWeek, grossScore, netScore, handicap9, adminAddScore.birdieHoles, adminAddScore.eagleHoles);
+
+                        setPlayerScores(prev => [...prev, {
+                          player_id: playerId,
+                          week_id: scoreManagerWeek,
+                          gross_score: grossScore,
+                          net_score: netScore,
+                          handicap_used: handicap9,
+                          birdie_holes: adminAddScore.birdieHoles,
+                          eagle_holes: adminAddScore.eagleHoles
+                        }]);
+
+                        // Recalculate Giant Skins
+                        await recalculateGiantSkins();
+
+                        setAdminAddScore({ playerId: '', grossScore: '', birdieHoles: [], eagleHoles: [] });
+                      }}
+                      disabled={!adminAddScore.playerId || !adminAddScore.grossScore}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                        adminAddScore.playerId && adminAddScore.grossScore
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      Add Score
+                    </button>
                   </div>
 
                   {(() => {
@@ -3049,6 +2960,11 @@ export default function ArlingtonLakesGolfLeague() {
                       );
                     }
 
+                    const week = weeks.find(w => w.id === scoreManagerWeek);
+                    const holesThisWeek = week?.nineHoles === 'front'
+                      ? courseHoles.slice(0, 9)
+                      : courseHoles.slice(9, 18);
+
                     return (
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
@@ -3058,6 +2974,7 @@ export default function ArlingtonLakesGolfLeague() {
                               <th className="text-center p-2">Gross</th>
                               <th className="text-center p-2">HCP</th>
                               <th className="text-center p-2">Net</th>
+                              <th className="text-center p-2">Birdies/Eagles</th>
                               <th className="text-center p-2">Actions</th>
                             </tr>
                           </thead>
@@ -3067,9 +2984,11 @@ export default function ArlingtonLakesGolfLeague() {
                               .map(score => {
                                 const player = players.find(p => p.id === score.player_id);
                                 const isEditing = editingScore?.player_id === score.player_id && editingScore?.week_id === score.week_id;
+                                const birdies = score.birdie_holes || [];
+                                const eagles = score.eagle_holes || [];
 
                                 return (
-                                  <tr key={`${score.player_id}-${score.week_id}`} className="border-b">
+                                  <tr key={`${score.player_id}-${score.week_id}`} className={`border-b ${isEditing ? 'bg-blue-50' : ''}`}>
                                     <td className="p-2 font-medium">{player?.name || 'Unknown'}</td>
                                     <td className="p-2 text-center">
                                       {isEditing ? (
@@ -3087,11 +3006,79 @@ export default function ArlingtonLakesGolfLeague() {
                                     <td className="p-2 text-center font-bold text-purple-700">
                                       {isEditing ? (editingScore.gross_score - calc9HoleHandicap(player?.handicap || 0)) : score.net_score}
                                     </td>
+                                    <td className="p-2">
+                                      {isEditing ? (
+                                        <div className="flex flex-wrap gap-1 justify-center">
+                                          {holesThisWeek.map(hole => {
+                                            const editBirdies = editingScore.birdie_holes || [];
+                                            const editEagles = editingScore.eagle_holes || [];
+                                            const isBirdie = editBirdies.includes(hole.number);
+                                            const isEagle = editEagles.includes(hole.number);
+                                            return (
+                                              <button
+                                                key={hole.number}
+                                                onClick={() => {
+                                                  if (isEagle) {
+                                                    setEditingScore(prev => ({
+                                                      ...prev,
+                                                      eagle_holes: (prev.eagle_holes || []).filter(h => h !== hole.number)
+                                                    }));
+                                                  } else if (isBirdie) {
+                                                    setEditingScore(prev => ({
+                                                      ...prev,
+                                                      birdie_holes: (prev.birdie_holes || []).filter(h => h !== hole.number),
+                                                      eagle_holes: [...(prev.eagle_holes || []), hole.number]
+                                                    }));
+                                                  } else {
+                                                    setEditingScore(prev => ({
+                                                      ...prev,
+                                                      birdie_holes: [...(prev.birdie_holes || []), hole.number]
+                                                    }));
+                                                  }
+                                                }}
+                                                className={`w-7 h-6 rounded text-xs font-bold ${
+                                                  isEagle
+                                                    ? 'bg-yellow-500 text-white'
+                                                    : isBirdie
+                                                      ? 'bg-green-600 text-white'
+                                                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                }`}
+                                                title={`Hole ${hole.number} (Par ${hole.par})`}
+                                              >
+                                                {hole.number}
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <div className="flex gap-1 justify-center flex-wrap">
+                                          {birdies.length === 0 && eagles.length === 0 && (
+                                            <span className="text-gray-400 text-xs">-</span>
+                                          )}
+                                          {birdies.map(h => (
+                                            <span key={`b${h}`} className="bg-green-100 text-green-800 px-1.5 py-0.5 rounded text-xs font-medium">
+                                              #{h}🐦
+                                            </span>
+                                          ))}
+                                          {eagles.map(h => (
+                                            <span key={`e${h}`} className="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs font-medium">
+                                              #{h}🦅
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </td>
                                     <td className="p-2 text-center">
                                       {isEditing ? (
                                         <div className="flex gap-1 justify-center">
                                           <button
-                                            onClick={() => updatePlayerScore(score.player_id, score.week_id, editingScore.gross_score)}
+                                            onClick={() => updatePlayerScore(
+                                              score.player_id,
+                                              score.week_id,
+                                              editingScore.gross_score,
+                                              editingScore.birdie_holes || [],
+                                              editingScore.eagle_holes || []
+                                            )}
                                             className="bg-green-600 text-white px-2 py-1 rounded text-xs hover:bg-green-700"
                                           >
                                             Save
@@ -3106,7 +3093,11 @@ export default function ArlingtonLakesGolfLeague() {
                                       ) : (
                                         <div className="flex gap-1 justify-center">
                                           <button
-                                            onClick={() => setEditingScore({ ...score })}
+                                            onClick={() => setEditingScore({
+                                              ...score,
+                                              birdie_holes: score.birdie_holes || [],
+                                              eagle_holes: score.eagle_holes || []
+                                            })}
                                             className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200"
                                           >
                                             Edit
