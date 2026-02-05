@@ -1573,10 +1573,10 @@ export default function ArlingtonLakesGolfLeague() {
           <div className="space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl sm:text-xl font-serif text-white">Weekly Schedule</h2>
+                <h2 className="text-xl font-serif text-white">Weekly Schedule</h2>
                 <button
                   onClick={() => setShowPlayerScoreEntry(true)}
-                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium flex items-center gap-2 text-base sm:text-base"
+                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium flex items-center gap-2 text-sm sm:text-base"
                 >
                   <span>📝</span> Submit My Score
                 </button>
@@ -1585,14 +1585,14 @@ export default function ArlingtonLakesGolfLeague() {
                 <button
                   onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
                   disabled={selectedWeek === 1}
-                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-base sm:text-sm"
+                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-sm"
                 >
                   ← Prev
                 </button>
                 <select
                   value={selectedWeek}
                   onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-                  className="px-3 sm:px-4 py-2 rounded-lg bg-white border-0 font-medium text-base sm:text-base"
+                  className="px-3 sm:px-4 py-2 rounded-lg bg-white border-0 font-medium text-sm sm:text-base"
                 >
                   {weeks.map(w => (
                     <option key={w.id} value={w.id}>Week {w.id} - {formatShortDate(w.date)}</option>
@@ -1601,7 +1601,7 @@ export default function ArlingtonLakesGolfLeague() {
                 <button
                   onClick={() => setSelectedWeek(Math.min(weeks.length, selectedWeek + 1))}
                   disabled={selectedWeek === weeks.length}
-                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-base sm:text-sm"
+                  className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-sm"
                 >
                   Next →
                 </button>
@@ -1613,10 +1613,10 @@ export default function ArlingtonLakesGolfLeague() {
                 <div className="bg-green-800 px-4 sm:px-6 py-4">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <div>
-                      <h3 className="text-2xl sm:text-xl font-serif text-white">Week {currentWeek.id}</h3>
-                      <p className="text-green-200 text-base sm:text-sm">{formatDate(currentWeek.date)}</p>
+                      <h3 className="text-xl font-serif text-white">Week {currentWeek.id}</h3>
+                      <p className="text-green-200 text-sm">{formatDate(currentWeek.date)}</p>
                     </div>
-                    <div className={`inline-block px-4 py-2 rounded-full font-bold text-base sm:text-sm self-start sm:self-auto ${
+                    <div className={`inline-block px-4 py-2 rounded-full font-bold text-sm self-start sm:self-auto ${
                       currentWeek.nineHoles === 'front'
                         ? 'bg-blue-100 text-blue-800'
                         : 'bg-purple-100 text-purple-800'
@@ -1632,17 +1632,17 @@ export default function ArlingtonLakesGolfLeague() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-2xl">🎯</span>
-                          <h4 className="font-bold text-lg sm:text-lg text-green-800">{currentGame.gameName}</h4>
+                          <span className="text-xl sm:text-2xl">🎯</span>
+                          <h4 className="font-bold text-base sm:text-lg text-green-800">{currentGame.gameName}</h4>
                         </div>
-                        <p className="text-gray-700 text-sm sm:text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
+                        <p className="text-gray-700 text-xs sm:text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-2xl">⭐</span>
-                          <h4 className="font-bold text-lg sm:text-lg text-yellow-700">Side Game: {currentGame.sideGame}</h4>
+                          <span className="text-xl sm:text-2xl">⭐</span>
+                          <h4 className="font-bold text-base sm:text-lg text-yellow-700">Side Game: {currentGame.sideGame}</h4>
                         </div>
-                        <p className="text-gray-700 text-sm sm:text-sm">{currentGame.sideGameDescription}</p>
+                        <p className="text-gray-700 text-xs sm:text-sm">{currentGame.sideGameDescription}</p>
                       </div>
                     </div>
                   </div>
@@ -1653,39 +1653,31 @@ export default function ArlingtonLakesGolfLeague() {
                     <div className="text-center py-12 text-gray-500">
                       <div className="text-4xl mb-4">📋</div>
                       <p className="text-lg">No tee sheet created yet</p>
-                      <p className="text-base mt-2">Go to Admin to build or auto-generate the schedule for this week</p>
+                      <p className="text-sm mt-2">Go to Admin to build or auto-generate the schedule for this week</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between text-base text-gray-500 mb-4 px-1">
+                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4 px-1">
                         <span>{currentWeek.teeSheet.reduce((sum, t) => sum + t.players.length, 0)} players scheduled</span>
                         {currentWeek.moneyEntered && (
-                          <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">✓ Money Entered</span>
+                          <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">✓ Money Entered</span>
                         )}
                       </div>
 
                       {currentWeek.teeSheet.map((slot, idx) => (
                         <div key={idx} className="p-2 sm:p-4 bg-gray-50 rounded-lg">
-                          <div className="font-bold text-green-800 text-xl mb-2 sm:mb-0 sm:float-left sm:w-24 sm:mr-4">{slot.time}</div>
+                          <div className="font-bold text-green-800 text-lg mb-2 sm:mb-0 sm:float-left sm:w-24 sm:mr-4">{slot.time}</div>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                             {slot.players.map((playerId, pIdx) => {
                               const player = getPlayerById(playerId);
-                              const nameParts = player?.name?.split(' ') || ['', ''];
-                              const firstName = nameParts[0];
-                              const lastName = nameParts.slice(1).join(' ');
                               return (
                                 <div
                                   key={pIdx}
-                                  className="bg-white px-2 sm:px-3 py-2 sm:py-2 rounded border border-gray-200 cursor-pointer hover:border-green-500 transition-colors flex flex-col justify-between min-h-[60px] sm:min-h-0"
+                                  className="bg-white px-2 sm:px-3 py-2 rounded border border-gray-200 cursor-pointer hover:border-green-500 transition-colors flex items-center justify-between"
                                   onClick={() => { setSelectedPlayer(player); handleTabSwitch('players'); }}
                                 >
-                                  <div className="flex justify-between items-start">
-                                    <div className="font-semibold text-gray-800 text-base sm:text-sm leading-tight">
-                                      <span className="sm:hidden">{firstName}<br/>{lastName}</span>
-                                      <span className="hidden sm:inline truncate">{player?.name}</span>
-                                    </div>
-                                    <div className="text-sm sm:text-xs text-gray-500 font-medium whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
-                                  </div>
+                                  <div className="font-medium text-gray-800 text-xs sm:text-sm truncate">{player?.name}</div>
+                                  <div className="text-xs text-gray-500 whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
                                 </div>
                               );
                             })}
@@ -1697,7 +1689,7 @@ export default function ArlingtonLakesGolfLeague() {
                                   setSelectedSubId('');
                                   setShowSubSignup(true);
                                 }}
-                                className="bg-green-50 px-2 sm:px-3 py-2 rounded border border-dashed border-green-400 text-green-600 text-base sm:text-sm text-center cursor-pointer hover:bg-green-100 hover:border-green-500 transition-colors flex items-center justify-center min-h-[60px] sm:min-h-0"
+                                className="bg-green-50 px-2 sm:px-3 py-2 rounded border border-dashed border-green-400 text-green-600 text-xs sm:text-sm text-center cursor-pointer hover:bg-green-100 hover:border-green-500 transition-colors"
                               >
                                 + Sign Up
                               </div>
