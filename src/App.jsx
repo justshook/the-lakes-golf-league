@@ -326,6 +326,8 @@ export default function ArlingtonLakesGolfLeague() {
   const [showMoneyEntry, setShowMoneyEntry] = useState(false);
   const [scheduleSelections, setScheduleSelections] = useState({});
   const [moneyEntries, setMoneyEntries] = useState({});
+  const [dragPlayer, setDragPlayer] = useState(null); // { playerId, fromTimeIdx, fromSlotIdx }
+  const [dragOverSlot, setDragOverSlot] = useState(null); // "timeIdx-slotIdx" for visual feedback
 
   // Weekly games state
   const [weeklyGames, setWeeklyGames] = useState(initialWeeklyGames);
@@ -1565,19 +1567,46 @@ export default function ArlingtonLakesGolfLeague() {
   // Enter scores
   // Enter money
   const handleEnterMoney = async () => {
-    const updatedPlayers = [...players];
-    const currentWeek = weeks.find(w => w.id === selectedWeek);
+    const weekObj = weeks.find(w => w.id === selectedWeek);
 
+    // Delete existing Supabase rows for this week before re-inserting
+    const { error: deleteError } = await supabase.from('player_money').delete().eq('week_id', selectedWeek);
+    if (deleteError) {
+      console.error('Error clearing existing money:', deleteError);
+      alert('Failed to update money entries. Please try again.');
+      return;
+    }
+
+    // Build updated players with cleared money for this week, then new entries applied
+    const updatedPlayers = players.map(p => {
+      const newPlayer = { ...p, weeklyMoney: { ...p.weeklyMoney }, totalMoney: p.totalMoney };
+      // Subtract old money for this week if it existed
+      if (newPlayer.weeklyMoney[selectedWeek]) {
+        const oldTotal = Object.values(newPlayer.weeklyMoney[selectedWeek]).reduce((a, b) => a + b, 0);
+        newPlayer.totalMoney -= oldTotal;
+        const { [selectedWeek]: _, ...restMoney } = newPlayer.weeklyMoney;
+        newPlayer.weeklyMoney = restMoney;
+      }
+      return newPlayer;
+    });
+
+    // Save new entries
     for (const [key, amount] of Object.entries(moneyEntries)) {
       const [playerId, category] = key.split('-');
       const playerIdx = updatedPlayers.findIndex(p => p.id === parseInt(playerId));
       if (playerIdx !== -1 && amount) {
         const amountNum = parseFloat(amount);
-        updatedPlayers[playerIdx].totalMoney += amountNum;
-        if (!updatedPlayers[playerIdx].weeklyMoney[selectedWeek]) {
-          updatedPlayers[playerIdx].weeklyMoney[selectedWeek] = {};
-        }
-        updatedPlayers[playerIdx].weeklyMoney[selectedWeek][category] = amountNum;
+        updatedPlayers[playerIdx] = {
+          ...updatedPlayers[playerIdx],
+          totalMoney: updatedPlayers[playerIdx].totalMoney + amountNum,
+          weeklyMoney: {
+            ...updatedPlayers[playerIdx].weeklyMoney,
+            [selectedWeek]: {
+              ...(updatedPlayers[playerIdx].weeklyMoney[selectedWeek] || {}),
+              [category]: amountNum
+            }
+          }
+        };
 
         // Save to Supabase
         await saveMoneyToSupabase(parseInt(playerId), selectedWeek, category, amountNum);
@@ -1590,13 +1619,27 @@ export default function ArlingtonLakesGolfLeague() {
     ));
 
     // Update tee sheet with moneyEntered flag
-    saveTeeSheetToSupabase(selectedWeek, currentWeek?.teeSheet || [], currentWeek?.scoresEntered || false, true);
+    saveTeeSheetToSupabase(selectedWeek, weekObj?.teeSheet || [], weekObj?.scoresEntered || false, true);
 
     setShowMoneyEntry(false);
     setMoneyEntries({});
   };
 
   const getPlayerById = (id) => players.find(p => p.id === id);
+
+  const loadMoneyForEdit = () => {
+    const entries = {};
+    players.forEach(p => {
+      const weekMoney = p.weeklyMoney[selectedWeek];
+      if (weekMoney) {
+        Object.entries(weekMoney).forEach(([category, amount]) => {
+          entries[`${p.id}-${category}`] = String(amount);
+        });
+      }
+    });
+    setMoneyEntries(entries);
+    setShowMoneyEntry(true);
+  };
 
   const getPlayersForWeek = (weekId) => {
     const week = weeks.find(w => w.id === weekId);
@@ -2801,49 +2844,163 @@ export default function ArlingtonLakesGolfLeague() {
               {showScheduleBuilder && (
                 <div className="p-4">
                   <p className="text-sm text-gray-600 mb-4">
-                    Assign players to tee times. Players shown are those available for each time slot.
+                    Drag and drop players to rearrange tee times. Drag onto another player to swap positions.
                     <span className="font-medium"> {48 - assignedPlayerIds.length} spots remaining.</span>
                   </p>
 
                   <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                    {teeTimes.map((time, timeIdx) => {
-                      const availableForTime = getAvailablePlayersForTime(time);
-                      return (
-                        <div key={timeIdx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                          <div className="w-20">
-                            <div className="font-bold text-green-800">{time}</div>
-                            <div className="text-xs text-gray-500">{availableForTime.length} avail</div>
-                          </div>
-                          <div className="flex-1 grid grid-cols-4 gap-2">
-                            {[0, 1, 2, 3].map(slot => (
-                              <select
-                                key={slot}
-                                value={scheduleSelections[`${timeIdx}-${slot}`] || ''}
-                                onChange={(e) => setScheduleSelections({
-                                  ...scheduleSelections,
-                                  [`${timeIdx}-${slot}`]: e.target.value
-                                })}
-                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-                              >
-                                <option value="">Select...</option>
-                                {players
-                                  .filter(p =>
-                                    p.availability.includes(time) &&
-                                    (!assignedPlayerIds.includes(p.id) || scheduleSelections[`${timeIdx}-${slot}`] == p.id)
-                                  )
-                                  .sort((a, b) => a.handicap - b.handicap)
-                                  .map(p => (
-                                    <option key={p.id} value={p.id}>
-                                      {p.name} ({p.handicap}) {p.type === 'substitute' ? '(Sub)' : ''}
-                                    </option>
-                                  ))}
-                              </select>
-                            ))}
+                    {teeTimes.map((time, timeIdx) => (
+                      <div key={timeIdx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-20">
+                          <div className="font-bold text-green-800">{time}</div>
+                          <div className="text-xs text-gray-500">
+                            {[0,1,2,3].filter(s => scheduleSelections[`${timeIdx}-${s}`]).length}/4
                           </div>
                         </div>
-                      );
-                    })}
+                        <div className="flex-1 grid grid-cols-4 gap-2">
+                          {[0, 1, 2, 3].map(slot => {
+                            const key = `${timeIdx}-${slot}`;
+                            const playerId = scheduleSelections[key];
+                            const player = playerId ? players.find(p => p.id === parseInt(playerId)) : null;
+                            const isDragOver = dragOverSlot === key;
+                            const isDragging = dragPlayer && dragPlayer.fromKey === key;
+
+                            if (player) {
+                              return (
+                                <div
+                                  key={slot}
+                                  draggable="true"
+                                  onDragStart={(e) => {
+                                    setDragPlayer({ playerId: String(player.id), fromKey: key, fromTimeIdx: timeIdx, fromSlotIdx: slot });
+                                    e.dataTransfer.effectAllowed = 'move';
+                                  }}
+                                  onDragEnd={() => { setDragPlayer(null); setDragOverSlot(null); }}
+                                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                                  onDragEnter={(e) => { e.preventDefault(); setDragOverSlot(key); }}
+                                  onDragLeave={(e) => {
+                                    if (!e.currentTarget.contains(e.relatedTarget)) setDragOverSlot(null);
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    setDragOverSlot(null);
+                                    if (!dragPlayer || dragPlayer.fromKey === key) return;
+                                    // Swap the two players
+                                    setScheduleSelections(prev => ({
+                                      ...prev,
+                                      [dragPlayer.fromKey]: String(player.id),
+                                      [key]: dragPlayer.playerId
+                                    }));
+                                    setDragPlayer(null);
+                                  }}
+                                  className={`relative bg-white px-2 py-2 rounded border text-sm font-medium text-gray-800 cursor-grab active:cursor-grabbing transition-all select-none flex items-center justify-between ${
+                                    isDragging ? 'opacity-40 border-gray-300' :
+                                    isDragOver ? 'border-green-500 bg-green-50 shadow-md' :
+                                    'border-gray-200 hover:border-green-400 hover:shadow-sm'
+                                  }`}
+                                >
+                                  <div className="truncate">
+                                    <span>{player.name}</span>
+                                    <span className="text-xs text-gray-500 ml-1">({calc9HoleHandicap(player.handicap)})</span>
+                                    {player.type === 'substitute' && <span className="text-xs text-orange-500 ml-1">Sub</span>}
+                                  </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      setScheduleSelections(prev => {
+                                        const updated = { ...prev };
+                                        delete updated[key];
+                                        return updated;
+                                      });
+                                    }}
+                                    className="ml-1 text-gray-400 hover:text-red-500 text-xs font-bold flex-shrink-0"
+                                    title="Remove player"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              );
+                            } else {
+                              // Empty slot - drop target
+                              return (
+                                <div
+                                  key={slot}
+                                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                                  onDragEnter={(e) => { e.preventDefault(); setDragOverSlot(key); }}
+                                  onDragLeave={(e) => {
+                                    if (!e.currentTarget.contains(e.relatedTarget)) setDragOverSlot(null);
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    setDragOverSlot(null);
+                                    if (!dragPlayer) return;
+                                    // Move player to empty slot
+                                    setScheduleSelections(prev => {
+                                      const updated = { ...prev };
+                                      // If from tee sheet, clear old position
+                                      if (dragPlayer.fromKey) {
+                                        delete updated[dragPlayer.fromKey];
+                                      }
+                                      updated[key] = dragPlayer.playerId;
+                                      return updated;
+                                    });
+                                    setDragPlayer(null);
+                                  }}
+                                  className={`px-2 py-2 rounded border-2 border-dashed text-xs text-center transition-all ${
+                                    isDragOver
+                                      ? 'border-green-500 bg-green-50 text-green-700'
+                                      : 'border-gray-300 text-gray-400'
+                                  }`}
+                                >
+                                  {isDragOver ? 'Drop here' : 'Empty'}
+                                </div>
+                              );
+                            }
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
+
+                  {/* Unassigned Player Pool */}
+                  {(() => {
+                    const unassignedPlayers = players.filter(p =>
+                      (p.type === 'full-time' || p.type === 'substitute') &&
+                      !assignedPlayerIds.includes(p.id)
+                    ).sort((a, b) => a.name.localeCompare(b.name));
+
+                    if (unassignedPlayers.length === 0) return null;
+
+                    return (
+                      <div className="mt-4 border-t pt-4">
+                        <p className="text-sm font-medium text-gray-700 mb-2">
+                          Available Players ({unassignedPlayers.length})
+                          <span className="text-gray-500 font-normal ml-2">Drag into an empty slot above</span>
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {unassignedPlayers.map(p => (
+                            <div
+                              key={p.id}
+                              draggable="true"
+                              onDragStart={(e) => {
+                                setDragPlayer({ playerId: String(p.id), fromKey: null, fromTimeIdx: null, fromSlotIdx: null });
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              onDragEnd={() => { setDragPlayer(null); setDragOverSlot(null); }}
+                              className="bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-full text-sm cursor-grab active:cursor-grabbing hover:bg-blue-100 hover:border-blue-300 transition-colors select-none"
+                            >
+                              <span className="font-medium text-blue-800">{p.name}</span>
+                              <span className="text-xs text-blue-500 ml-1">({calc9HoleHandicap(p.handicap)})</span>
+                              {p.type === 'substitute' && <span className="text-xs text-orange-500 ml-1">Sub</span>}
+                              <span className="text-xs text-blue-400 ml-1">
+                                [{p.availability.length === teeTimes.length ? 'All' : p.availability.length + ' times'}]
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <div className="flex gap-2 mt-4">
                     <button
@@ -2853,7 +3010,7 @@ export default function ArlingtonLakesGolfLeague() {
                       Save Schedule
                     </button>
                     <button
-                      onClick={() => { setShowScheduleBuilder(false); setScheduleSelections({}); }}
+                      onClick={() => { setShowScheduleBuilder(false); setScheduleSelections({}); setDragPlayer(null); setDragOverSlot(null); }}
                       className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                     >
                       Cancel
@@ -2875,12 +3032,21 @@ export default function ArlingtonLakesGolfLeague() {
               <div className="bg-green-800 px-4 py-3 flex items-center justify-between">
                 <h3 className="text-white font-medium">💰 Enter Weekly Money</h3>
                 {!showMoneyEntry && currentWeek?.teeSheet.length > 0 && (
-                  <button
-                    onClick={() => setShowMoneyEntry(true)}
-                    className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
-                  >
-                    Enter Money
-                  </button>
+                  currentWeek?.moneyEntered ? (
+                    <button
+                      onClick={loadMoneyForEdit}
+                      className="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600 text-sm font-medium"
+                    >
+                      ✏️ Edit Money
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowMoneyEntry(true)}
+                      className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
+                    >
+                      Enter Money
+                    </button>
+                  )
                 )}
               </div>
 
@@ -2994,26 +3160,6 @@ export default function ArlingtonLakesGolfLeague() {
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Giant Skins Info */}
-            <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-              <div className="bg-green-800 px-4 py-3">
-                <h3 className="text-white font-medium">🏆 Giant Skins</h3>
-              </div>
-              <div className="p-4">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-sm text-blue-800">
-                    <strong>Giant Skins are automatically calculated</strong> from player scores.
-                    When you add or edit a player's score in the "Manage Player Scores" section below,
-                    select which holes they got birdies or eagles on. The Giant Skins leaderboard
-                    will automatically update to show the lowest scores.
-                  </p>
-                </div>
-                <div className="mt-3 text-sm text-gray-600">
-                  <strong>Current Giant Skins:</strong> {giantSkins.filter(s => s.lowScore !== null).length} of 18 holes have recorded low scores.
-                </div>
-              </div>
             </div>
 
             {/* Manage Player Scores */}
