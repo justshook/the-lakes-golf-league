@@ -132,7 +132,8 @@ const initialWeeklyGames = [
     gameName: '2-Man Scramble',
     gameDescription: 'Teams of 2. Both players hit, pick the best shot, and both play from that spot until the ball is holed. Team handicap is adjusted.\n\nPayouts ($230 total):\n• Team Low Net 1st: $90 per team\n• Team Low Net 2nd: $55 per team\n• Team Low Net 3rd: $35 per team\n• Team Low Gross 1st: $50 per team',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: '2-person'
   },
   {
     weekId: 2,
@@ -140,7 +141,8 @@ const initialWeeklyGames = [
     gameName: 'Throw Out 3 Worst Holes',
     gameDescription: 'Individual game. After the round, throw out your 3 highest scores.\n\nPayouts ($230 total):\n• Low Net 1st: $90\n• Low Net 2nd: $55\n• Low Net 3rd: $35\n• Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 3,
@@ -148,7 +150,8 @@ const initialWeeklyGames = [
     gameName: 'Shamble',
     gameDescription: 'Everyone tees off, select the best drive, then each plays their own ball from that spot.\n\nPayouts ($230 total):\n• Team Low Net 1st: $90 per team\n• Team Low Net 2nd: $55 per team\n• Team Low Net 3rd: $35 per team\n• Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: '4-person'
   },
   {
     weekId: 4,
@@ -156,7 +159,8 @@ const initialWeeklyGames = [
     gameName: 'Low Net Team Tournament',
     gameDescription: 'Teams of 4. For the first 8 holes, count the two lowest net scores. On the last hole, count all four scores.\n\nPayouts ($230 total):\n• Team Low Net 1st: $90 per team\n• Team Low Net 2nd: $55 per team\n• Team Low Net 3rd: $35 per team\n• Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Team Giant Skins',
-    sideGameDescription: '$60 split between Giant Skins winners'
+    sideGameDescription: '$60 split between Giant Skins winners',
+    teamType: '4-person'
   },
   {
     weekId: 5,
@@ -164,7 +168,8 @@ const initialWeeklyGames = [
     gameName: 'Ryder Cup – Fourball',
     gameDescription: 'Two-player teams each play their own ball; best score counts per team.\n\nNo main game payout this week - points accumulate for Ryder Cup finale next week.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: '2-person'
   },
   {
     weekId: 6,
@@ -172,7 +177,8 @@ const initialWeeklyGames = [
     gameName: 'Ryder Cup – Singles',
     gameDescription: 'Head-to-head singles matches; team with most points wins the Ryder Cup.\n\nPayout ($700 total):\n• Winning team splits entire pot (~$29 per player on 24-person team)',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 7,
@@ -180,7 +186,8 @@ const initialWeeklyGames = [
     gameName: 'Special Events Night',
     gameDescription: 'Each hole has a contest (longest drive, closest to pin, longest putt, etc.). Each contest has a cash prize.\n\nPayouts ($230 total):\n• Low Net 1st: $90\n• Low Net 2nd: $55\n• Low Net 3rd: $35\n• Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 8,
@@ -188,7 +195,8 @@ const initialWeeklyGames = [
     gameName: 'Best Ball / Scramble / Worst Ball',
     gameDescription: 'Each tee time will rotate between taking their best individual net score, playing a 4-man scramble, and taking their worst individual net score. The total of the 9 hole scores will be added up.\n\nPayouts ($230 total):\n• Team Low Net 1st: $90 per team\n• Team Low Net 2nd: $55 per team\n• Team Low Net 3rd: $35 per team\n• Team Low Gross 1st: $50 per team\n\nTie breaker is lowest score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Low Worst Score Total',
-    sideGameDescription: '$30 split between team with lowest "worst ball" total'
+    sideGameDescription: '$30 split between team with lowest "worst ball" total',
+    teamType: '4-person'
   },
   {
     weekId: 9,
@@ -196,7 +204,8 @@ const initialWeeklyGames = [
     gameName: 'Low Gross/Net Skins',
     gameDescription: 'Skins game scored in both gross and net divisions. Players can only win in one division.\n\nPayouts ($230 total):\n• Low Net 1st: $90\n• Low Net 2nd: $55\n• Low Net 3rd: $35\n• Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 10,
@@ -204,7 +213,8 @@ const initialWeeklyGames = [
     gameName: 'Player B Special',
     gameDescription: 'Players receive 2 mulligans to use on any hole for any shot.\n\nPayouts ($230 total):\n• Low Net 1st: $90\n• Low Net 2nd: $55\n• Low Net 3rd: $35\n• Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies (No Mulligans)',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total) - Mulligans cannot be used on greenie holes'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total) - Mulligans cannot be used on greenie holes',
+    teamType: null
   },
   {
     weekId: 11,
@@ -212,7 +222,8 @@ const initialWeeklyGames = [
     gameName: '1-2-3 Best Ball',
     gameDescription: 'Teams of 4. On hole 1 use the best single score, on hole 2 use the best two scores, on hole 3 use the best three scores. Repeat this rotation the whole round.\n\nPayouts ($230 total):\n• Team Low Net 1st: $90 per team\n• Team Low Net 2nd: $55 per team\n• Team Low Net 3rd: $35 per team\n• Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: '4-person'
   },
   {
     weekId: 12,
@@ -220,7 +231,8 @@ const initialWeeklyGames = [
     gameName: 'Black, White & Green',
     gameDescription: 'Individual game. Start from the black tees, then white, then green & then repeat.\n\nPayouts ($230 total):\n• Low Net 1st: $90\n• Low Net 2nd: $55\n• Low Net 3rd: $35\n• Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Lowest Net Score On Green Holes',
-    sideGameDescription: '$60 split between players with lowest net scores on the green tee holes'
+    sideGameDescription: '$60 split between players with lowest net scores on the green tee holes',
+    teamType: null
   },
   {
     weekId: 13,
@@ -228,7 +240,8 @@ const initialWeeklyGames = [
     gameName: 'Pick a Player',
     gameDescription: 'Before teeing off, choose another player in the league as your partner. Your score is combined with their score for the team total.\n\nPayouts ($230 total):\n• Team Low Net 1st: $90 per team\n• Team Low Net 2nd: $55 per team\n• Team Low Net 3rd: $35 per team\n• Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 14,
@@ -236,7 +249,8 @@ const initialWeeklyGames = [
     gameName: 'Stableford Points',
     gameDescription: 'Individual scoring system. Earn points based on net score: Eagle +5, Birdie +3, Par +1, Bogey -1, Double Bogey -2. Goal is to score the most points.\n\nPayouts ($250 total):\n• Most Points 1st: $130\n• Most Points 2nd: $70\n• Most Points 3rd: $50',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 15,
@@ -244,7 +258,8 @@ const initialWeeklyGames = [
     gameName: '3 Club Challenge',
     gameDescription: 'Each player can only bring 3 clubs plus a putter. Scores are kept for low gross and low net.\n\nPayouts ($230 total):\n• Low Net 1st: $90\n• Low Net 2nd: $55\n• Low Net 3rd: $35\n• Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 16,
@@ -252,7 +267,8 @@ const initialWeeklyGames = [
     gameName: 'Low Net / Low Gross',
     gameDescription: 'Individual stroke play using net scores (adjusted for handicap).\n\nPayouts ($230 total):\n• Low Net 1st: $90\n• Low Net 2nd: $55\n• Low Net 3rd: $35\n• Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 17,
@@ -260,7 +276,8 @@ const initialWeeklyGames = [
     gameName: 'Two Ball Low Net',
     gameDescription: 'Teams of 4. On each hole, take the two lowest net scores from the group as the team score.\n\nPayouts ($230 total):\n• Team Low Net 1st: $90 per team\n• Team Low Net 2nd: $55 per team\n• Team Low Net 3rd: $35 per team\n• Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: '4-person'
   },
   {
     weekId: 18,
@@ -268,7 +285,8 @@ const initialWeeklyGames = [
     gameName: 'Championship Seeding',
     gameDescription: 'Low Net Singles Tournament. Your net score will determine which group you qualify for in the final.\n\nNo main game payout this week - seeding only for Championship Final.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 19,
@@ -276,7 +294,8 @@ const initialWeeklyGames = [
     gameName: 'Championship Final',
     gameDescription: 'Low Net Singles Final. A, B and C group champions to be crowned.\n\nPayouts ($700 total):\n• Group A: 1st $300, 2nd $150\n• Group B: 1st $120, 2nd $60\n• Group C: 1st $50, 2nd $20',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: null
   },
   {
     weekId: 20,
@@ -284,7 +303,8 @@ const initialWeeklyGames = [
     gameName: '2-Man Scramble',
     gameDescription: 'Teams of 2. Both players hit, pick the best shot, and both play from that spot until the ball is holed. Team handicap is adjusted.\n\nPayouts ($230 total):\n• Team Low Net 1st: $90 per team\n• Team Low Net 2nd: $55 per team\n• Team Low Net 3rd: $35 per team\n• Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)'
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
+    teamType: '2-person'
   }
 ];
 
@@ -314,7 +334,8 @@ export default function ArlingtonLakesGolfLeague() {
     gameName: '',
     gameDescription: '',
     sideGame: '',
-    sideGameDescription: ''
+    sideGameDescription: '',
+    teamType: null
   });
 
   // Player management state
@@ -661,7 +682,7 @@ export default function ArlingtonLakesGolfLeague() {
   };
 
   // Save player score to Supabase
-  const savePlayerScoreToSupabase = async (playerId, weekId, grossScore, netScore, handicapUsed, birdieHoles = [], eagleHoles = []) => {
+  const savePlayerScoreToSupabase = async (playerId, weekId, grossScore, netScore, handicapUsed, birdieHoles = [], eagleHoles = [], isTeamScore = false) => {
     try {
       const { error } = await supabase
         .from('player_scores')
@@ -672,7 +693,8 @@ export default function ArlingtonLakesGolfLeague() {
           net_score: netScore,
           handicap_used: handicapUsed,
           birdie_holes: birdieHoles,
-          eagle_holes: eagleHoles
+          eagle_holes: eagleHoles,
+          is_team_score: isTeamScore
         }, { onConflict: 'player_id,week_id' });
 
       if (error) throw error;
@@ -1009,52 +1031,89 @@ export default function ArlingtonLakesGolfLeague() {
 
     const playerIdNum = parseInt(playerId);
     const weekIdNum = parseInt(weekId);
-    const player = players.find(p => p.id === playerIdNum);
+    const teamType = getTeamTypeForWeek(weekIdNum);
+    const isTeamScore = teamType !== null;
 
-    if (!player) return;
+    if (isTeamScore) {
+      const { teammates, isSolo } = getTeammatesForWeek(playerIdNum, weekIdNum);
+      const allMembers = isSolo ? [playerIdNum] : [playerIdNum, ...teammates];
+      const grossScore = parseInt(totalScore);
 
-    const grossScore = parseInt(totalScore);
-    const handicap9 = calc9HoleHandicap(player.handicap);
-    const netScore = grossScore - handicap9;
+      for (const memberId of allMembers) {
+        const member = players.find(p => p.id === memberId);
+        if (!member) continue;
+        const handicap9 = calc9HoleHandicap(member.handicap);
+        const netScore = grossScore - handicap9;
 
-    // Save score with birdie/eagle holes to Supabase
-    await savePlayerScoreToSupabase(playerIdNum, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles);
+        await savePlayerScoreToSupabase(memberId, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles, true);
 
-    // Update local state
-    const newScore = {
-      player_id: playerIdNum,
-      week_id: weekIdNum,
-      gross_score: grossScore,
-      net_score: netScore,
-      handicap_used: handicap9,
-      birdie_holes: birdieHoles,
-      eagle_holes: eagleHoles
-    };
+        const newScore = {
+          player_id: memberId,
+          week_id: weekIdNum,
+          gross_score: grossScore,
+          net_score: netScore,
+          handicap_used: handicap9,
+          birdie_holes: birdieHoles,
+          eagle_holes: eagleHoles,
+          is_team_score: true
+        };
 
-    setPlayerScores(prev => {
-      const existingIdx = prev.findIndex(s => s.player_id === playerIdNum && s.week_id === weekIdNum);
-      if (existingIdx >= 0) {
-        const updated = [...prev];
-        updated[existingIdx] = newScore;
-        return updated;
+        setPlayerScores(prev => {
+          const existingIdx = prev.findIndex(s => s.player_id === memberId && s.week_id === weekIdNum);
+          if (existingIdx >= 0) {
+            const updated = [...prev];
+            updated[existingIdx] = newScore;
+            return updated;
+          }
+          return [...prev, newScore];
+        });
       }
-      return [...prev, newScore];
-    });
 
-    // Recalculate Giant Skins from all scores (single source of truth)
-    await recalculateGiantSkins();
+      await recalculateGiantSkins();
 
-    // Reset form and close
-    setPlayerScoreForm({
-      playerId: '',
-      weekId: '',
-      totalScore: '',
-      birdieHoles: [],
-      eagleHoles: []
-    });
-    setShowPlayerScoreEntry(false);
+      setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [] });
+      setShowPlayerScoreEntry(false);
 
-    alert('Score submitted successfully! Your gross and net scores have been recorded.');
+      const memberNames = allMembers.map(id => getPlayerById(id)?.name).filter(Boolean).join(', ');
+      alert(`Team score submitted for: ${memberNames}`);
+    } else {
+      const player = players.find(p => p.id === playerIdNum);
+      if (!player) return;
+
+      const grossScore = parseInt(totalScore);
+      const handicap9 = calc9HoleHandicap(player.handicap);
+      const netScore = grossScore - handicap9;
+
+      await savePlayerScoreToSupabase(playerIdNum, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles, false);
+
+      const newScore = {
+        player_id: playerIdNum,
+        week_id: weekIdNum,
+        gross_score: grossScore,
+        net_score: netScore,
+        handicap_used: handicap9,
+        birdie_holes: birdieHoles,
+        eagle_holes: eagleHoles,
+        is_team_score: false
+      };
+
+      setPlayerScores(prev => {
+        const existingIdx = prev.findIndex(s => s.player_id === playerIdNum && s.week_id === weekIdNum);
+        if (existingIdx >= 0) {
+          const updated = [...prev];
+          updated[existingIdx] = newScore;
+          return updated;
+        }
+        return [...prev, newScore];
+      });
+
+      await recalculateGiantSkins();
+
+      setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [] });
+      setShowPlayerScoreEntry(false);
+
+      alert('Score submitted successfully! Your gross and net scores have been recorded.');
+    }
   };
 
   // Toggle hole selection for birdie/eagle
@@ -1091,6 +1150,50 @@ export default function ArlingtonLakesGolfLeague() {
   // Get game for a specific week
   const getGameForWeek = (weekId) => weeklyGames.find(g => g.weekId === weekId);
 
+  // Get team type for a given week (null, '2-person', or '4-person')
+  const getTeamTypeForWeek = (weekId) => {
+    const game = weeklyGames.find(g => g.weekId === weekId);
+    return game?.teamType || null;
+  };
+
+  // Find a player's teammates for a given week based on tee sheet position
+  const getTeammatesForWeek = (playerId, weekId) => {
+    const week = weeks.find(w => w.id === weekId);
+    const teamType = getTeamTypeForWeek(weekId);
+    if (!week || !teamType || !week.teeSheet.length) return { teammates: [], teamType: null, slot: null };
+
+    // Find the player's slot
+    const slot = week.teeSheet.find(s => s.players.includes(playerId));
+    if (!slot) return { teammates: [], teamType: null, slot: null };
+
+    const playerIndex = slot.players.indexOf(playerId);
+
+    if (teamType === '4-person') {
+      const teammates = slot.players.filter(id => id !== playerId);
+      return { teammates, teamType, slot, isThreesome: slot.players.length === 3 };
+    }
+
+    if (teamType === '2-person') {
+      // Positions 0&1 = Team A, positions 2&3 = Team B
+      if (slot.players.length === 4) {
+        const isTeamA = playerIndex < 2;
+        const teammates = isTeamA
+          ? [slot.players[playerIndex === 0 ? 1 : 0]]
+          : [slot.players[playerIndex === 2 ? 3 : 2]];
+        return { teammates, teamType, slot, isThreesome: false, isSolo: false };
+      } else if (slot.players.length === 3) {
+        // Threesome: positions 0&1 are Team A, position 2 is solo
+        if (playerIndex === 0) return { teammates: [slot.players[1]], teamType, slot, isThreesome: true, isSolo: false };
+        if (playerIndex === 1) return { teammates: [slot.players[0]], teamType, slot, isThreesome: true, isSolo: false };
+        return { teammates: [], teamType, slot, isThreesome: true, isSolo: true };
+      } else {
+        return { teammates: [], teamType, slot, isThreesome: false, isSolo: true };
+      }
+    }
+
+    return { teammates: [], teamType: null, slot: null };
+  };
+
   // Handle weekly game edit
   const loadWeeklyGameForEdit = () => {
     const game = getGameForWeek(selectedWeek);
@@ -1099,14 +1202,16 @@ export default function ArlingtonLakesGolfLeague() {
         gameName: game.gameName,
         gameDescription: game.gameDescription,
         sideGame: game.sideGame,
-        sideGameDescription: game.sideGameDescription
+        sideGameDescription: game.sideGameDescription,
+        teamType: game.teamType || null
       });
     } else {
       setWeeklyGameEdit({
         gameName: '',
         gameDescription: '',
         sideGame: '',
-        sideGameDescription: ''
+        sideGameDescription: '',
+        teamType: null
       });
     }
     setShowWeeklyGameEditor(true);
@@ -1208,6 +1313,7 @@ export default function ArlingtonLakesGolfLeague() {
   const autoScheduleWeek = () => {
     // Get full-time players only (exclude substitutes)
     const eligiblePlayers = players.filter(p => p.type === 'full-time');
+    const teamType = getTeamTypeForWeek(selectedWeek);
 
     // Initialize tee sheet
     const newTeeSheet = teeTimes.map(time => ({ time, players: [] }));
@@ -1236,11 +1342,16 @@ export default function ArlingtonLakesGolfLeague() {
       const slotsWithRoom = availableSlots.filter(s => s.slot.players.length < 4);
 
       if (slotsWithRoom.length > 0) {
-        // Pick the slot with the MOST remaining capacity (spreads players out)
-        // If tied, pick based on pairing diversity
         slotsWithRoom.sort((a, b) => {
-          const capacityDiff = a.slot.players.length - b.slot.players.length;
-          if (capacityDiff !== 0) return capacityDiff;
+          if (teamType) {
+            // TEAM WEEK: prefer slots that already have players (pack foursomes tighter)
+            const capacityDiff = b.slot.players.length - a.slot.players.length;
+            if (capacityDiff !== 0) return capacityDiff;
+          } else {
+            // INDIVIDUAL WEEK: prefer emptier slots (spread players out)
+            const capacityDiff = a.slot.players.length - b.slot.players.length;
+            if (capacityDiff !== 0) return capacityDiff;
+          }
 
           // If same capacity, pick slot with least repeat pairings
           const scoreA = a.slot.players.reduce((sum, id) => sum + getPairingCount(player.id, id), 0);
@@ -1306,6 +1417,29 @@ export default function ArlingtonLakesGolfLeague() {
     if (totalAssigned < eligiblePlayers.length) {
       const missing = eligiblePlayers.filter(p => !assigned.has(p.id));
       console.log('Unassigned players:', missing.map(p => p.name));
+    }
+
+    // Team week post-processing: push threesomes to the end
+    if (teamType) {
+      const filledSlots = newTeeSheet.filter(s => s.players.length > 0);
+      const threesomes = filledSlots.filter(s => s.players.length === 3);
+      const foursomes = filledSlots.filter(s => s.players.length === 4);
+      const others = filledSlots.filter(s => s.players.length !== 3 && s.players.length !== 4);
+
+      // Reorder: put foursomes first, then others, then threesomes at the end
+      const reordered = [...foursomes, ...others, ...threesomes];
+
+      // Reassign to tee sheet slots (keep original time ordering for filled slots)
+      const filledIndices = newTeeSheet.reduce((acc, s, i) => s.players.length > 0 ? [...acc, i] : acc, []);
+      filledIndices.forEach((slotIdx, i) => {
+        if (i < reordered.length) {
+          newTeeSheet[slotIdx].players = reordered[i].players;
+        }
+      });
+
+      if (threesomes.length > 0) {
+        alert(`Warning: ${threesomes.length} threesome(s) were created for this team week. They have been moved to the last tee times. Consider adjusting manually.`);
+      }
     }
 
     // Update pairing history
@@ -1574,12 +1708,24 @@ export default function ArlingtonLakesGolfLeague() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-serif text-white">Weekly Schedule</h2>
-                <button
-                  onClick={() => setShowPlayerScoreEntry(true)}
-                  className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 font-medium flex items-center gap-2 text-sm sm:text-base"
-                >
-                  <span>📝</span> Submit My Score
-                </button>
+                {(() => {
+                  const today = new Date().toLocaleDateString('en-CA');
+                  const isGameDay = weeks.some(w => w.date === today && w.teeSheet.length > 0);
+                  return (
+                    <button
+                      onClick={() => setShowPlayerScoreEntry(true)}
+                      disabled={!isGameDay}
+                      className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-sm sm:text-base ${
+                        isGameDay
+                          ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                          : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      }`}
+                      title={!isGameDay ? 'Score entry is only available on game day' : ''}
+                    >
+                      <span>📝</span> Submit My Score
+                    </button>
+                  );
+                })()}
               </div>
               <div className="flex items-center gap-2 justify-center sm:justify-end">
                 <button
@@ -1631,9 +1777,18 @@ export default function ArlingtonLakesGolfLeague() {
                   <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-yellow-50 p-4 sm:p-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <div>
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <span className="text-xl sm:text-2xl">🎯</span>
                           <h4 className="font-bold text-base sm:text-lg text-green-800">{currentGame.gameName}</h4>
+                          {currentGame.teamType && (
+                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                              currentGame.teamType === '2-person'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-orange-100 text-orange-700'
+                            }`}>
+                              {currentGame.teamType === '2-person' ? '2-Person Teams' : '4-Person Teams'}
+                            </span>
+                          )}
                         </div>
                         <p className="text-gray-700 text-xs sm:text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
                       </div>
@@ -1708,8 +1863,16 @@ export default function ArlingtonLakesGolfLeague() {
               <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
                   <div className="bg-green-800 px-6 py-4 sticky top-0">
-                    <h3 className="text-xl font-bold text-white">📝 Submit My Score</h3>
-                    <p className="text-green-200 text-sm">Enter your score and mark any birdies or eagles</p>
+                    <h3 className="text-xl font-bold text-white">
+                      {playerScoreForm.weekId && getTeamTypeForWeek(parseInt(playerScoreForm.weekId))
+                        ? '👥 Submit Team Score'
+                        : '📝 Submit My Score'}
+                    </h3>
+                    <p className="text-green-200 text-sm">
+                      {playerScoreForm.weekId && getTeamTypeForWeek(parseInt(playerScoreForm.weekId))
+                        ? 'Enter your team score and mark any birdies or eagles'
+                        : 'Enter your score and mark any birdies or eagles'}
+                    </p>
                   </div>
                   <div className="p-6 space-y-4">
                     {/* Player Selection */}
@@ -1730,23 +1893,81 @@ export default function ArlingtonLakesGolfLeague() {
                     {/* Week Selection */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Week</label>
-                      <select
-                        value={playerScoreForm.weekId}
-                        onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, weekId: e.target.value, birdieHoles: [], eagleHoles: [] })}
-                        className="w-full border rounded-lg px-3 py-2"
-                      >
-                        <option value="">Select week...</option>
-                        {weeks.filter(w => w.teeSheet.length > 0).map(w => (
-                          <option key={w.id} value={w.id}>
-                            Week {w.id} - {formatShortDate(w.date)} ({w.nineHoles === 'front' ? 'Front 9' : 'Back 9'})
-                          </option>
-                        ))}
-                      </select>
+                      {(() => {
+                        const today = new Date().toLocaleDateString('en-CA');
+                        const todayWeeks = weeks.filter(w => w.teeSheet.length > 0 && w.date === today);
+
+                        if (todayWeeks.length === 0) {
+                          return (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-yellow-800 text-sm">
+                              Score entry is only available on game day (Mondays). No game is scheduled for today.
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <select
+                            value={playerScoreForm.weekId}
+                            onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, weekId: e.target.value, birdieHoles: [], eagleHoles: [] })}
+                            className="w-full border rounded-lg px-3 py-2"
+                          >
+                            <option value="">Select week...</option>
+                            {todayWeeks.map(w => (
+                              <option key={w.id} value={w.id}>
+                                Week {w.id} - {formatShortDate(w.date)} ({w.nineHoles === 'front' ? 'Front 9' : 'Back 9'})
+                              </option>
+                            ))}
+                          </select>
+                        );
+                      })()}
                     </div>
+
+                    {/* Team Info */}
+                    {playerScoreForm.playerId && playerScoreForm.weekId && (() => {
+                      const weekId = parseInt(playerScoreForm.weekId);
+                      const playerId = parseInt(playerScoreForm.playerId);
+                      const teamType = getTeamTypeForWeek(weekId);
+
+                      if (!teamType) return null;
+
+                      const { teammates, isThreesome, isSolo } = getTeammatesForWeek(playerId, weekId);
+
+                      return (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                          <div className="font-bold text-blue-800 mb-2">
+                            {teamType === '2-person' ? '2-Person Team Game' : '4-Person Team Game'}
+                          </div>
+                          <div className="text-sm text-blue-700">
+                            <p className="font-medium mb-1">Your team:</p>
+                            <ul className="list-disc ml-4">
+                              <li>{getPlayerById(playerId)?.name} (You)</li>
+                              {teammates.map(id => (
+                                <li key={id}>{getPlayerById(id)?.name}</li>
+                              ))}
+                            </ul>
+                            {teammates.length > 0 && (
+                              <p className="mt-2 text-xs text-blue-600">
+                                Your score will be submitted for {teamType === '2-person' ? 'both' : 'all'} team members.
+                              </p>
+                            )}
+                          </div>
+                          {isThreesome && (
+                            <div className="mt-2 bg-yellow-50 border border-yellow-300 rounded p-2 text-yellow-800 text-xs">
+                              Your group is a threesome.
+                              {isSolo && ' You are playing as an individual this week.'}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Total Score */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Total Score (9 holes)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {playerScoreForm.weekId && getTeamTypeForWeek(parseInt(playerScoreForm.weekId))
+                          ? 'Team Score (9 holes)'
+                          : 'Total Score (9 holes)'}
+                      </label>
                       <input
                         type="number"
                         value={playerScoreForm.totalScore}
@@ -2098,9 +2319,9 @@ export default function ArlingtonLakesGolfLeague() {
                   </thead>
                   <tbody>
                     {(() => {
-                      // Calculate averages for each player
+                      // Calculate averages for each player (exclude team scores)
                       const playerAverages = players.map(player => {
-                        const scores = playerScores.filter(s => s.player_id === player.id);
+                        const scores = playerScores.filter(s => s.player_id === player.id && !s.is_team_score);
                         if (scores.length === 0) return null;
                         return {
                           ...player,
@@ -2236,8 +2457,13 @@ export default function ArlingtonLakesGolfLeague() {
                       const playerScoreData = playerScores.filter(s => s.player_id === selectedPlayer.id);
                       if (playerScoreData.length === 0) return null;
 
-                      const avgGross = (playerScoreData.reduce((sum, s) => sum + s.gross_score, 0) / playerScoreData.length).toFixed(1);
-                      const avgNet = (playerScoreData.reduce((sum, s) => sum + s.net_score, 0) / playerScoreData.length).toFixed(1);
+                      const individualScores = playerScoreData.filter(s => !s.is_team_score);
+                      const avgGross = individualScores.length > 0
+                        ? (individualScores.reduce((sum, s) => sum + s.gross_score, 0) / individualScores.length).toFixed(1)
+                        : '-';
+                      const avgNet = individualScores.length > 0
+                        ? (individualScores.reduce((sum, s) => sum + s.net_score, 0) / individualScores.length).toFixed(1)
+                        : '-';
 
                       return (
                         <div className="border-t pt-4 mt-4">
@@ -2267,7 +2493,10 @@ export default function ArlingtonLakesGolfLeague() {
                               <tbody>
                                 {playerScoreData.sort((a, b) => a.week_id - b.week_id).map(score => (
                                   <tr key={score.week_id} className="border-b">
-                                    <td className="p-2 text-gray-600">Week {score.week_id}</td>
+                                    <td className="p-2 text-gray-600">
+                                      Week {score.week_id}
+                                      {score.is_team_score && <span className="ml-1 text-xs text-blue-600">(team)</span>}
+                                    </td>
                                     <td className="p-2 text-center font-medium">{score.gross_score}</td>
                                     <td className="p-2 text-center text-gray-500">-{score.handicap_used}</td>
                                     <td className="p-2 text-center font-bold text-purple-700">{score.net_score}</td>
@@ -2850,6 +3079,21 @@ export default function ArlingtonLakesGolfLeague() {
                       />
                     </div>
 
+                    {/* Team Info for Admin */}
+                    {adminAddScore.playerId && getTeamTypeForWeek(scoreManagerWeek) && (() => {
+                      const { teammates, teamType, isThreesome } = getTeammatesForWeek(
+                        parseInt(adminAddScore.playerId), scoreManagerWeek
+                      );
+                      const allMembers = [parseInt(adminAddScore.playerId), ...teammates];
+                      return (
+                        <div className="bg-blue-50 rounded-lg p-2 text-sm mb-3">
+                          <strong className="text-blue-800">{teamType === '2-person' ? '2-Person' : '4-Person'} Team Score</strong>
+                          <span className="text-blue-700"> — saving for: {allMembers.map(id => getPlayerById(id)?.name).join(', ')}</span>
+                          {isThreesome && <span className="text-yellow-600 ml-2">(threesome)</span>}
+                        </div>
+                      );
+                    })()}
+
                     {/* Birdie/Eagle Holes Selection for Add Score */}
                     {adminAddScore.playerId && adminAddScore.grossScore && (() => {
                       const week = weeks.find(w => w.id === scoreManagerWeek);
@@ -2918,21 +3162,49 @@ export default function ArlingtonLakesGolfLeague() {
                         }
                         const playerId = parseInt(adminAddScore.playerId);
                         const grossScore = parseInt(adminAddScore.grossScore);
-                        const player = players.find(p => p.id === playerId);
-                        const handicap9 = calc9HoleHandicap(player.handicap);
-                        const netScore = grossScore - handicap9;
+                        const teamType = getTeamTypeForWeek(scoreManagerWeek);
+                        const isTeamScore = teamType !== null;
 
-                        await savePlayerScoreToSupabase(playerId, scoreManagerWeek, grossScore, netScore, handicap9, adminAddScore.birdieHoles, adminAddScore.eagleHoles);
+                        if (isTeamScore) {
+                          const { teammates, isSolo } = getTeammatesForWeek(playerId, scoreManagerWeek);
+                          const allMembers = isSolo ? [playerId] : [playerId, ...teammates];
 
-                        setPlayerScores(prev => [...prev, {
-                          player_id: playerId,
-                          week_id: scoreManagerWeek,
-                          gross_score: grossScore,
-                          net_score: netScore,
-                          handicap_used: handicap9,
-                          birdie_holes: adminAddScore.birdieHoles,
-                          eagle_holes: adminAddScore.eagleHoles
-                        }]);
+                          for (const memberId of allMembers) {
+                            const member = players.find(p => p.id === memberId);
+                            if (!member) continue;
+                            const handicap9 = calc9HoleHandicap(member.handicap);
+                            const netScore = grossScore - handicap9;
+
+                            await savePlayerScoreToSupabase(memberId, scoreManagerWeek, grossScore, netScore, handicap9, adminAddScore.birdieHoles, adminAddScore.eagleHoles, true);
+
+                            setPlayerScores(prev => {
+                              const existingIdx = prev.findIndex(s => s.player_id === memberId && s.week_id === scoreManagerWeek);
+                              if (existingIdx >= 0) {
+                                const updated = [...prev];
+                                updated[existingIdx] = { player_id: memberId, week_id: scoreManagerWeek, gross_score: grossScore, net_score: netScore, handicap_used: handicap9, birdie_holes: adminAddScore.birdieHoles, eagle_holes: adminAddScore.eagleHoles, is_team_score: true };
+                                return updated;
+                              }
+                              return [...prev, { player_id: memberId, week_id: scoreManagerWeek, gross_score: grossScore, net_score: netScore, handicap_used: handicap9, birdie_holes: adminAddScore.birdieHoles, eagle_holes: adminAddScore.eagleHoles, is_team_score: true }];
+                            });
+                          }
+                        } else {
+                          const player = players.find(p => p.id === playerId);
+                          const handicap9 = calc9HoleHandicap(player.handicap);
+                          const netScore = grossScore - handicap9;
+
+                          await savePlayerScoreToSupabase(playerId, scoreManagerWeek, grossScore, netScore, handicap9, adminAddScore.birdieHoles, adminAddScore.eagleHoles, false);
+
+                          setPlayerScores(prev => [...prev, {
+                            player_id: playerId,
+                            week_id: scoreManagerWeek,
+                            gross_score: grossScore,
+                            net_score: netScore,
+                            handicap_used: handicap9,
+                            birdie_holes: adminAddScore.birdieHoles,
+                            eagle_holes: adminAddScore.eagleHoles,
+                            is_team_score: false
+                          }]);
+                        }
 
                         // Recalculate Giant Skins
                         await recalculateGiantSkins();
@@ -3203,6 +3475,18 @@ export default function ArlingtonLakesGolfLeague() {
                           className="w-full border rounded-lg px-3 py-2"
                         />
                       </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Team Type</label>
+                      <select
+                        value={weeklyGameEdit.teamType || ''}
+                        onChange={(e) => setWeeklyGameEdit({ ...weeklyGameEdit, teamType: e.target.value || null })}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="">Individual (no teams)</option>
+                        <option value="2-person">2-Person Teams</option>
+                        <option value="4-person">4-Person Teams</option>
+                      </select>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">
