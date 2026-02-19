@@ -2297,7 +2297,7 @@ export default function ArlingtonLakesGolfLeague() {
                         No money entered for this week yet
                       </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div>
                           <h4 className="font-semibold text-gray-700 mb-3 text-lg">Main Game</h4>
                           <div className="space-y-2">
@@ -3052,7 +3052,7 @@ export default function ArlingtonLakesGolfLeague() {
 
               {showMoneyEntry && currentWeek && (
                 <div className="p-4">
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <h4 className="font-semibold text-gray-700">🏆 Main Game</h4>
                       {['1st', '2nd', '3rd'].map(place => {
