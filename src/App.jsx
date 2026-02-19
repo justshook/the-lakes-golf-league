@@ -2303,15 +2303,15 @@ export default function ArlingtonLakesGolfLeague() {
                           <div className="space-y-2">
                             {['1st', '2nd', '3rd'].map(place => {
                               const cat = moneyCategories.find(c => c.id === place);
-                              const winner = players.find(p => p.weeklyMoney[selectedWeek]?.[place]);
-                              if (!winner) return null;
+                              const winners = players.filter(p => p.weeklyMoney[selectedWeek]?.[place]);
+                              if (winners.length === 0) return null;
                               return (
                                 <div key={place} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                   <div className="flex items-center gap-2">
                                     <span className="text-xl">{cat.icon}</span>
-                                    <span className="font-medium">{winner.name}</span>
+                                    <span className="font-medium">{winners.map(w => w.name).join(' & ')}</span>
                                   </div>
-                                  <span className="font-bold text-green-700">${winner.weeklyMoney[selectedWeek][place]}</span>
+                                  <span className="font-bold text-green-700">${winners[0].weeklyMoney[selectedWeek][place]}{winners.length > 1 ? ' ea' : ''}</span>
                                 </div>
                               );
                             })}
@@ -2322,15 +2322,15 @@ export default function ArlingtonLakesGolfLeague() {
                           <h4 className="font-semibold text-gray-700 mb-3 text-lg">🎯 Closest to Pin</h4>
                           <div className="space-y-2">
                             {['ctp1', 'ctp2', 'ctp3'].map((ctp, idx) => {
-                              const winner = players.find(p => p.weeklyMoney[selectedWeek]?.[ctp]);
-                              if (!winner) return null;
+                              const winners = players.filter(p => p.weeklyMoney[selectedWeek]?.[ctp]);
+                              if (winners.length === 0) return null;
                               return (
                                 <div key={ctp} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm text-gray-500">CTP #{idx + 1}</span>
-                                    <span className="font-medium">{winner.name}</span>
+                                    <span className="font-medium">{winners.map(w => w.name).join(' & ')}</span>
                                   </div>
-                                  <span className="font-bold text-green-700">${winner.weeklyMoney[selectedWeek][ctp]}</span>
+                                  <span className="font-bold text-green-700">${winners[0].weeklyMoney[selectedWeek][ctp]}{winners.length > 1 ? ' ea' : ''}</span>
                                 </div>
                               );
                             })}
@@ -3057,46 +3057,113 @@ export default function ArlingtonLakesGolfLeague() {
                       <h4 className="font-semibold text-gray-700">🏆 Main Game</h4>
                       {['1st', '2nd', '3rd'].map(place => {
                         const cat = moneyCategories.find(c => c.id === place);
-                        return (
-                          <div key={place} className="flex items-center gap-3">
-                            <span className="text-xl w-8">{cat.icon}</span>
-                            <select
-                              value={Object.keys(moneyEntries).find(k => k.endsWith(`-${place}`))?.split('-')[0] || ''}
-                              onChange={(e) => {
-                                const newEntries = { ...moneyEntries };
-                                Object.keys(newEntries).forEach(k => {
-                                  if (k.endsWith(`-${place}`)) delete newEntries[k];
-                                });
-                                if (e.target.value) {
-                                  newEntries[`${e.target.value}-${place}`] = moneyEntries[`${e.target.value}-${place}`] || '';
-                                }
-                                setMoneyEntries(newEntries);
-                              }}
-                              className="flex-1 border rounded px-2 py-1"
-                            >
-                              <option value="">Select player...</option>
-                              {getPlayersForWeek(selectedWeek).map(id => {
-                                const p = getPlayerById(id);
-                                return <option key={id} value={id}>{p.name}</option>;
-                              })}
-                            </select>
-                            <div className="flex items-center">
-                              <span className="text-gray-500">$</span>
-                              <input
-                                type="number"
-                                placeholder="0"
-                                value={Object.entries(moneyEntries).find(([k]) => k.endsWith(`-${place}`))?.[1] || ''}
-                                onChange={(e) => {
-                                  const key = Object.keys(moneyEntries).find(k => k.endsWith(`-${place}`));
-                                  if (key) {
-                                    setMoneyEntries({ ...moneyEntries, [key]: e.target.value });
-                                  }
-                                }}
-                                className="w-20 border rounded px-2 py-1"
-                              />
+                        const teamType = getTeamTypeForWeek(selectedWeek);
+                        const selectedForPlace = Object.keys(moneyEntries).filter(k => k.endsWith(`-${place}`)).map(k => k.split('-')[0]);
+                        const amountForPlace = Object.entries(moneyEntries).find(([k]) => k.endsWith(`-${place}`))?.[1] || '';
+
+                        if (teamType) {
+                          // Team week: multi-select with checkboxes
+                          return (
+                            <div key={place} className="border border-gray-200 rounded-lg p-3">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xl">{cat.icon}</span>
+                                <span className="font-medium text-gray-700">{cat.name}</span>
+                                <div className="flex items-center ml-auto">
+                                  <span className="text-gray-500 text-sm">$ each</span>
+                                  <input
+                                    type="number"
+                                    placeholder="0"
+                                    value={amountForPlace}
+                                    onChange={(e) => {
+                                      const newEntries = { ...moneyEntries };
+                                      // Update amount for all selected players in this category
+                                      Object.keys(newEntries).forEach(k => {
+                                        if (k.endsWith(`-${place}`)) {
+                                          newEntries[k] = e.target.value;
+                                        }
+                                      });
+                                      setMoneyEntries(newEntries);
+                                    }}
+                                    className="w-20 border rounded px-2 py-1 ml-1 text-sm"
+                                  />
+                                </div>
+                              </div>
+                              <div className="max-h-32 overflow-y-auto space-y-1">
+                                {getPlayersForWeek(selectedWeek).map(id => {
+                                  const p = getPlayerById(id);
+                                  const isChecked = selectedForPlace.includes(String(id));
+                                  return (
+                                    <label key={id} className={`flex items-center gap-2 px-2 py-1 rounded cursor-pointer text-sm ${isChecked ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={(e) => {
+                                          const newEntries = { ...moneyEntries };
+                                          if (e.target.checked) {
+                                            newEntries[`${id}-${place}`] = amountForPlace;
+                                          } else {
+                                            delete newEntries[`${id}-${place}`];
+                                          }
+                                          setMoneyEntries(newEntries);
+                                        }}
+                                        className="rounded border-gray-300 text-green-600"
+                                      />
+                                      <span className={isChecked ? 'font-medium text-green-800' : 'text-gray-700'}>{p?.name}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                              {selectedForPlace.length > 0 && (
+                                <div className="text-xs text-gray-500 mt-1">{selectedForPlace.length} player{selectedForPlace.length !== 1 ? 's' : ''} selected</div>
+                              )}
                             </div>
-                          </div>
-                        );
+                          );
+                        } else {
+                          // Individual week: single select dropdown (unchanged)
+                          return (
+                            <div key={place} className="flex items-center gap-3">
+                              <span className="text-xl w-8">{cat.icon}</span>
+                              <select
+                                value={selectedForPlace[0] || ''}
+                                onChange={(e) => {
+                                  const newEntries = { ...moneyEntries };
+                                  Object.keys(newEntries).forEach(k => {
+                                    if (k.endsWith(`-${place}`)) delete newEntries[k];
+                                  });
+                                  if (e.target.value) {
+                                    newEntries[`${e.target.value}-${place}`] = moneyEntries[`${e.target.value}-${place}`] || '';
+                                  }
+                                  setMoneyEntries(newEntries);
+                                }}
+                                className="flex-1 border rounded px-2 py-1"
+                              >
+                                <option value="">Select player...</option>
+                                {getPlayersForWeek(selectedWeek).map(id => {
+                                  const p = getPlayerById(id);
+                                  return <option key={id} value={id}>{p?.name}</option>;
+                                })}
+                              </select>
+                              <div className="flex items-center">
+                                <span className="text-gray-500">$</span>
+                                <input
+                                  type="number"
+                                  placeholder="0"
+                                  value={amountForPlace}
+                                  onChange={(e) => {
+                                    const newEntries = { ...moneyEntries };
+                                    Object.keys(newEntries).forEach(k => {
+                                      if (k.endsWith(`-${place}`)) {
+                                        newEntries[k] = e.target.value;
+                                      }
+                                    });
+                                    setMoneyEntries(newEntries);
+                                  }}
+                                  className="w-20 border rounded px-2 py-1"
+                                />
+                              </div>
+                            </div>
+                          );
+                        }
                       })}
                     </div>
 
