@@ -112,8 +112,9 @@ export function LeagueProvider({ children }) {
 
         let loadedPlayers;
         if (playersError) {
-          // Table may not exist yet — use initialPlayers
-          console.warn('Could not load players table, using defaults:', playersError.message);
+          // Table does not exist — use initialPlayers and warn admin
+          console.error('Players table error:', playersError.message);
+          console.error('IMPORTANT: You need to create the "players" table in your Supabase dashboard. Player changes will NOT persist until the table is created.');
           loadedPlayers = initialPlayers;
         } else if (playersData && playersData.length > 0) {
           loadedPlayers = playersData.map(supabasePlayerToApp);
@@ -270,22 +271,32 @@ export function LeagueProvider({ children }) {
       const { error } = await supabase.from('players').upsert({
         id: player.id,
         name: player.name,
-        phone: player.phone,
-        email: player.email,
+        phone: player.phone || '',
+        email: player.email || '',
         handicap: player.handicap,
-        cdga_id: player.cdgaId,
-        availability: player.availability,
-        type: player.type
+        cdga_id: player.cdgaId || '',
+        availability: player.availability || [],
+        type: player.type || 'full-time'
       }, { onConflict: 'id' });
       if (error) throw error;
-    } catch (error) { console.error('Error saving player:', error); }
+      return true;
+    } catch (error) {
+      console.error('Error saving player:', error);
+      alert(`Failed to save player to database: ${error.message || 'Unknown error'}. Please check the browser console and ensure the "players" table exists in Supabase.`);
+      return false;
+    }
   };
 
   const deletePlayerFromSupabase = async (playerId) => {
     try {
       const { error } = await supabase.from('players').delete().eq('id', playerId);
       if (error) throw error;
-    } catch (error) { console.error('Error deleting player:', error); }
+      return true;
+    } catch (error) {
+      console.error('Error deleting player:', error);
+      alert(`Failed to remove player from database: ${error.message || 'Unknown error'}`);
+      return false;
+    }
   };
 
   const saveTeeSheetToSupabase = async (weekId, teeSheet, scoresEntered = false, moneyEntered = false) => {
@@ -651,10 +662,12 @@ export function LeagueProvider({ children }) {
 
   const handleSavePlayer = async () => {
     const updatedPlayer = { ...players.find(p => p.id === editingPlayerId), ...playerEdit };
-    setPlayers(players.map(p => p.id === editingPlayerId ? updatedPlayer : p));
-    await savePlayerToSupabase(updatedPlayer);
-    setShowPlayerEditor(false);
-    setEditingPlayerId(null);
+    const saved = await savePlayerToSupabase(updatedPlayer);
+    if (saved) {
+      setPlayers(players.map(p => p.id === editingPlayerId ? updatedPlayer : p));
+      setShowPlayerEditor(false);
+      setEditingPlayerId(null);
+    }
   };
 
   const handleAddPlayer = async () => {
@@ -669,15 +682,19 @@ export function LeagueProvider({ children }) {
       totalMoney: 0,
       weeklyMoney: {}
     };
-    setPlayers(prev => [...prev, player]);
-    await savePlayerToSupabase(player);
-    setNewPlayer({ name: '', phone: '', email: '', handicap: 0, cdgaId: '', availability: [], type: 'full-time' });
-    setShowAddPlayer(false);
+    const saved = await savePlayerToSupabase(player);
+    if (saved) {
+      setPlayers(prev => [...prev, player]);
+      setNewPlayer({ name: '', phone: '', email: '', handicap: 0, cdgaId: '', availability: [], type: 'full-time' });
+      setShowAddPlayer(false);
+    }
   };
 
   const handleRemovePlayer = async (playerId) => {
-    setPlayers(prev => prev.filter(p => p.id !== playerId));
-    await deletePlayerFromSupabase(playerId);
+    const deleted = await deletePlayerFromSupabase(playerId);
+    if (deleted) {
+      setPlayers(prev => prev.filter(p => p.id !== playerId));
+    }
     setShowRemoveConfirm(null);
   };
 
