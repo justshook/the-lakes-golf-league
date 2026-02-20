@@ -49,6 +49,11 @@ export function LeagueProvider({ children }) {
     name: '', phone: '', email: '', handicap: 0, cdgaId: '', availability: [], type: 'full-time'
   });
   const [playerSearchTerm, setPlayerSearchTerm] = useState('');
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [newPlayer, setNewPlayer] = useState({
+    name: '', phone: '', email: '', handicap: 0, cdgaId: '', availability: [], type: 'full-time'
+  });
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(null);
 
   // Admin authentication
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
@@ -583,6 +588,36 @@ export function LeagueProvider({ children }) {
     setEditingPlayerId(null);
   };
 
+  const handleAddPlayer = () => {
+    if (!newPlayer.name.trim()) { alert('Player name is required'); return; }
+    const maxId = players.reduce((max, p) => Math.max(max, p.id), 0);
+    const player = {
+      ...newPlayer,
+      id: maxId + 1,
+      name: newPlayer.name.trim(),
+      handicap: parseInt(newPlayer.handicap) || 0,
+      weeksPlayed: 0,
+      totalMoney: 0,
+      weeklyMoney: {}
+    };
+    setPlayers(prev => [...prev, player]);
+    setNewPlayer({ name: '', phone: '', email: '', handicap: 0, cdgaId: '', availability: [], type: 'full-time' });
+    setShowAddPlayer(false);
+  };
+
+  const handleRemovePlayer = (playerId) => {
+    setPlayers(prev => prev.filter(p => p.id !== playerId));
+    setShowRemoveConfirm(null);
+  };
+
+  const toggleNewPlayerAvailability = (time) => {
+    if (newPlayer.availability.includes(time)) {
+      setNewPlayer({ ...newPlayer, availability: newPlayer.availability.filter(t => t !== time) });
+    } else {
+      setNewPlayer({ ...newPlayer, availability: [...newPlayer.availability, time].sort((a, b) => teeTimes.indexOf(a) - teeTimes.indexOf(b)) });
+    }
+  };
+
   const toggleAvailability = (time) => {
     if (playerEdit.availability.includes(time)) {
       setPlayerEdit({ ...playerEdit, availability: playerEdit.availability.filter(t => t !== time) });
@@ -849,6 +884,8 @@ export function LeagueProvider({ children }) {
     weeklyGameEdit, setWeeklyGameEdit,
     showPlayerEditor, setShowPlayerEditor, editingPlayerId, setEditingPlayerId,
     playerEdit, setPlayerEdit, playerSearchTerm, setPlayerSearchTerm,
+    showAddPlayer, setShowAddPlayer, newPlayer, setNewPlayer,
+    showRemoveConfirm, setShowRemoveConfirm,
     isAdminAuthenticated, setIsAdminAuthenticated, adminPassword, setAdminPassword,
     passwordError, setPasswordError,
     playerFilter, setPlayerFilter, leaderboardView, setLeaderboardView,
@@ -871,6 +908,7 @@ export function LeagueProvider({ children }) {
     getGameForWeek, getTeamTypeForWeek, getTeammatesForWeek,
     loadWeeklyGameForEdit, handleSaveWeeklyGame,
     loadPlayerForEdit, handleSavePlayer, toggleAvailability,
+    handleAddPlayer, handleRemovePlayer, toggleNewPlayerAvailability,
     handleAdminLogin,
     autoScheduleWeek, loadExistingSchedule, handleBuildSchedule,
     handleEnterMoney, loadMoneyForEdit,

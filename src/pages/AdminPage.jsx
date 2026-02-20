@@ -40,6 +40,9 @@ export default function AdminPage() {
     playerSearchTerm, setPlayerSearchTerm,
     filteredPlayersForAdmin,
     loadPlayerForEdit, handleSavePlayer, toggleAvailability,
+    showAddPlayer, setShowAddPlayer, newPlayer, setNewPlayer,
+    showRemoveConfirm, setShowRemoveConfirm,
+    handleAddPlayer, handleRemovePlayer, toggleNewPlayerAvailability,
     // Reset
     showResetConfirm, setShowResetConfirm,
     resetWeekId, setResetWeekId,
@@ -1030,12 +1033,145 @@ export default function AdminPage() {
 
       {/* Player Management */}
       <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-        <div className="bg-green-800 px-4 py-3">
+        <div className="bg-green-800 px-4 py-3 flex items-center justify-between">
           <h3 className="text-white font-medium">👤 Player Management</h3>
+          {!showPlayerEditor && !showAddPlayer && (
+            <button
+              onClick={() => setShowAddPlayer(true)}
+              className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
+            >
+              + Add Player
+            </button>
+          )}
         </div>
 
         <div className="p-4">
-          {!showPlayerEditor ? (
+          {showAddPlayer ? (
+            <div className="space-y-4">
+              <h4 className="font-semibold text-gray-800">Add New Player</h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                  <input
+                    type="text"
+                    value={newPlayer.name}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
+                    placeholder="Full name"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">18-Hole Handicap</label>
+                  <input
+                    type="number"
+                    value={newPlayer.handicap}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, handicap: parseInt(e.target.value) || 0 })}
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">9-Hole Handicap</label>
+                  <div className="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-700 font-bold">
+                    {calc9HoleHandicap(newPlayer.handicap)}
+                    <span className="text-xs font-normal text-gray-500 ml-2">(auto-calculated)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input
+                    type="text"
+                    value={newPlayer.phone}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, phone: e.target.value })}
+                    placeholder="e.g., 847-555-1234"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={newPlayer.email}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, email: e.target.value })}
+                    placeholder="email@example.com"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">CDGA ID</label>
+                  <input
+                    type="text"
+                    value={newPlayer.cdgaId}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, cdgaId: e.target.value })}
+                    placeholder="e.g., 12345678 or N/A"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Player Type</label>
+                  <select
+                    value={newPlayer.type}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, type: e.target.value })}
+                    className="w-full border rounded-lg px-3 py-2"
+                  >
+                    <option value="full-time">Full-Time Member</option>
+                    <option value="substitute">Substitute</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Available Tee Times</label>
+                <div className="flex flex-wrap gap-2">
+                  {teeTimes.map(time => (
+                    <button
+                      key={time}
+                      onClick={() => toggleNewPlayerAvailability(time)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                        newPlayer.availability.includes(time)
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                      }`}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  {newPlayer.availability.length} tee time{newPlayer.availability.length !== 1 ? 's' : ''} selected
+                </p>
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={handleAddPlayer}
+                  disabled={!newPlayer.name.trim()}
+                  className={`flex-1 py-2 rounded-lg font-medium ${
+                    newPlayer.name.trim()
+                      ? 'bg-green-700 text-white hover:bg-green-800'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  Add Player
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddPlayer(false);
+                    setNewPlayer({ name: '', phone: '', email: '', handicap: 0, cdgaId: '', availability: [], type: 'full-time' });
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : !showPlayerEditor ? (
             <>
               <div className="mb-4">
                 <input
@@ -1065,12 +1201,20 @@ export default function AdminPage() {
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => loadPlayerForEdit(player.id)}
-                      className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
-                    >
-                      Edit
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => loadPlayerForEdit(player.id)}
+                        className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => setShowRemoveConfirm(player.id)}
+                        className="bg-red-100 text-red-700 px-3 py-1 rounded text-sm hover:bg-red-200"
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1286,6 +1430,43 @@ export default function AdminPage() {
           </div>
         </div>
       </div>
+
+      {/* Remove Player Confirmation Modal */}
+      {showRemoveConfirm && (() => {
+        const playerToRemove = players.find(p => p.id === showRemoveConfirm);
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden">
+              <div className="bg-red-700 px-6 py-4">
+                <h3 className="text-xl font-bold text-white">Remove Player</h3>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-700 mb-2">
+                  Are you sure you want to remove <strong>{playerToRemove?.name}</strong> from the league?
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  This will remove them from the player roster. Any existing scores, money, and schedule data will remain in the system.
+                </p>
+                <p className="text-red-600 font-medium text-sm mb-6">This action cannot be undone!</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleRemovePlayer(showRemoveConfirm)}
+                    className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 font-medium"
+                  >
+                    Yes, Remove Player
+                  </button>
+                  <button
+                    onClick={() => setShowRemoveConfirm(null)}
+                    className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Reset Confirmation Modal */}
       {showResetConfirm && (
