@@ -39,9 +39,6 @@ export default function PlayersPage() {
             <div className="bg-green-800 p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-4xl shadow-md">
-                    👤
-                  </div>
                   <div>
                     <h3 className="text-2xl font-serif font-bold text-white">{selectedPlayer.name}</h3>
                     <div className="flex items-center gap-3 text-green-200">
@@ -198,18 +195,13 @@ export default function PlayersPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredPlayers.sort((a, b) => a.name.localeCompare(b.name)).map(player => (
+            {filteredPlayers.sort((a, b) => calc9HoleHandicap(a.handicap) - calc9HoleHandicap(b.handicap)).map(player => (
               <div
                 key={player.id}
                 onClick={() => navigate(`/players/${player.id}`)}
                 className="bg-white/95 rounded-lg shadow p-3 cursor-pointer hover:shadow-lg hover:scale-[1.01] transition-all"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    player.type === 'substitute' ? 'bg-yellow-100' : 'bg-green-100'
-                  }`}>
-                    👤
-                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-gray-800 text-sm truncate">{player.name}</div>
                     <div className="text-xs text-gray-500">HCP {calc9HoleHandicap(player.handicap)} • {player.availability.length} times</div>
