@@ -36,32 +36,27 @@ export default function PlayersPage() {
           </button>
 
           <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-            <div className="bg-green-800 p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <h3 className="text-2xl font-serif font-bold text-white">{selectedPlayer.name}</h3>
-                    <div className="flex items-center gap-3 text-green-200">
-                      <span>9-Hole HCP: {calc9HoleHandicap(selectedPlayer.handicap)}</span>
-                      <span className="text-green-300 text-xs">(18-hole: {selectedPlayer.handicap})</span>
-                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                        selectedPlayer.type === 'full-time' ? 'bg-green-600' : 'bg-yellow-600'
-                      }`}>
-                        {selectedPlayer.type === 'full-time' ? 'Member' : 'Substitute'}
-                      </span>
-                    </div>
+            <div className="bg-green-800 p-4 sm:p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-serif font-bold text-white">{selectedPlayer.name}</h3>
+                  <div className="text-green-200 text-sm mt-1 space-y-0.5">
+                    <div>9-Hole HCP: {calc9HoleHandicap(selectedPlayer.handicap)}</div>
+                    <div className="text-green-300 text-xs">18-Hole HCP: {selectedPlayer.handicap}</div>
+                    {selectedPlayer.cdgaId && selectedPlayer.cdgaId !== 'N/A' && (
+                      <div className="text-green-300 text-xs">CDGA ID: {selectedPlayer.cdgaId}</div>
+                    )}
                   </div>
                 </div>
-                {selectedPlayer.cdgaId && selectedPlayer.cdgaId !== 'N/A' && (
-                  <div className="text-right">
-                    <div className="text-green-300 text-sm">CDGA ID</div>
-                    <div className="text-white font-mono">{selectedPlayer.cdgaId}</div>
-                  </div>
-                )}
+                <span className={`px-2 py-0.5 rounded text-xs font-medium shrink-0 ${
+                  selectedPlayer.type === 'full-time' ? 'bg-green-600' : 'bg-yellow-600'
+                } text-white`}>
+                  {selectedPlayer.type === 'full-time' ? 'Member' : 'Substitute'}
+                </span>
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-green-50 rounded-lg p-4 text-center">
                   <div className="text-3xl font-bold text-green-700">{selectedPlayer.weeksPlayed}</div>
@@ -73,15 +68,7 @@ export default function PlayersPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-gray-700 mb-2">Contact Information</h4>
-                  <div className="text-gray-600 space-y-1">
-                    <div>📧 {selectedPlayer.email}</div>
-                    <div>📱 {selectedPlayer.phone}</div>
-                  </div>
-                </div>
-
+              <div className="space-y-4">
                 <div className="border-t pt-4">
                   <h4 className="font-semibold text-gray-700 mb-2">Available Tee Times</h4>
                   <div className="flex flex-wrap gap-1">
@@ -90,6 +77,14 @@ export default function PlayersPage() {
                         {time}
                       </span>
                     ))}
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-semibold text-gray-700 mb-2">Contact Information</h4>
+                  <div className="text-gray-600 space-y-1">
+                    <div>{selectedPlayer.email}</div>
+                    <div>{selectedPlayer.phone}</div>
                   </div>
                 </div>
               </div>
