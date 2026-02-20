@@ -595,7 +595,7 @@ export function LeagueProvider({ children }) {
       ...newPlayer,
       id: maxId + 1,
       name: newPlayer.name.trim(),
-      handicap: parseInt(newPlayer.handicap) || 0,
+      handicap: parseFloat(newPlayer.handicap) || 0,
       weeksPlayed: 0,
       totalMoney: 0,
       weeklyMoney: {}

@@ -1065,8 +1065,9 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">18-Hole Handicap</label>
                   <input
                     type="number"
+                    step="0.1"
                     value={newPlayer.handicap}
-                    onChange={(e) => setNewPlayer({ ...newPlayer, handicap: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setNewPlayer({ ...newPlayer, handicap: parseFloat(e.target.value) || 0 })}
                     className="w-full border rounded-lg px-3 py-2"
                   />
                 </div>
@@ -1249,8 +1250,9 @@ export default function AdminPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">18-Hole Handicap</label>
                   <input
                     type="number"
+                    step="0.1"
                     value={playerEdit.handicap}
-                    onChange={(e) => setPlayerEdit({ ...playerEdit, handicap: parseInt(e.target.value) || 0 })}
+                    onChange={(e) => setPlayerEdit({ ...playerEdit, handicap: parseFloat(e.target.value) || 0 })}
                     className="w-full border rounded-lg px-3 py-2"
                   />
                 </div>
