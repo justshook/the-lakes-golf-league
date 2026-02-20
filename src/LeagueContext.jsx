@@ -87,10 +87,48 @@ export function LeagueProvider({ children }) {
   const [showResetConfirm, setShowResetConfirm] = useState(null);
   const [resetWeekId, setResetWeekId] = useState(null);
 
+  // Helper to convert Supabase player row to app player object
+  const supabasePlayerToApp = (row) => ({
+    id: row.id,
+    name: row.name,
+    phone: row.phone || '',
+    email: row.email || '',
+    handicap: row.handicap || 0,
+    cdgaId: row.cdga_id || '',
+    availability: row.availability || [],
+    type: row.type || 'full-time',
+    weeksPlayed: 0,
+    totalMoney: 0,
+    weeklyMoney: {}
+  });
+
   // Load data from Supabase on mount
   useEffect(() => {
     async function loadData() {
       try {
+        // Load players from Supabase (seed from constants if table is empty)
+        const { data: playersData, error: playersError } = await supabase
+          .from('players').select('*');
+
+        let loadedPlayers;
+        if (playersError) {
+          // Table may not exist yet — use initialPlayers
+          console.warn('Could not load players table, using defaults:', playersError.message);
+          loadedPlayers = initialPlayers;
+        } else if (playersData && playersData.length > 0) {
+          loadedPlayers = playersData.map(supabasePlayerToApp);
+        } else {
+          // Table exists but is empty — seed it from initialPlayers
+          const rows = initialPlayers.map(p => ({
+            id: p.id, name: p.name, phone: p.phone, email: p.email,
+            handicap: p.handicap, cdga_id: p.cdgaId, availability: p.availability, type: p.type
+          }));
+          const { error: seedError } = await supabase.from('players').upsert(rows, { onConflict: 'id' });
+          if (seedError) console.error('Error seeding players:', seedError);
+          loadedPlayers = initialPlayers;
+        }
+        setPlayers(loadedPlayers);
+
         const { data: teeSheetData, error: teeSheetError } = await supabase
           .from('tee_sheets').select('*');
         if (teeSheetError) throw teeSheetError;
@@ -163,6 +201,32 @@ export function LeagueProvider({ children }) {
   // Refresh data on route change
   const refreshData = async () => {
     try {
+      // Reload players from Supabase
+      const { data: playersData } = await supabase.from('players').select('*');
+      if (playersData && playersData.length > 0) {
+        const basePlayers = playersData.map(supabasePlayerToApp);
+
+        // Apply money data on top of the fresh player list
+        const { data: moneyData } = await supabase.from('player_money').select('*');
+        const playersWithMoney = basePlayers.map(player => {
+          const playerMoney = (moneyData || []).filter(m => m.player_id === player.id);
+          if (playerMoney.length > 0) {
+            const weeklyMoney = {};
+            let totalMoney = 0;
+            const weeksWithMoney = new Set();
+            playerMoney.forEach(m => {
+              if (!weeklyMoney[m.week_id]) weeklyMoney[m.week_id] = {};
+              weeklyMoney[m.week_id][m.category] = m.amount;
+              totalMoney += m.amount;
+              weeksWithMoney.add(m.week_id);
+            });
+            return { ...player, weeklyMoney, totalMoney, weeksPlayed: weeksWithMoney.size };
+          }
+          return player;
+        });
+        setPlayers(playersWithMoney);
+      }
+
       const { data: skinsData } = await supabase.from('giant_skins').select('*');
       if (skinsData) {
         setGiantSkins(prevSkins => prevSkins.map(skin => {
@@ -191,26 +255,6 @@ export function LeagueProvider({ children }) {
           return week;
         }));
       }
-
-      const { data: moneyData } = await supabase.from('player_money').select('*');
-      if (moneyData && moneyData.length > 0) {
-        setPlayers(prevPlayers => prevPlayers.map(player => {
-          const playerMoney = moneyData.filter(m => m.player_id === player.id);
-          if (playerMoney.length > 0) {
-            const weeklyMoney = {};
-            let totalMoney = 0;
-            const weeksWithMoney = new Set();
-            playerMoney.forEach(m => {
-              if (!weeklyMoney[m.week_id]) weeklyMoney[m.week_id] = {};
-              weeklyMoney[m.week_id][m.category] = m.amount;
-              totalMoney += m.amount;
-              weeksWithMoney.add(m.week_id);
-            });
-            return { ...player, weeklyMoney, totalMoney, weeksPlayed: weeksWithMoney.size };
-          }
-          return player;
-        }));
-      }
     } catch (error) {
       console.error('Error refreshing data:', error);
     }
@@ -221,6 +265,29 @@ export function LeagueProvider({ children }) {
   }, [location.pathname]);
 
   // === Supabase save helpers ===
+  const savePlayerToSupabase = async (player) => {
+    try {
+      const { error } = await supabase.from('players').upsert({
+        id: player.id,
+        name: player.name,
+        phone: player.phone,
+        email: player.email,
+        handicap: player.handicap,
+        cdga_id: player.cdgaId,
+        availability: player.availability,
+        type: player.type
+      }, { onConflict: 'id' });
+      if (error) throw error;
+    } catch (error) { console.error('Error saving player:', error); }
+  };
+
+  const deletePlayerFromSupabase = async (playerId) => {
+    try {
+      const { error } = await supabase.from('players').delete().eq('id', playerId);
+      if (error) throw error;
+    } catch (error) { console.error('Error deleting player:', error); }
+  };
+
   const saveTeeSheetToSupabase = async (weekId, teeSheet, scoresEntered = false, moneyEntered = false) => {
     try {
       const { error } = await supabase.from('tee_sheets').upsert({
@@ -582,13 +649,15 @@ export function LeagueProvider({ children }) {
     }
   };
 
-  const handleSavePlayer = () => {
-    setPlayers(players.map(p => p.id === editingPlayerId ? { ...p, ...playerEdit } : p));
+  const handleSavePlayer = async () => {
+    const updatedPlayer = { ...players.find(p => p.id === editingPlayerId), ...playerEdit };
+    setPlayers(players.map(p => p.id === editingPlayerId ? updatedPlayer : p));
+    await savePlayerToSupabase(updatedPlayer);
     setShowPlayerEditor(false);
     setEditingPlayerId(null);
   };
 
-  const handleAddPlayer = () => {
+  const handleAddPlayer = async () => {
     if (!newPlayer.name.trim()) { alert('Player name is required'); return; }
     const maxId = players.reduce((max, p) => Math.max(max, p.id), 0);
     const player = {
@@ -601,12 +670,14 @@ export function LeagueProvider({ children }) {
       weeklyMoney: {}
     };
     setPlayers(prev => [...prev, player]);
+    await savePlayerToSupabase(player);
     setNewPlayer({ name: '', phone: '', email: '', handicap: 0, cdgaId: '', availability: [], type: 'full-time' });
     setShowAddPlayer(false);
   };
 
-  const handleRemovePlayer = (playerId) => {
+  const handleRemovePlayer = async (playerId) => {
     setPlayers(prev => prev.filter(p => p.id !== playerId));
+    await deletePlayerFromSupabase(playerId);
     setShowRemoveConfirm(null);
   };
 
