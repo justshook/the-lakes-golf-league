@@ -21,7 +21,12 @@ export default function HomePage() {
     <div className="space-y-4">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-serif text-white">Weekly Schedule</h2>
+          <div>
+            <p className="font-sans text-xs font-semibold tracking-[3px] uppercase text-gold-600 mb-2">2026 Season</p>
+            <h2 className="text-3xl font-display font-black text-cream-200 leading-none">
+              Weekly <span className="italic text-gold-500">Schedule</span>
+            </h2>
+          </div>
           {(() => {
             const today = new Date().toLocaleDateString('en-CA');
             const isGameDay = weeks.some(w => w.date === today && w.teeSheet.length > 0);
@@ -29,10 +34,10 @@ export default function HomePage() {
               <button
                 onClick={() => setShowPlayerScoreEntry(true)}
                 disabled={!isGameDay}
-                className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-sm sm:text-base ${
+                className={`px-6 py-3 font-bold flex items-center gap-2 text-sm rounded-pill transition-all ${
                   isGameDay
-                    ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                    : 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                    ? 'bg-cta-500 hover:bg-cta-400 text-forest-950 hover:-translate-y-0.5 hover:shadow-cta-glow'
+                    : 'bg-charcoal-800 text-charcoal-400 cursor-not-allowed'
                 }`}
                 title={!isGameDay ? 'Score entry is only available on game day' : ''}
               >
@@ -45,14 +50,14 @@ export default function HomePage() {
           <button
             onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
             disabled={selectedWeek === 1}
-            className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-sm"
+            className="px-4 py-2 bg-forest-800 text-cream-200 rounded-pill disabled:opacity-50 hover:bg-forest-700 text-sm transition-colors"
           >
             ← Prev
           </button>
           <select
             value={selectedWeek}
             onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-            className="px-3 sm:px-4 py-2 rounded-lg bg-white border-0 font-medium text-sm sm:text-base"
+            className="px-3 sm:px-4 py-2 rounded-lg bg-cream-100 border-0 font-medium text-sm sm:text-base text-charcoal-950"
           >
             {weeks.map(w => (
               <option key={w.id} value={w.id}>Week {w.id} - {formatShortDate(w.date)}</option>
@@ -61,7 +66,7 @@ export default function HomePage() {
           <button
             onClick={() => setSelectedWeek(Math.min(weeks.length, selectedWeek + 1))}
             disabled={selectedWeek === weeks.length}
-            className="px-3 py-2 bg-green-800 text-white rounded-lg disabled:opacity-50 hover:bg-green-700 text-sm"
+            className="px-4 py-2 bg-forest-800 text-cream-200 rounded-pill disabled:opacity-50 hover:bg-forest-700 text-sm transition-colors"
           >
             Next →
           </button>
