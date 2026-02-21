@@ -7,10 +7,10 @@ export default function Layout() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-green-900 via-green-800 to-green-900 flex items-center justify-center">
+      <div className="min-h-screen bg-forest-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-yellow-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading league data...</p>
+          <div className="w-16 h-16 border-4 border-gold-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-cream-200 text-lg">Loading league data...</p>
         </div>
       </div>
     );
@@ -25,18 +25,18 @@ export default function Layout() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-900 via-green-800 to-green-900">
+    <div className="min-h-screen bg-forest-950">
       {/* Header */}
-      <header className="bg-green-950 border-b-4 border-yellow-600 shadow-lg">
+      <header className="bg-forest-950 border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-md">
+              <div className="w-14 h-14 bg-cream-100 rounded-full flex items-center justify-center shadow-card">
                 <span className="text-3xl">⛳</span>
               </div>
               <div>
-                <h1 className="text-2xl font-serif font-bold text-white tracking-wide">Arlington Lakes Golf League</h1>
-                <p className="text-green-300 text-sm">2026 Season</p>
+                <h1 className="text-2xl font-display font-bold text-cream-200 tracking-wide">Arlington Lakes Golf League</h1>
+                <p className="text-gold-500 text-sm">2026 Season</p>
               </div>
             </div>
           </div>
@@ -44,7 +44,7 @@ export default function Layout() {
       </header>
 
       {/* Navigation */}
-      <nav className="bg-green-950/80 border-b border-green-700">
+      <nav className="bg-forest-950 border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
           <div className="flex w-full">
             {navItems.map(item => (
@@ -53,10 +53,10 @@ export default function Layout() {
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
-                  `flex-1 px-1 sm:px-4 py-3 font-medium transition-all text-xs sm:text-sm text-center ${
+                  `flex-1 px-1 sm:px-4 py-3 font-medium transition-colors text-xs sm:text-sm text-center ${
                     isActive
-                      ? 'bg-green-700 text-white border-b-2 border-yellow-500'
-                      : 'text-green-300 hover:bg-green-800 hover:text-white'
+                      ? 'text-cream-200 border-b-2 border-gold-500'
+                      : 'text-cream-200/60 hover:text-cream-200'
                   }`
                 }
               >
@@ -75,11 +75,11 @@ export default function Layout() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-green-950 border-t border-green-800 mt-8 py-4">
-        <div className="max-w-7xl mx-auto px-4 text-center text-green-400 text-sm">
+      <footer className="bg-forest-950 border-t border-white/[0.06] mt-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 text-center text-charcoal-400 text-sm">
           Arlington Lakes Golf League • 2026 Season
           <span className="mx-2">•</span>
-          <Link to="/admin" className="text-green-500 hover:text-green-300 transition-colors">
+          <Link to="/admin" className="text-gold-500 hover:text-gold-400 transition-colors">
             {isAdminAuthenticated ? 'Admin' : 'Admin Login'}
           </Link>
         </div>
