@@ -54,12 +54,14 @@ export const initialPlayers = [
 // Calculate 9-hole handicap from 18-hole handicap
 // Formula: roundup((handicap18/2)*(slope/113)+(courseRating-par))
 // Arlington Lakes: Slope=122, Course Rating=66.0, Par=68
+// Maximum 9-hole handicap is capped at 13
 export const calc9HoleHandicap = (handicap18) => {
   const slope = 122;
   const standardSlope = 113;
   const courseRating = 66.0;
   const par = 68;
-  return Math.ceil((handicap18 / 2) * (slope / standardSlope) + (courseRating - par));
+  const MAX_HANDICAP = 13;
+  return Math.min(Math.ceil((handicap18 / 2) * (slope / standardSlope) + (courseRating - par)), MAX_HANDICAP);
 };
 
 // Generate season weeks (2nd week of April through last week of August 2026)
