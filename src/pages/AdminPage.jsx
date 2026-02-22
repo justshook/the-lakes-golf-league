@@ -98,15 +98,15 @@ export default function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-serif text-white">League Administration</h2>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="text-green-300">Week:</span>
+            <span className="text-green-300 text-sm">Week:</span>
             <select
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-              className="px-4 py-2 rounded-lg bg-white font-medium"
+              className="px-2 py-1.5 rounded-lg bg-white font-medium text-sm max-w-[180px]"
             >
               {weeks.map(w => (
                 <option key={w.id} value={w.id}>Week {w.id} - {formatShortDate(w.date)}</option>
@@ -115,7 +115,7 @@ export default function AdminPage() {
           </div>
           <button
             onClick={() => setIsAdminAuthenticated(false)}
-            className="text-green-300 hover:text-white text-sm flex items-center gap-1"
+            className="text-green-300 hover:text-white text-sm flex items-center gap-1 whitespace-nowrap"
           >
             🔓 Logout
           </button>
@@ -172,14 +172,14 @@ export default function AdminPage() {
 
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {teeTimes.map((time, timeIdx) => (
-                <div key={timeIdx} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-20">
-                    <div className="font-bold text-green-800">{time}</div>
+                <div key={timeIdx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-16 flex-shrink-0">
+                    <div className="font-bold text-green-800 text-sm leading-tight">{time}</div>
                     <div className="text-xs text-gray-500">
                       {[0,1,2,3].filter(s => scheduleSelections[`${timeIdx}-${s}`]).length}/4
                     </div>
                   </div>
-                  <div className="flex-1 grid grid-cols-4 gap-2">
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2">
                     {[0, 1, 2, 3].map(slot => {
                       const key = `${timeIdx}-${slot}`;
                       const playerId = scheduleSelections[key];
