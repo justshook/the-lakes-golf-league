@@ -28,17 +28,10 @@ export default function Layout() {
     <div className="min-h-screen bg-forest-950">
       {/* Header */}
       <header className="bg-forest-950 border-b border-white/[0.06]">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-cream-100 rounded-full flex items-center justify-center shadow-card">
-                <span className="text-3xl">⛳</span>
-              </div>
-              <div>
-                <h1 className="text-2xl font-display font-bold text-cream-200 tracking-wide">Arlington Lakes Golf League</h1>
-                <p className="text-gold-500 text-sm">2026 Season</p>
-              </div>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 py-5">
+          <div>
+            <h1 className="font-serif text-5xl font-semibold text-cream-200 leading-none">The Lakes</h1>
+            <p className="font-sans text-xs font-semibold tracking-[3px] uppercase text-gold-500 mt-1.5">Monday Golf League</p>
           </div>
         </div>
       </header>
