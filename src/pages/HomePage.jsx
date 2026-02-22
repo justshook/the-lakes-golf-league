@@ -21,7 +21,7 @@ export default function HomePage() {
   const isGameDay = weeks.some(w => w.date === today && w.teeSheet.length > 0);
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4">
       <div className="space-y-6">
         <div className="text-center">
           <h2 className="text-3xl font-display font-black text-cream-200 leading-none">
@@ -441,21 +441,19 @@ export default function HomePage() {
       )}
 
       {/* Fixed Bottom Submit Score Button */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-forest-950/95 backdrop-blur-sm border-t border-white/[0.06] px-4 py-3">
-        <div className="max-w-7xl mx-auto">
-          <button
-            onClick={() => setShowPlayerScoreEntry(true)}
-            disabled={!isGameDay}
-            className={`w-full px-6 py-3 font-bold flex items-center justify-center gap-2 text-sm rounded-pill transition-all ${
-              isGameDay
-                ? 'bg-cta-500 hover:bg-cta-400 text-forest-950 hover:-translate-y-0.5 hover:shadow-cta-glow'
-                : 'bg-charcoal-800 text-charcoal-400 cursor-not-allowed'
-            }`}
-            title={!isGameDay ? 'Score entry is only available on game day' : ''}
-          >
-            <span>📝</span> Submit My Score
-          </button>
-        </div>
+      <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+        <button
+          onClick={() => setShowPlayerScoreEntry(true)}
+          disabled={!isGameDay}
+          className={`pointer-events-auto px-8 py-3 font-bold flex items-center gap-2 text-sm rounded-pill transition-all shadow-xl ${
+            isGameDay
+              ? 'bg-cta-500 hover:bg-cta-400 text-forest-950 hover:-translate-y-0.5 hover:shadow-cta-glow'
+              : 'bg-charcoal-800 text-charcoal-400 cursor-not-allowed'
+          }`}
+          title={!isGameDay ? 'Score entry is only available on game day' : ''}
+        >
+          <span>📝</span> Submit My Score
+        </button>
       </div>
     </div>
   );
