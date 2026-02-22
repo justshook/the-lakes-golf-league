@@ -19,7 +19,15 @@ export function LeagueProvider({ children }) {
 
   const [players, setPlayers] = useState(initialPlayers);
   const [weeks, setWeeks] = useState(generateSeasonWeeks());
-  const [selectedWeek, setSelectedWeek] = useState(1);
+  const [selectedWeek, setSelectedWeek] = useState(() => {
+    const allWeeks = generateSeasonWeeks();
+    const today = new Date().toLocaleDateString('en-CA');
+    const current = allWeeks.find(w => w.date === today);
+    if (current) return current.id;
+    const next = allWeeks.find(w => w.date > today);
+    if (next) return next.id;
+    return allWeeks.length > 0 ? allWeeks[allWeeks.length - 1].id : 1;
+  });
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [giantSkins, setGiantSkins] = useState(
     courseHoles.map(hole => ({ ...hole, lowScore: null, players: [] }))
