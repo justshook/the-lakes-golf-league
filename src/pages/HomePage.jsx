@@ -11,7 +11,6 @@ export default function HomePage() {
     playerScoreForm, setPlayerScoreForm,
     handlePlayerScoreSubmit, toggleHoleSelection,
     getPlayerById, getTeamTypeForWeek, getTeammatesForWeek,
-    formatDate, formatShortDate,
     showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot,
     selectedSubId, setSelectedSubId, handleSubSignup,
     players,
@@ -20,15 +19,20 @@ export default function HomePage() {
   const today = new Date().toLocaleDateString('en-CA');
   const isGameDay = weeks.some(w => w.date === today && w.teeSheet.length > 0);
 
+  const currentDate = currentWeek ? new Date(currentWeek.date + 'T00:00:00') : null;
+  const currentMonth = currentDate ? currentDate.toLocaleDateString('en-US', { month: 'long' }) : '';
+  const currentDay = currentDate ? currentDate.getDate() : '';
+
   return (
     <div className="space-y-4">
       <div className="space-y-6">
         <div className="text-center">
-          <h2 className="text-3xl font-display font-black text-cream-200 leading-none">
-            Weekly <span className="italic text-gold-500">Schedule</span>
+          <h2 className="text-4xl font-display font-black text-cream-200 leading-none">
+            <span className="font-display font-black">{currentMonth}</span>{' '}
+            <span className="italic text-gold-500">{currentDay}</span>
           </h2>
         </div>
-        <div className="flex items-center gap-2 justify-center sm:justify-end">
+        <div className="flex items-center gap-4 justify-center sm:justify-end">
           <button
             onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
             disabled={selectedWeek === 1}
@@ -36,15 +40,6 @@ export default function HomePage() {
           >
             ← Prev
           </button>
-          <select
-            value={selectedWeek}
-            onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-            className="px-3 sm:px-4 py-2 rounded-lg bg-cream-100 border-0 font-medium text-sm sm:text-base text-charcoal-950"
-          >
-            {weeks.map(w => (
-              <option key={w.id} value={w.id}>Week {w.id} - {formatShortDate(w.date)}</option>
-            ))}
-          </select>
           <button
             onClick={() => setSelectedWeek(Math.min(weeks.length, selectedWeek + 1))}
             disabled={selectedWeek === weeks.length}
@@ -57,21 +52,6 @@ export default function HomePage() {
 
       {currentWeek && (
         <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
-          <div className="bg-forest-800 px-4 sm:px-6 py-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <h3 className="text-xl font-display font-bold text-cream-200">Week {currentWeek.id}</h3>
-                <p className="text-cream-200/60 text-sm">{formatDate(currentWeek.date)}</p>
-              </div>
-              <div className={`inline-block px-4 py-1.5 rounded-pill font-bold text-xs tracking-wide self-start sm:self-auto ${
-                currentWeek.nineHoles === 'front'
-                  ? 'bg-gold-300 text-forest-950'
-                  : 'bg-cream-300 text-forest-900'
-              }`}>
-                {currentWeek.nineHoles === 'front' ? 'Front 9 (Holes 1-9)' : 'Back 9 (Holes 10-18)'}
-              </div>
-            </div>
-          </div>
 
           {/* Game Info Section */}
           {currentGame && (
@@ -79,8 +59,7 @@ export default function HomePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <span className="text-xl sm:text-2xl">🎯</span>
-                    <h4 className="font-display font-bold text-base sm:text-lg text-charcoal-950">{currentGame.gameName}</h4>
+                    <h4 className="font-display font-bold text-2xl sm:text-3xl text-charcoal-950">{currentGame.gameName}</h4>
                     {currentGame.teamType && (
                       <span className={`px-2 py-0.5 rounded-pill text-xs font-bold tracking-wide ${
                         currentGame.teamType === '2-person'
@@ -95,7 +74,6 @@ export default function HomePage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl sm:text-2xl">⭐</span>
                     <h4 className="font-display font-bold text-base sm:text-lg text-gold-600">Side Game: {currentGame.sideGame}</h4>
                   </div>
                   <p className="text-charcoal-600 text-xs sm:text-sm">{currentGame.sideGameDescription}</p>
@@ -118,6 +96,16 @@ export default function HomePage() {
                   {currentWeek.moneyEntered && (
                     <span className="bg-gold-300 text-forest-900 px-3 py-1 rounded-pill text-xs font-bold">✓ Money Entered</span>
                   )}
+                </div>
+
+                <div className="mb-4 px-1">
+                  <span className={`inline-block px-4 py-1.5 rounded-pill font-bold text-xs tracking-wide ${
+                    currentWeek.nineHoles === 'front'
+                      ? 'bg-gold-300 text-forest-950'
+                      : 'bg-cream-300 text-forest-900 border border-charcoal-800/20'
+                  }`}>
+                    {currentWeek.nineHoles === 'front' ? 'Front 9 (Holes 1-9)' : 'Back 9 (Holes 10-18)'}
+                  </span>
                 </div>
 
                 {currentWeek.teeSheet.map((slot, idx) => (
