@@ -58,13 +58,13 @@ export default function PlayersPage() {
 
             <div className="p-4 sm:p-6">
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-charcoal-900 rounded-card p-4 text-center">
+                <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
                   <div className="font-display text-3xl font-bold text-cream-200">{selectedPlayer.weeksPlayed}</div>
-                  <div className="text-sm text-charcoal-400">Weeks Played</div>
+                  <div className="text-[11px] font-semibold tracking-[1.5px] uppercase text-charcoal-400">Weeks Played</div>
                 </div>
-                <div className="bg-charcoal-900 rounded-card p-4 text-center">
+                <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
                   <div className="font-display text-3xl font-bold text-gold-500">${selectedPlayer.totalMoney}</div>
-                  <div className="text-sm text-charcoal-400">Total Won</div>
+                  <div className="text-[11px] font-semibold tracking-[1.5px] uppercase text-charcoal-400">Total Won</div>
                 </div>
               </div>
 
@@ -106,13 +106,13 @@ export default function PlayersPage() {
                   <div className="border-t pt-4 mt-4">
                     <h4 className="font-semibold text-charcoal-600 mb-3">Score Statistics</h4>
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="bg-charcoal-900 rounded-card p-3 text-center">
+                      <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-3 text-center">
                         <div className="font-display text-2xl font-bold text-cream-200">{avgGross}</div>
-                        <div className="text-sm text-charcoal-400">Avg Gross</div>
+                        <div className="text-[11px] font-semibold tracking-[1.5px] uppercase text-charcoal-400">Avg Gross</div>
                       </div>
-                      <div className="bg-charcoal-900 rounded-card p-3 text-center">
+                      <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-3 text-center">
                         <div className="font-display text-2xl font-bold text-gold-500">{avgNet}</div>
-                        <div className="text-sm text-charcoal-400">Avg Net</div>
+                        <div className="text-[11px] font-semibold tracking-[1.5px] uppercase text-charcoal-400">Avg Net</div>
                       </div>
                     </div>
 
@@ -121,10 +121,10 @@ export default function PlayersPage() {
                       <table className="w-full text-sm">
                         <thead className="bg-cream-300">
                           <tr>
-                            <th className="text-left p-2 rounded-tl-lg">Week</th>
-                            <th className="text-center p-2">Gross</th>
-                            <th className="text-center p-2">HCP</th>
-                            <th className="text-center p-2 rounded-tr-lg">Net</th>
+                            <th className="text-left p-2 rounded-tl-lg text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Week</th>
+                            <th className="text-center p-2 text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Gross</th>
+                            <th className="text-center p-2 text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">HCP</th>
+                            <th className="text-center p-2 rounded-tr-lg text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Net</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -135,7 +135,7 @@ export default function PlayersPage() {
                                 {score.is_team_score && <span className="ml-1 text-xs text-gold-600">(team)</span>}
                               </td>
                               <td className="p-2 text-center font-medium">{score.gross_score}</td>
-                              <td className="p-2 text-center text-gray-500">-{score.handicap_used}</td>
+                              <td className="p-2 text-center text-charcoal-400">-{score.handicap_used}</td>
                               <td className="p-2 text-center font-display font-bold text-gold-500">{score.net_score}</td>
                             </tr>
                           ))}
