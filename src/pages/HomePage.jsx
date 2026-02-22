@@ -74,17 +74,17 @@ export default function HomePage() {
       </div>
 
       {currentWeek && (
-        <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-          <div className="bg-green-800 px-4 sm:px-6 py-4">
+        <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
+          <div className="bg-forest-800 px-4 sm:px-6 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
-                <h3 className="text-xl font-serif text-white">Week {currentWeek.id}</h3>
-                <p className="text-green-200 text-sm">{formatDate(currentWeek.date)}</p>
+                <h3 className="text-xl font-display font-bold text-cream-200">Week {currentWeek.id}</h3>
+                <p className="text-cream-200/60 text-sm">{formatDate(currentWeek.date)}</p>
               </div>
-              <div className={`inline-block px-4 py-2 rounded-full font-bold text-sm self-start sm:self-auto ${
+              <div className={`inline-block px-4 py-1.5 rounded-pill font-bold text-xs tracking-wide self-start sm:self-auto ${
                 currentWeek.nineHoles === 'front'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-purple-100 text-purple-800'
+                  ? 'bg-gold-300 text-forest-950'
+                  : 'bg-cream-300 text-forest-900'
               }`}>
                 {currentWeek.nineHoles === 'front' ? 'Front 9 (Holes 1-9)' : 'Back 9 (Holes 10-18)'}
               </div>
@@ -93,30 +93,30 @@ export default function HomePage() {
 
           {/* Game Info Section */}
           {currentGame && (
-            <div className="border-b border-gray-200 bg-gradient-to-r from-green-50 to-yellow-50 p-4 sm:p-6">
+            <div className="border-b border-charcoal-800/10 bg-cream-300 p-4 sm:p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className="text-xl sm:text-2xl">🎯</span>
-                    <h4 className="font-bold text-base sm:text-lg text-green-800">{currentGame.gameName}</h4>
+                    <h4 className="font-display font-bold text-base sm:text-lg text-charcoal-950">{currentGame.gameName}</h4>
                     {currentGame.teamType && (
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                      <span className={`px-2 py-0.5 rounded-pill text-xs font-bold tracking-wide ${
                         currentGame.teamType === '2-person'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-orange-100 text-orange-700'
+                          ? 'bg-forest-900/[0.08] text-forest-900'
+                          : 'bg-gold-300 text-forest-950'
                       }`}>
                         {currentGame.teamType === '2-person' ? '2-Person Teams' : '4-Person Teams'}
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-700 text-xs sm:text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
+                  <p className="text-charcoal-600 text-xs sm:text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xl sm:text-2xl">⭐</span>
-                    <h4 className="font-bold text-base sm:text-lg text-yellow-700">Side Game: {currentGame.sideGame}</h4>
+                    <h4 className="font-display font-bold text-base sm:text-lg text-gold-600">Side Game: {currentGame.sideGame}</h4>
                   </div>
-                  <p className="text-gray-700 text-xs sm:text-sm">{currentGame.sideGameDescription}</p>
+                  <p className="text-charcoal-600 text-xs sm:text-sm">{currentGame.sideGameDescription}</p>
                 </div>
               </div>
             </div>
@@ -124,33 +124,33 @@ export default function HomePage() {
 
           <div className="p-2 sm:p-6">
             {currentWeek.teeSheet.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-charcoal-400">
                 <div className="text-4xl mb-4">📋</div>
                 <p className="text-lg">No tee sheet created yet</p>
                 <p className="text-sm mt-2">Go to Admin to build or auto-generate the schedule for this week</p>
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm text-gray-500 mb-4 px-1">
+                <div className="flex items-center justify-between text-sm text-charcoal-400 mb-4 px-1">
                   <span>{currentWeek.teeSheet.reduce((sum, t) => sum + t.players.length, 0)} players scheduled</span>
                   {currentWeek.moneyEntered && (
-                    <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">✓ Money Entered</span>
+                    <span className="bg-gold-300 text-forest-900 px-3 py-1 rounded-pill text-xs font-bold">✓ Money Entered</span>
                   )}
                 </div>
 
                 {currentWeek.teeSheet.map((slot, idx) => (
-                  <div key={idx} className="p-2 sm:p-4 bg-gray-50 rounded-lg">
-                    <div className="font-bold text-green-800 text-lg mb-2 sm:mb-0 sm:float-left sm:w-24 sm:mr-4">{slot.time}</div>
+                  <div key={idx} className="p-2 sm:p-4 bg-cream-300 rounded-card">
+                    <div className="font-display font-bold text-forest-800 text-lg mb-2 sm:mb-0 sm:float-left sm:w-24 sm:mr-4">{slot.time}</div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                       {slot.players.map((playerId, pIdx) => {
                         const player = getPlayerById(playerId);
                         return (
                           <div
                             key={pIdx}
-                            className="bg-white px-2 sm:px-3 py-2 rounded border border-gray-200 flex items-center justify-between"
+                            className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between"
                           >
-                            <div className="font-medium text-gray-800 text-xs sm:text-sm truncate">{player?.name}</div>
-                            <div className="text-xs text-gray-500 whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
+                            <div className="font-medium text-charcoal-950 text-xs sm:text-sm truncate">{player?.name}</div>
+                            <div className="text-xs text-charcoal-400 whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
                           </div>
                         );
                       })}
@@ -162,7 +162,7 @@ export default function HomePage() {
                             setSelectedSubId('');
                             setShowSubSignup(true);
                           }}
-                          className="bg-green-50 px-2 sm:px-3 py-2 rounded border border-dashed border-green-400 text-green-600 text-xs sm:text-sm text-center cursor-pointer hover:bg-green-100 hover:border-green-500 transition-colors"
+                          className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-xs sm:text-sm text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
                         >
                           + Sign Up
                         </div>
