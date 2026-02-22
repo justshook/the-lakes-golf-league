@@ -17,11 +17,10 @@ export default function Layout() {
   }
 
   const navItems = [
-    { to: '/', label: 'Schedule', shortLabel: 'Sched', icon: '📅' },
-    { to: '/leaderboard', label: 'Leaderboard', shortLabel: 'Money', icon: '💰' },
-    { to: '/players', label: 'Players', shortLabel: 'Players', icon: '👥' },
-    { to: '/skins', label: 'Giant Skins', shortLabel: 'Skins', icon: '🏆' },
-    ...(isAdminAuthenticated ? [{ to: '/admin', label: 'Admin', shortLabel: 'Admin', icon: '⚙️' }] : []),
+    { to: '/', label: 'Schedule', shortLabel: 'Schedule' },
+    { to: '/leaderboard', label: 'Leaderboard', shortLabel: 'Leaderboard' },
+    { to: '/skins', label: 'Skins', shortLabel: 'Skins' },
+    ...(isAdminAuthenticated ? [{ to: '/admin', label: 'Admin', shortLabel: 'Admin' }] : []),
   ];
 
   return (
@@ -53,7 +52,6 @@ export default function Layout() {
                   }`
                 }
               >
-                <span className="sm:mr-1">{item.icon}</span>
                 <span className="hidden sm:inline">{item.label}</span>
                 <span className="sm:hidden">{item.shortLabel}</span>
               </NavLink>
