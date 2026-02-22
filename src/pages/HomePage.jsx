@@ -17,34 +17,16 @@ export default function HomePage() {
     players,
   } = useLeague();
 
+  const today = new Date().toLocaleDateString('en-CA');
+  const isGameDay = weeks.some(w => w.date === today && w.teeSheet.length > 0);
+
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-sans text-xs font-semibold tracking-[3px] uppercase text-gold-600 mb-2">2026 Season</p>
-            <h2 className="text-3xl font-display font-black text-cream-200 leading-none">
-              Weekly <span className="italic text-gold-500">Schedule</span>
-            </h2>
-          </div>
-          {(() => {
-            const today = new Date().toLocaleDateString('en-CA');
-            const isGameDay = weeks.some(w => w.date === today && w.teeSheet.length > 0);
-            return (
-              <button
-                onClick={() => setShowPlayerScoreEntry(true)}
-                disabled={!isGameDay}
-                className={`px-6 py-3 font-bold flex items-center gap-2 text-sm rounded-pill transition-all ${
-                  isGameDay
-                    ? 'bg-cta-500 hover:bg-cta-400 text-forest-950 hover:-translate-y-0.5 hover:shadow-cta-glow'
-                    : 'bg-charcoal-800 text-charcoal-400 cursor-not-allowed'
-                }`}
-                title={!isGameDay ? 'Score entry is only available on game day' : ''}
-              >
-                <span>📝</span> Submit My Score
-              </button>
-            );
-          })()}
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-3xl font-display font-black text-cream-200 leading-none">
+            Weekly <span className="italic text-gold-500">Schedule</span>
+          </h2>
         </div>
         <div className="flex items-center gap-2 justify-center sm:justify-end">
           <button
@@ -457,6 +439,22 @@ export default function HomePage() {
           </div>
         </div>
       )}
+
+      {/* Fixed Bottom Submit Score Button */}
+      <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+        <button
+          onClick={() => setShowPlayerScoreEntry(true)}
+          disabled={!isGameDay}
+          className={`pointer-events-auto px-8 py-3 font-bold flex items-center gap-2 text-sm rounded-pill transition-all shadow-xl ${
+            isGameDay
+              ? 'bg-cta-500 hover:bg-cta-400 text-forest-950 hover:-translate-y-0.5 hover:shadow-cta-glow'
+              : 'bg-charcoal-800 text-charcoal-400 cursor-not-allowed'
+          }`}
+          title={!isGameDay ? 'Score entry is only available on game day' : ''}
+        >
+          <span>📝</span> Submit My Score
+        </button>
+      </div>
     </div>
   );
 }
