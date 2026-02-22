@@ -29,9 +29,9 @@ export default function Layout() {
       {/* Header */}
       <header className="bg-forest-950 border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 py-5">
-          <div>
-            <h1 className="font-serif text-5xl font-semibold text-cream-200 leading-none">The Lakes</h1>
-            <p className="font-sans text-xs font-semibold tracking-[3px] uppercase text-gold-500 mt-1.5">Monday Golf League</p>
+          <div className="text-center">
+            <h1 className="font-serif text-[2.4rem] font-semibold italic text-cream-200 leading-none">The Lakes</h1>
+            <p className="font-sans text-[0.6rem] font-semibold tracking-[3px] uppercase text-gold-500 mt-1.5">Monday Golf League</p>
           </div>
         </div>
       </header>
