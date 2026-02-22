@@ -123,7 +123,7 @@ export default function HomePage() {
                 {currentWeek.teeSheet.map((slot, idx) => (
                   <div key={idx} className="p-2 sm:p-4 bg-cream-300 rounded-card">
                     <div className="font-display font-bold text-forest-800 text-lg mb-2 sm:mb-0 sm:float-left sm:w-24 sm:mr-4">{slot.time}</div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-3">
                       {slot.players.map((playerId, pIdx) => {
                         const player = getPlayerById(playerId);
                         return (
@@ -131,7 +131,7 @@ export default function HomePage() {
                             key={pIdx}
                             className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between"
                           >
-                            <div className="font-medium text-charcoal-950 text-xs sm:text-sm truncate">{player?.name}</div>
+                            <div className="font-medium text-charcoal-950 text-[0.9375rem] sm:text-sm truncate min-w-0">{player?.name}</div>
                             <div className="text-xs text-charcoal-400 whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
                           </div>
                         );
