@@ -27,10 +27,10 @@ export default function LeaderboardPage() {
           </button>
           <button
             onClick={() => setLeaderboardView('weekly')}
-            className={`px-4 py-2 rounded-full font-medium transition-all ${
+            className={`px-4 py-2 rounded-pill font-medium transition-all ${
               leaderboardView === 'weekly'
-                ? 'bg-yellow-600 text-white'
-                : 'bg-green-800 text-green-200 hover:bg-green-700'
+                ? 'bg-cta-500 text-forest-950'
+                : 'bg-forest-800 text-cream-200 hover:bg-forest-700'
             }`}
           >
             By Week
@@ -39,8 +39,8 @@ export default function LeaderboardPage() {
       </div>
 
       {leaderboardView === 'season' ? (
-        <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
-          <div className="bg-forest-800 px-6 py-4">
+        <div className="bg-charcoal-900 border border-white/[0.06] rounded-card overflow-hidden">
+          <div className="bg-charcoal-950 px-6 py-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-display font-bold text-cream-200">Season Money Leaders</h3>
               <div className="font-display text-gold-400 font-bold">
@@ -49,19 +49,19 @@ export default function LeaderboardPage() {
             </div>
           </div>
           <table className="w-full">
-            <thead className="bg-cream-300">
+            <thead className="bg-charcoal-800/50">
               <tr>
-                <th className="px-2 sm:px-4 py-3 text-left font-medium text-charcoal-600">Rank</th>
-                <th className="px-2 sm:px-4 py-3 text-left font-medium text-charcoal-600">Player</th>
-                <th className="px-2 sm:px-4 py-3 text-right font-medium text-charcoal-600">Total Won</th>
+                <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-400">Rank</th>
+                <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-400">Player</th>
+                <th className="px-2 sm:px-4 py-3 text-right text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-400">Total Won</th>
               </tr>
             </thead>
             <tbody>
               {sortedByMoney.filter(p => p.totalMoney > 0).map((player, index) => (
                 <tr
                   key={player.id}
-                  className={`border-b border-charcoal-800/10 hover:bg-cream-300 transition-colors ${
-                    index === 0 ? 'bg-gold-300/20' : ''
+                  className={`border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors ${
+                    index === 0 ? 'bg-gold-500/10' : ''
                   }`}
                 >
                   <td className="px-2 sm:px-4 py-4">
@@ -72,9 +72,9 @@ export default function LeaderboardPage() {
                       <span className="font-bold text-charcoal-400">{index + 1}</span>
                     </div>
                   </td>
-                  <td className="px-2 sm:px-4 py-4 font-display font-semibold text-charcoal-950 text-sm sm:text-base">{player.name}</td>
+                  <td className="px-2 sm:px-4 py-4 font-display font-semibold text-cream-200 text-sm sm:text-base">{player.name}</td>
                   <td className="px-2 sm:px-4 py-4 text-right">
-                    <span className="bg-forest-900/[0.08] text-forest-900 px-2 sm:px-4 py-1 rounded-pill font-bold text-sm sm:text-base">
+                    <span className="bg-gold-500/20 text-gold-400 px-2 sm:px-4 py-1 rounded-pill font-bold text-sm sm:text-base">
                       ${player.totalMoney.toLocaleString()}
                     </span>
                   </td>
@@ -104,8 +104,8 @@ export default function LeaderboardPage() {
             </select>
           </div>
 
-          <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
-            <div className="bg-green-800 px-6 py-4">
+          <div className="bg-charcoal-900 border border-white/[0.06] rounded-card overflow-hidden">
+            <div className="bg-charcoal-950 px-6 py-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-display font-bold text-cream-200">Week {selectedWeek} Winnings</h3>
                 <div className="font-display text-gold-400 font-bold">
@@ -122,19 +122,19 @@ export default function LeaderboardPage() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
-                    <h4 className="font-display font-semibold text-charcoal-950 mb-3 text-lg">Main Game</h4>
+                    <h4 className="font-display font-semibold text-cream-200 mb-3 text-lg">Main Game</h4>
                     <div className="space-y-2">
                       {['1st', '2nd', '3rd'].map(place => {
                         const cat = moneyCategories.find(c => c.id === place);
                         const winners = players.filter(p => p.weeklyMoney[selectedWeek]?.[place]);
                         if (winners.length === 0) return null;
                         return (
-                          <div key={place} className="flex items-center justify-between p-3 bg-cream-300 rounded-card">
+                          <div key={place} className="flex items-center justify-between p-3 bg-white/[0.06] rounded-card">
                             <div className="flex items-center gap-2">
                               <span className="text-xl">{cat.icon}</span>
-                              <span className="font-medium">{winners.map(w => w.name).join(' & ')}</span>
+                              <span className="font-medium text-cream-200">{winners.map(w => w.name).join(' & ')}</span>
                             </div>
-                            <span className="font-display font-bold text-forest-800">${winners[0].weeklyMoney[selectedWeek][place]}{winners.length > 1 ? ' ea' : ''}</span>
+                            <span className="font-display font-bold text-gold-400">${winners[0].weeklyMoney[selectedWeek][place]}{winners.length > 1 ? ' ea' : ''}</span>
                           </div>
                         );
                       })}
@@ -142,18 +142,18 @@ export default function LeaderboardPage() {
                   </div>
 
                   <div>
-                    <h4 className="font-display font-semibold text-charcoal-950 mb-3 text-lg">🎯 Closest to Pin</h4>
+                    <h4 className="font-display font-semibold text-cream-200 mb-3 text-lg">🎯 Closest to Pin</h4>
                     <div className="space-y-2">
                       {['ctp1', 'ctp2', 'ctp3'].map((ctp, idx) => {
                         const winners = players.filter(p => p.weeklyMoney[selectedWeek]?.[ctp]);
                         if (winners.length === 0) return null;
                         return (
-                          <div key={ctp} className="flex items-center justify-between p-3 bg-cream-300 rounded-card">
+                          <div key={ctp} className="flex items-center justify-between p-3 bg-white/[0.06] rounded-card">
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-charcoal-400">CTP #{idx + 1}</span>
-                              <span className="font-medium">{winners.map(w => w.name).join(' & ')}</span>
+                              <span className="font-medium text-cream-200">{winners.map(w => w.name).join(' & ')}</span>
                             </div>
-                            <span className="font-bold text-green-700">${winners[0].weeklyMoney[selectedWeek][ctp]}{winners.length > 1 ? ' ea' : ''}</span>
+                            <span className="font-bold text-gold-400">${winners[0].weeklyMoney[selectedWeek][ctp]}{winners.length > 1 ? ' ea' : ''}</span>
                           </div>
                         );
                       })}
@@ -169,18 +169,18 @@ export default function LeaderboardPage() {
       {/* Score Leaderboard */}
       <div className="mt-8">
         <h2 className="text-3xl font-display font-black text-cream-200 leading-none mb-4">Score Leaderboard</h2>
-        <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
-          <div className="bg-forest-800 px-6 py-4">
-            <h3 className="text-lg font-medium text-white">Season Score Leaders (by Avg Net)</h3>
+        <div className="bg-charcoal-900 border border-white/[0.06] rounded-card overflow-hidden">
+          <div className="bg-charcoal-950 px-6 py-4">
+            <h3 className="text-lg font-display font-bold text-cream-200">Season Score Leaders (by Avg Net)</h3>
           </div>
           <table className="w-full">
-            <thead className="bg-cream-300">
+            <thead className="bg-charcoal-800/50">
               <tr>
-                <th className="px-2 sm:px-4 py-3 text-left font-medium text-charcoal-600">Rank</th>
-                <th className="px-2 sm:px-4 py-3 text-left font-medium text-charcoal-600">Player</th>
-                <th className="px-2 sm:px-4 py-3 text-center font-medium text-charcoal-600">Rounds</th>
-                <th className="px-2 sm:px-4 py-3 text-center font-medium text-charcoal-600">Avg Gross</th>
-                <th className="px-2 sm:px-4 py-3 text-center font-medium text-charcoal-600">Avg Net</th>
+                <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-400">Rank</th>
+                <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-400">Player</th>
+                <th className="px-2 sm:px-4 py-3 text-center text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-400">Rounds</th>
+                <th className="px-2 sm:px-4 py-3 text-center text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-400">Avg Gross</th>
+                <th className="px-2 sm:px-4 py-3 text-center text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-400">Avg Net</th>
               </tr>
             </thead>
             <tbody>
@@ -209,8 +209,8 @@ export default function LeaderboardPage() {
                 return playerAverages.map((player, index) => (
                   <tr
                     key={player.id}
-                    className={`border-b border-gray-100 hover:bg-green-50 transition-colors ${
-                      index === 0 ? 'bg-yellow-50' : ''
+                    className={`border-b border-white/[0.06] hover:bg-white/[0.03] transition-colors ${
+                      index === 0 ? 'bg-gold-500/10' : ''
                     }`}
                   >
                     <td className="px-2 sm:px-4 py-4">
@@ -221,10 +221,10 @@ export default function LeaderboardPage() {
                         <span className="font-bold text-charcoal-400">{index + 1}</span>
                       </div>
                     </td>
-                    <td className="px-2 sm:px-4 py-4 font-display font-semibold text-charcoal-950 text-sm sm:text-base">{player.name}</td>
+                    <td className="px-2 sm:px-4 py-4 font-display font-semibold text-cream-200 text-sm sm:text-base">{player.name}</td>
                     <td className="px-2 sm:px-4 py-4 text-center text-charcoal-400">{player.rounds}</td>
                     <td className="px-2 sm:px-4 py-4 text-center">
-                      <span className="bg-charcoal-800/10 text-charcoal-600 px-2 py-1 rounded font-medium text-sm">
+                      <span className="bg-white/[0.08] text-charcoal-400 px-2 py-1 rounded font-medium text-sm">
                         {player.avgGross}
                       </span>
                     </td>
