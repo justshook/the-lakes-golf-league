@@ -181,33 +181,18 @@ export default function HomePage() {
               {/* Week Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Week</label>
-                {(() => {
-                  const today = new Date().toLocaleDateString('en-CA');
-                  const todayWeeks = weeks.filter(w => w.teeSheet.length > 0 && w.date === today);
-
-                  if (todayWeeks.length === 0) {
-                    return (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-yellow-800 text-sm">
-                        Score entry is only available on game day (Mondays). No game is scheduled for today.
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <select
-                      value={playerScoreForm.weekId}
-                      onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, weekId: e.target.value, birdieHoles: [], eagleHoles: [] })}
-                      className="w-full border rounded-lg px-3 py-2"
-                    >
-                      <option value="">Select week...</option>
-                      {todayWeeks.map(w => (
-                        <option key={w.id} value={w.id}>
-                          Week {w.id} - {formatShortDate(w.date)} ({w.nineHoles === 'front' ? 'Front 9' : 'Back 9'})
-                        </option>
-                      ))}
-                    </select>
-                  );
-                })()}
+                <select
+                  value={playerScoreForm.weekId}
+                  onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, weekId: e.target.value, birdieHoles: [], eagleHoles: [] })}
+                  className="w-full border rounded-lg px-3 py-2"
+                >
+                  <option value="">Select week...</option>
+                  {weeks.filter(w => w.teeSheet.length > 0).map(w => (
+                    <option key={w.id} value={w.id}>
+                      Week {w.id} - {formatShortDate(w.date)} ({w.nineHoles === 'front' ? 'Front 9' : 'Back 9'})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Team Info */}
