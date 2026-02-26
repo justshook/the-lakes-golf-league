@@ -70,7 +70,7 @@ export default function HomePage() {
                       </span>
                     )}
                   </div>
-                  <p className="text-charcoal-600 text-xs sm:text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
+                  <p className="text-charcoal-600 text-[0.9375rem] sm:text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-2">
