@@ -75,7 +75,7 @@ export function LeagueProvider({ children }) {
   // Player self-service score entry
   const [showPlayerScoreEntry, setShowPlayerScoreEntry] = useState(false);
   const [playerScoreForm, setPlayerScoreForm] = useState({
-    playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: []
+    playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: ''
   });
 
   const [playerScores, setPlayerScores] = useState([]);
@@ -532,10 +532,20 @@ export function LeagueProvider({ children }) {
 
   // === Player score submission ===
   const handlePlayerScoreSubmit = async () => {
-    const { playerId, weekId, totalScore, birdieHoles, eagleHoles } = playerScoreForm;
+    const { playerId, weekId, totalScore, birdieHoles, eagleHoles, phoneInput } = playerScoreForm;
     if (!playerId || !weekId) { alert('Please select your name and week'); return; }
     const scoreNum = parseInt(totalScore);
     if (!totalScore || isNaN(scoreNum) || scoreNum < 1) { alert('Please enter a valid score'); return; }
+
+    // Phone verification
+    const selectedPlayer = players.find(p => p.id === parseInt(playerId));
+    if (selectedPlayer) {
+      const storedLast4 = (selectedPlayer.phone || '').replace(/\D/g, '').slice(-4);
+      if (storedLast4 && phoneInput.trim() !== storedLast4) {
+        alert('Phone verification failed. Please enter the last 4 digits of your phone number.');
+        return;
+      }
+    }
 
     const playerIdNum = parseInt(playerId);
     const weekIdNum = parseInt(weekId);
@@ -561,7 +571,7 @@ export function LeagueProvider({ children }) {
         });
       }
       await recalculateGiantSkins();
-      setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [] });
+      setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: '' });
       setShowPlayerScoreEntry(false);
       const memberNames = allMembers.map(id => getPlayerById(id)?.name).filter(Boolean).join(', ');
       alert(`Team score submitted for: ${memberNames}`);
@@ -579,7 +589,7 @@ export function LeagueProvider({ children }) {
         return [...prev, newScore];
       });
       await recalculateGiantSkins();
-      setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [] });
+      setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: '' });
       setShowPlayerScoreEntry(false);
       alert('Score submitted successfully! Your gross and net scores have been recorded.');
     }

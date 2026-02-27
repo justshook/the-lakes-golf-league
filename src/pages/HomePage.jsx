@@ -168,7 +168,7 @@ export default function HomePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
                 <select
                   value={playerScoreForm.playerId}
-                  onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, playerId: e.target.value })}
+                  onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, playerId: e.target.value, phoneInput: '' })}
                   className="w-full border rounded-lg px-3 py-2"
                 >
                   <option value="">Select your name...</option>
@@ -177,6 +177,23 @@ export default function HomePage() {
                   ))}
                 </select>
               </div>
+
+              {/* Phone Verification */}
+              {playerScoreForm.playerId && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Verify Your Identity</label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={playerScoreForm.phoneInput}
+                    onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, phoneInput: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                    placeholder="Last 4 digits of your phone"
+                    className="w-full border rounded-lg px-3 py-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Enter the last 4 digits of your phone number to confirm your identity</p>
+                </div>
+              )}
 
               {/* Week Selection */}
               <div>
@@ -344,7 +361,7 @@ export default function HomePage() {
                 <button
                   onClick={() => {
                     setShowPlayerScoreEntry(false);
-                    setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [] });
+                    setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: '' });
                   }}
                   className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
                 >
