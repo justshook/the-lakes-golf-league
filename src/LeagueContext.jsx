@@ -335,13 +335,11 @@ export function LeagueProvider({ children }) {
   };
 
   const savePlayerScoreToSupabase = async (playerId, weekId, grossScore, netScore, handicapUsed, birdieHoles = [], eagleHoles = [], isTeamScore = false) => {
-    try {
-      const { error } = await supabase.from('player_scores').upsert({
-        player_id: playerId, week_id: weekId, gross_score: grossScore, net_score: netScore,
-        handicap_used: handicapUsed, birdie_holes: birdieHoles, eagle_holes: eagleHoles, is_team_score: isTeamScore
-      }, { onConflict: 'player_id,week_id' });
-      if (error) throw error;
-    } catch (error) { console.error('Error saving player score:', error); }
+    const { error } = await supabase.from('player_scores').upsert({
+      player_id: playerId, week_id: weekId, gross_score: grossScore, net_score: netScore,
+      handicap_used: handicapUsed, birdie_holes: birdieHoles, eagle_holes: eagleHoles, is_team_score: isTeamScore
+    }, { onConflict: 'player_id,week_id' });
+    if (error) throw error;
   };
 
   // === Sub signup ===
@@ -557,41 +555,51 @@ export function LeagueProvider({ children }) {
       const allMembers = isSolo ? [playerIdNum] : [playerIdNum, ...teammates];
       const grossScore = parseInt(totalScore);
 
-      for (const memberId of allMembers) {
-        const member = players.find(p => p.id === memberId);
-        if (!member) continue;
-        const handicap9 = calc9HoleHandicap(member.handicap);
-        const netScore = grossScore - handicap9;
-        await savePlayerScoreToSupabase(memberId, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles, true);
-        setPlayerScores(prev => {
-          const existingIdx = prev.findIndex(s => s.player_id === memberId && s.week_id === weekIdNum);
-          const newScore = { player_id: memberId, week_id: weekIdNum, gross_score: grossScore, net_score: netScore, handicap_used: handicap9, birdie_holes: birdieHoles, eagle_holes: eagleHoles, is_team_score: true };
-          if (existingIdx >= 0) { const updated = [...prev]; updated[existingIdx] = newScore; return updated; }
-          return [...prev, newScore];
-        });
+      try {
+        for (const memberId of allMembers) {
+          const member = players.find(p => p.id === memberId);
+          if (!member) continue;
+          const handicap9 = calc9HoleHandicap(member.handicap);
+          const netScore = grossScore - handicap9;
+          await savePlayerScoreToSupabase(memberId, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles, true);
+          setPlayerScores(prev => {
+            const existingIdx = prev.findIndex(s => s.player_id === memberId && s.week_id === weekIdNum);
+            const newScore = { player_id: memberId, week_id: weekIdNum, gross_score: grossScore, net_score: netScore, handicap_used: handicap9, birdie_holes: birdieHoles, eagle_holes: eagleHoles, is_team_score: true };
+            if (existingIdx >= 0) { const updated = [...prev]; updated[existingIdx] = newScore; return updated; }
+            return [...prev, newScore];
+          });
+        }
+        await recalculateGiantSkins();
+        setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: '' });
+        setShowPlayerScoreEntry(false);
+        const memberNames = allMembers.map(id => getPlayerById(id)?.name).filter(Boolean).join(', ');
+        alert(`Team score submitted for: ${memberNames}`);
+      } catch (error) {
+        console.error('Error saving team score:', error);
+        alert('Failed to save score. Please check your connection and try again.');
       }
-      await recalculateGiantSkins();
-      setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: '' });
-      setShowPlayerScoreEntry(false);
-      const memberNames = allMembers.map(id => getPlayerById(id)?.name).filter(Boolean).join(', ');
-      alert(`Team score submitted for: ${memberNames}`);
     } else {
       const player = players.find(p => p.id === playerIdNum);
       if (!player) return;
       const grossScore = parseInt(totalScore);
       const handicap9 = calc9HoleHandicap(player.handicap);
       const netScore = grossScore - handicap9;
-      await savePlayerScoreToSupabase(playerIdNum, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles, false);
-      setPlayerScores(prev => {
-        const existingIdx = prev.findIndex(s => s.player_id === playerIdNum && s.week_id === weekIdNum);
-        const newScore = { player_id: playerIdNum, week_id: weekIdNum, gross_score: grossScore, net_score: netScore, handicap_used: handicap9, birdie_holes: birdieHoles, eagle_holes: eagleHoles, is_team_score: false };
-        if (existingIdx >= 0) { const updated = [...prev]; updated[existingIdx] = newScore; return updated; }
-        return [...prev, newScore];
-      });
-      await recalculateGiantSkins();
-      setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: '' });
-      setShowPlayerScoreEntry(false);
-      alert('Score submitted successfully! Your gross and net scores have been recorded.');
+      try {
+        await savePlayerScoreToSupabase(playerIdNum, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles, false);
+        setPlayerScores(prev => {
+          const existingIdx = prev.findIndex(s => s.player_id === playerIdNum && s.week_id === weekIdNum);
+          const newScore = { player_id: playerIdNum, week_id: weekIdNum, gross_score: grossScore, net_score: netScore, handicap_used: handicap9, birdie_holes: birdieHoles, eagle_holes: eagleHoles, is_team_score: false };
+          if (existingIdx >= 0) { const updated = [...prev]; updated[existingIdx] = newScore; return updated; }
+          return [...prev, newScore];
+        });
+        await recalculateGiantSkins();
+        setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: '' });
+        setShowPlayerScoreEntry(false);
+        alert('Score submitted successfully! Your gross and net scores have been recorded.');
+      } catch (error) {
+        console.error('Error saving score:', error);
+        alert('Failed to save score. Please check your connection and try again.');
+      }
     }
   };
 
