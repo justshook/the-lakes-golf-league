@@ -13,7 +13,7 @@ export default function HomePage() {
     getPlayerById, getTeamTypeForWeek, getTeammatesForWeek,
     showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot,
     selectedSubId, setSelectedSubId, handleSubSignup,
-    players,
+    players, isSubmitting,
   } = useLeague();
 
   const today = new Date().toLocaleDateString('en-CA');
@@ -354,9 +354,16 @@ export default function HomePage() {
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={handlePlayerScoreSubmit}
-                  className="flex-1 bg-green-700 text-white py-3 rounded-lg hover:bg-green-800 font-medium"
+                  disabled={isSubmitting}
+                  className={`flex-1 bg-green-700 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-60 cursor-not-allowed' : 'hover:bg-green-800'}`}
                 >
-                  Submit Score
+                  {isSubmitting && (
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                  {isSubmitting ? 'Submitting…' : 'Submit Score'}
                 </button>
                 <button
                   onClick={() => {
