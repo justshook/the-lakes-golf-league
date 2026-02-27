@@ -76,7 +76,7 @@ export default function HomePage() {
                   <div className="flex items-center gap-2 mb-2">
                     <h4 className="font-display font-bold text-base sm:text-lg text-gold-600">Side Game: {currentGame.sideGame}</h4>
                   </div>
-                  <p className="text-charcoal-600 text-xs sm:text-sm">{currentGame.sideGameDescription}</p>
+                  <p className="text-charcoal-600 text-[0.9375rem] sm:text-sm">{currentGame.sideGameDescription}</p>
                 </div>
               </div>
             </div>
