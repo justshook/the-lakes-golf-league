@@ -203,8 +203,8 @@ export const initialWeeklyGames = [
   {
     weekId: 9,
     date: '2026-06-15',
-    gameName: 'Low Gross/Net Skins',
-    gameDescription: 'Skins game scored in both gross and net divisions. Players can only win in one division.\n\nPayouts ($230 total):\n\u2022 Low Net 1st: $90\n\u2022 Low Net 2nd: $55\n\u2022 Low Net 3rd: $35\n\u2022 Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameName: 'Low Net / Low Gross',
+    gameDescription: 'Individual stroke play using net scores (adjusted for handicap).\n\nPayouts ($230 total):\n\u2022 Low Net 1st: $90\n\u2022 Low Net 2nd: $55\n\u2022 Low Net 3rd: $35\n\u2022 Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
