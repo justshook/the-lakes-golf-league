@@ -21,9 +21,13 @@ html {
   display: none;
 }
 
-/* Mobile touch improvements */
-@media (max-width: 640px) {
-  button, select, input {
-    min-height: 44px;
+/* Touch target improvements for accessibility */
+button, select, input {
+  min-height: 44px;
+}
+
+@layer components {
+  .th-label {
+    @apply px-2 sm:px-4 py-3 text-xs font-semibold tracking-wide uppercase text-charcoal-600;
   }
 }
