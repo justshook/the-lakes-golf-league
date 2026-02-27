@@ -96,6 +96,9 @@ export function LeagueProvider({ children }) {
   const [showResetConfirm, setShowResetConfirm] = useState(null);
   const [resetWeekId, setResetWeekId] = useState(null);
 
+  // Score overwrite confirmation state
+  const [scoreOverwriteConfirm, setScoreOverwriteConfirm] = useState(null);
+
   // Helper to convert Supabase player row to app player object
   const supabasePlayerToApp = (row) => ({
     id: row.id,
@@ -530,23 +533,8 @@ export function LeagueProvider({ children }) {
   };
 
   // === Player score submission ===
-  const handlePlayerScoreSubmit = async () => {
-    if (isSubmitting) return;
-    const { playerId, weekId, totalScore, birdieHoles, eagleHoles, phoneInput } = playerScoreForm;
-    if (!playerId || !weekId) { alert('Please select your name and week'); return; }
-    const scoreNum = parseInt(totalScore);
-    if (!totalScore || isNaN(scoreNum) || scoreNum < 1) { alert('Please enter a valid score'); return; }
-
-    // Phone verification
-    const selectedPlayer = players.find(p => p.id === parseInt(playerId));
-    if (selectedPlayer) {
-      const storedLast4 = (selectedPlayer.phone || '').replace(/\D/g, '').slice(-4);
-      if (storedLast4 && phoneInput.trim() !== storedLast4) {
-        alert('Phone verification failed. Please enter the last 4 digits of your phone number.');
-        return;
-      }
-    }
-
+  const doSubmitScore = async () => {
+    const { playerId, weekId, totalScore, birdieHoles, eagleHoles } = playerScoreForm;
     setIsSubmitting(true);
     const playerIdNum = parseInt(playerId);
     const weekIdNum = parseInt(weekId);
@@ -608,6 +596,40 @@ export function LeagueProvider({ children }) {
         alert('Failed to save score. Please check your connection and try again.');
       }
     }
+  };
+
+  const handlePlayerScoreSubmit = async () => {
+    if (isSubmitting) return;
+    const { playerId, weekId, totalScore, phoneInput } = playerScoreForm;
+    if (!playerId || !weekId) { alert('Please select your name and week'); return; }
+    const scoreNum = parseInt(totalScore);
+    if (!totalScore || isNaN(scoreNum) || scoreNum < 1) { alert('Please enter a valid score'); return; }
+
+    // Phone verification
+    const selectedPlayer = players.find(p => p.id === parseInt(playerId));
+    if (selectedPlayer) {
+      const storedLast4 = (selectedPlayer.phone || '').replace(/\D/g, '').slice(-4);
+      if (storedLast4 && phoneInput.trim() !== storedLast4) {
+        alert('Phone verification failed. Please enter the last 4 digits of your phone number.');
+        return;
+      }
+    }
+
+    // Check for existing score before saving
+    const playerIdNum = parseInt(playerId);
+    const weekIdNum = parseInt(weekId);
+    const existingScore = playerScores.find(s => s.player_id === playerIdNum && s.week_id === weekIdNum);
+    if (existingScore) {
+      setScoreOverwriteConfirm({ existingGrossScore: existingScore.gross_score });
+      return;
+    }
+
+    await doSubmitScore();
+  };
+
+  const handleConfirmedScoreOverwrite = async () => {
+    setScoreOverwriteConfirm(null);
+    await doSubmitScore();
   };
 
   const toggleHoleSelection = (holeNum, type) => {
@@ -1017,6 +1039,7 @@ export function LeagueProvider({ children }) {
     scoreManagerWeek, setScoreManagerWeek, adminAddScore, setAdminAddScore,
     showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot, selectedSubId, setSelectedSubId,
     showResetConfirm, setShowResetConfirm, resetWeekId, setResetWeekId,
+    scoreOverwriteConfirm, setScoreOverwriteConfirm,
 
     // Derived
     currentWeek, currentGame, sortedByMoney, filteredPlayers, filteredPlayersForAdmin, assignedPlayerIds,
@@ -1025,7 +1048,7 @@ export function LeagueProvider({ children }) {
     refreshData, saveTeeSheetToSupabase, saveMoneyToSupabase, saveGiantSkinToSupabase, savePlayerScoreToSupabase,
     handleSubSignup, recalculateGiantSkins, updatePlayerScore, deletePlayerScore,
     resetSingleWeek, resetMoneyData, resetTeeSheets, resetGiantSkins, resetPlayerScores, resetAllData,
-    handlePlayerScoreSubmit, toggleHoleSelection,
+    handlePlayerScoreSubmit, handleConfirmedScoreOverwrite, toggleHoleSelection,
     getGameForWeek, getTeamTypeForWeek, getTeammatesForWeek,
     loadWeeklyGameForEdit, handleSaveWeeklyGame,
     loadPlayerForEdit, handleSavePlayer, toggleAvailability,

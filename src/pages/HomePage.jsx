@@ -9,11 +9,12 @@ export default function HomePage() {
     weeks, selectedWeek, setSelectedWeek, currentWeek, currentGame,
     showPlayerScoreEntry, setShowPlayerScoreEntry,
     playerScoreForm, setPlayerScoreForm,
-    handlePlayerScoreSubmit, toggleHoleSelection,
+    handlePlayerScoreSubmit, handleConfirmedScoreOverwrite, toggleHoleSelection,
     getPlayerById, getTeamTypeForWeek, getTeammatesForWeek,
     showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot,
     selectedSubId, setSelectedSubId, handleSubSignup,
     players, isSubmitting,
+    scoreOverwriteConfirm, setScoreOverwriteConfirm,
   } = useLeague();
 
   const today = new Date().toLocaleDateString('en-CA');
@@ -443,6 +444,37 @@ export default function HomePage() {
                     setSelectedSubId('');
                   }}
                   className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Score Overwrite Confirmation Dialog */}
+      {scoreOverwriteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full overflow-hidden">
+            <div className="bg-yellow-600 px-6 py-4">
+              <h3 className="text-xl font-bold text-white">Score Already Submitted</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-700 mb-2">
+                You already submitted a score of <strong>{scoreOverwriteConfirm.existingGrossScore}</strong> for this week.
+              </p>
+              <p className="text-gray-700 mb-6">Overwrite it with your new score?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleConfirmedScoreOverwrite}
+                  className="flex-1 bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700 font-medium"
+                >
+                  Yes, Overwrite
+                </button>
+                <button
+                  onClick={() => setScoreOverwriteConfirm(null)}
+                  className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 font-medium"
                 >
                   Cancel
                 </button>
