@@ -30,7 +30,7 @@ export default function PlayersPage() {
         <div className="space-y-4">
           <button
             onClick={() => navigate('/players')}
-            className="text-cream-200/60 hover:text-cream-200 transition-colors flex items-center gap-2"
+            className="text-cream-200/80 hover:text-cream-200 transition-colors flex items-center gap-2"
           >
             ← Back to All Players
           </button>
@@ -40,15 +40,15 @@ export default function PlayersPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-xl sm:text-2xl font-display font-bold text-cream-200">{selectedPlayer.name}</h3>
-                  <div className="text-cream-200/60 text-sm mt-1 space-y-0.5">
+                  <div className="text-cream-200/80 text-sm mt-1 space-y-0.5">
                     <div>9-Hole HCP: {calc9HoleHandicap(selectedPlayer.handicap)}</div>
-                    <div className="text-cream-200/40 text-xs">18-Hole HCP: {selectedPlayer.handicap}</div>
+                    <div className="text-cream-200/70 text-sm">18-Hole HCP: {selectedPlayer.handicap}</div>
                     {selectedPlayer.cdgaId && selectedPlayer.cdgaId !== 'N/A' && (
-                      <div className="text-cream-200/40 text-xs">CDGA ID: {selectedPlayer.cdgaId}</div>
+                      <div className="text-cream-200/70 text-sm">CDGA ID: {selectedPlayer.cdgaId}</div>
                     )}
                   </div>
                 </div>
-                <span className={`px-2 py-0.5 rounded-pill text-xs font-medium shrink-0 ${
+                <span className={`px-3 py-1 rounded-pill text-xs font-medium shrink-0 ${
                   selectedPlayer.type === 'full-time' ? 'bg-forest-700' : 'bg-gold-600'
                 } text-cream-200`}>
                   {selectedPlayer.type === 'full-time' ? 'Member' : 'Substitute'}
@@ -60,11 +60,11 @@ export default function PlayersPage() {
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
                   <div className="font-display text-3xl font-bold text-cream-200">{selectedPlayer.weeksPlayed}</div>
-                  <div className="text-[11px] font-semibold tracking-[1.5px] uppercase text-charcoal-400">Weeks Played</div>
+                  <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Weeks Played</div>
                 </div>
                 <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
                   <div className="font-display text-3xl font-bold text-gold-500">${selectedPlayer.totalMoney}</div>
-                  <div className="text-[11px] font-semibold tracking-[1.5px] uppercase text-charcoal-400">Total Won</div>
+                  <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Total Won</div>
                 </div>
               </div>
 
@@ -108,11 +108,11 @@ export default function PlayersPage() {
                     <div className="grid grid-cols-2 gap-4 mb-4">
                       <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-3 text-center">
                         <div className="font-display text-2xl font-bold text-cream-200">{avgGross}</div>
-                        <div className="text-[11px] font-semibold tracking-[1.5px] uppercase text-charcoal-400">Avg Gross</div>
+                        <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Avg Gross</div>
                       </div>
                       <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-3 text-center">
                         <div className="font-display text-2xl font-bold text-gold-500">{avgNet}</div>
-                        <div className="text-[11px] font-semibold tracking-[1.5px] uppercase text-charcoal-400">Avg Net</div>
+                        <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Avg Net</div>
                       </div>
                     </div>
 
@@ -121,10 +121,10 @@ export default function PlayersPage() {
                       <table className="w-full text-sm">
                         <thead className="bg-cream-300">
                           <tr>
-                            <th className="text-left p-2 rounded-tl-lg text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Week</th>
-                            <th className="text-center p-2 text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Gross</th>
-                            <th className="text-center p-2 text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">HCP</th>
-                            <th className="text-center p-2 rounded-tr-lg text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Net</th>
+                            <th className="th-label text-left rounded-tl-lg">Week</th>
+                            <th className="th-label text-center">Gross</th>
+                            <th className="th-label text-center">HCP</th>
+                            <th className="th-label text-center rounded-tr-lg">Net</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -135,7 +135,7 @@ export default function PlayersPage() {
                                 {score.is_team_score && <span className="ml-1 text-xs text-gold-600">(team)</span>}
                               </td>
                               <td className="p-2 text-center font-medium">{score.gross_score}</td>
-                              <td className="p-2 text-center text-charcoal-400">-{score.handicap_used}</td>
+                              <td className="p-2 text-center text-charcoal-600">-{score.handicap_used}</td>
                               <td className="p-2 text-center font-display font-bold text-gold-500">{score.net_score}</td>
                             </tr>
                           ))}
@@ -177,7 +177,7 @@ export default function PlayersPage() {
                 <button
                   key={filter}
                   onClick={() => setPlayerFilter(filter)}
-                  className={`px-4 py-2 rounded-pill text-sm font-medium transition-all ${
+                  className={`px-5 py-2.5 rounded-pill text-sm font-medium transition-all ${
                     playerFilter === filter
                       ? 'bg-cta-500 text-forest-950'
                       : 'bg-forest-800 text-cream-200 hover:bg-forest-700'
@@ -194,16 +194,16 @@ export default function PlayersPage() {
               <div
                 key={player.id}
                 onClick={() => navigate(`/players/${player.id}`)}
-                className="bg-cream-200 rounded-card shadow-card p-3 cursor-pointer hover:shadow-card-hover hover:-translate-y-1 transition-all"
+                className="bg-cream-200 rounded-card shadow-card p-4 cursor-pointer hover:shadow-card-hover hover:-translate-y-1 transition-all"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="font-display font-semibold text-charcoal-950 text-sm truncate">{player.name}</div>
-                    <div className="text-xs text-charcoal-400">HCP {calc9HoleHandicap(player.handicap)} • {player.availability.length} times</div>
+                    <div className="font-display font-semibold text-charcoal-950 text-[0.9375rem] truncate">{player.name}</div>
+                    <div className="text-sm text-charcoal-600">HCP {calc9HoleHandicap(player.handicap)} • {player.availability.length} times</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-display text-gold-500 font-bold text-sm">${player.totalMoney}</div>
-                    <div className="text-xs text-charcoal-400">{player.weeksPlayed}w</div>
+                    <div className="font-display text-gold-500 font-bold text-[0.9375rem]">${player.totalMoney}</div>
+                    <div className="text-sm text-charcoal-600">{player.weeksPlayed}w</div>
                   </div>
                 </div>
               </div>

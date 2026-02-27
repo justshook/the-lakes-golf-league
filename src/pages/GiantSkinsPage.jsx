@@ -12,7 +12,7 @@ export default function GiantSkinsPage() {
           <span className="text-cream-200">Giant</span>{' '}
           <span className="text-gold-500">Skins</span>
         </h2>
-        <p className="text-cream-200/60 text-sm mt-1">Lowest score on each hole for the entire season wins</p>
+        <p className="text-cream-200/80 text-[0.9375rem] mt-1">Lowest score on each hole for the entire season wins</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -39,7 +39,7 @@ export default function GiantSkinsPage() {
                     {hasPlayers ? (
                       <>
                         <div className="font-display text-xl sm:text-2xl font-bold text-gold-600">{hole.lowScore}</div>
-                        <div className="text-xs sm:text-sm text-charcoal-600">
+                        <div className="text-sm text-charcoal-600">
                           {hole.players.map((p, idx) => {
                             const player = getPlayerById(p.playerId);
                             return (
@@ -52,7 +52,7 @@ export default function GiantSkinsPage() {
                         </div>
                       </>
                     ) : (
-                      <div className="text-charcoal-400 text-xs sm:text-sm">No score yet</div>
+                      <div className="text-charcoal-600 text-sm">No score yet</div>
                     )}
                   </div>
                 </div>
@@ -84,7 +84,7 @@ export default function GiantSkinsPage() {
                     {hasPlayers ? (
                       <>
                         <div className="font-display text-xl sm:text-2xl font-bold text-gold-600">{hole.lowScore}</div>
-                        <div className="text-xs sm:text-sm text-charcoal-600">
+                        <div className="text-sm text-charcoal-600">
                           {hole.players.map((p, idx) => {
                             const player = getPlayerById(p.playerId);
                             return (
@@ -97,7 +97,7 @@ export default function GiantSkinsPage() {
                         </div>
                       </>
                     ) : (
-                      <div className="text-charcoal-400 text-xs sm:text-sm">No score yet</div>
+                      <div className="text-charcoal-600 text-sm">No score yet</div>
                     )}
                   </div>
                 </div>
@@ -107,9 +107,8 @@ export default function GiantSkinsPage() {
         </div>
       </div>
 
-      <div className="bg-forest-800/10 rounded-card p-4 text-charcoal-700 text-sm border border-forest-700/20">
-        <strong>How it works:</strong> The player with the lowest score on each hole across the entire season wins that hole's pot.
-        Ties at season end split the money.
+      <div className="bg-forest-800/10 rounded-card p-4 text-charcoal-700 text-[0.9375rem] border border-forest-700/20">
+        <strong>How it works:</strong> The player with the lowest score on each hole across the entire season wins that hole's pot. Ties at season end split the money.
       </div>
     </div>
   );

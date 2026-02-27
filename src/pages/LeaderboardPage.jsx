@@ -23,7 +23,7 @@ export default function LeaderboardPage() {
         <div className="flex gap-2">
           <button
             onClick={() => setLeaderboardView('season')}
-            className={`px-4 py-2 rounded-pill font-medium text-sm transition-all ${
+            className={`px-5 py-2.5 rounded-pill font-medium text-sm transition-all ${
               leaderboardView === 'season'
                 ? 'bg-cta-500 text-forest-950'
                 : 'bg-forest-800 text-cream-200 hover:bg-forest-700'
@@ -33,7 +33,7 @@ export default function LeaderboardPage() {
           </button>
           <button
             onClick={() => setLeaderboardView('weekly')}
-            className={`px-4 py-2 rounded-pill font-medium text-sm transition-all ${
+            className={`px-5 py-2.5 rounded-pill font-medium text-sm transition-all ${
               leaderboardView === 'weekly'
                 ? 'bg-cta-500 text-forest-950'
                 : 'bg-forest-800 text-cream-200 hover:bg-forest-700'
@@ -57,9 +57,9 @@ export default function LeaderboardPage() {
           <table className="w-full">
             <thead className="bg-cream-300/60">
               <tr>
-                <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-500">Rank</th>
-                <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-500">Player</th>
-                <th className="px-2 sm:px-4 py-3 text-right text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-500">Total Won</th>
+                <th className="th-label text-left">Rank</th>
+                <th className="th-label text-left">Player</th>
+                <th className="th-label text-right">Total Won</th>
               </tr>
             </thead>
             <tbody>
@@ -78,9 +78,9 @@ export default function LeaderboardPage() {
                       <span className="font-bold text-charcoal-600">{index + 1}</span>
                     </div>
                   </td>
-                  <td className="px-2 sm:px-4 py-4 font-display font-semibold text-charcoal-950 text-sm sm:text-base">{player.name}</td>
+                  <td className="px-2 sm:px-4 py-4 font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">{player.name}</td>
                   <td className="px-2 sm:px-4 py-4 text-right">
-                    <span className="bg-gold-500/20 text-gold-600 px-2 sm:px-4 py-1 rounded-pill font-bold text-sm sm:text-base">
+                    <span className="bg-gold-500/20 text-gold-600 px-2 sm:px-4 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">
                       ${player.totalMoney.toLocaleString()}
                     </span>
                   </td>
@@ -185,11 +185,11 @@ export default function LeaderboardPage() {
           <table className="w-full">
             <thead className="bg-cream-300/60">
               <tr>
-                <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-500">Rank</th>
-                <th className="px-2 sm:px-4 py-3 text-left text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-500">Player</th>
-                <th className="px-2 sm:px-4 py-3 text-center text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-500">Rounds</th>
-                <th className="px-2 sm:px-4 py-3 text-center text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-500">Avg Gross</th>
-                <th className="px-2 sm:px-4 py-3 text-center text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-500">Avg Net</th>
+                <th className="th-label text-left">Rank</th>
+                <th className="th-label text-left">Player</th>
+                <th className="th-label text-center">Rounds</th>
+                <th className="th-label text-center">Avg Gross</th>
+                <th className="th-label text-center">Avg Net</th>
               </tr>
             </thead>
             <tbody>
@@ -230,7 +230,7 @@ export default function LeaderboardPage() {
                         <span className="font-bold text-charcoal-600">{index + 1}</span>
                       </div>
                     </td>
-                    <td className="px-2 sm:px-4 py-4 font-display font-semibold text-charcoal-950 text-sm sm:text-base">{player.name}</td>
+                    <td className="px-2 sm:px-4 py-4 font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">{player.name}</td>
                     <td className="px-2 sm:px-4 py-4 text-center text-charcoal-600">{player.rounds}</td>
                     <td className="px-2 sm:px-4 py-4 text-center">
                       <span className="bg-charcoal-800/10 text-charcoal-600 px-2 py-1 rounded font-medium text-sm">

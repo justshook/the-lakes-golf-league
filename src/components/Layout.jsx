@@ -30,7 +30,7 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 py-5">
           <div className="text-center">
             <h1 className="font-serif text-[2.4rem] font-semibold italic text-cream-200 leading-none">The Lakes</h1>
-            <p className="font-sans text-[0.6rem] font-semibold tracking-[3px] uppercase text-gold-500 mt-1.5">Monday Golf League</p>
+            <p className="font-sans text-[0.65rem] font-semibold tracking-[3px] uppercase text-gold-500 mt-1.5">Monday Golf League</p>
           </div>
         </div>
       </header>
@@ -45,10 +45,10 @@ export default function Layout() {
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
-                  `flex-1 px-1 sm:px-4 py-3 font-medium transition-colors text-xs sm:text-sm text-center ${
+                  `flex-1 px-1 sm:px-4 py-3 font-medium transition-colors text-sm sm:text-base text-center ${
                     isActive
                       ? 'text-cream-200 border-b-2 border-gold-500'
-                      : 'text-cream-200/60 hover:text-cream-200'
+                      : 'text-cream-200/80 hover:text-cream-200'
                   }`
                 }
               >
