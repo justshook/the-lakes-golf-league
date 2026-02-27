@@ -73,9 +73,15 @@ export const generateSeasonWeeks = () => {
   let isFrontNine = true;
 
   while (currentDate <= new Date('2026-08-31')) {
+    const dateStr = currentDate.toISOString().split('T')[0];
+    // Skip Memorial Day (May 25, 2026) — no league play
+    if (dateStr === '2026-05-25') {
+      currentDate.setDate(currentDate.getDate() + 7);
+      continue;
+    }
     weeks.push({
       id: weekNum,
-      date: currentDate.toISOString().split('T')[0],
+      date: dateStr,
       nineHoles: isFrontNine ? 'front' : 'back',
       teeSheet: [],
       scoresEntered: false,
