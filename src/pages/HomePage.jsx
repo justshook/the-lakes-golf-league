@@ -201,12 +201,15 @@ export default function HomePage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Week</label>
                 {(() => {
                   const today = new Date().toLocaleDateString('en-CA');
-                  const todayWeeks = weeks.filter(w => w.teeSheet.length > 0 && w.date === today);
+                  const yesterdayDate = new Date();
+                  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                  const yesterday = yesterdayDate.toLocaleDateString('en-CA');
+                  const todayWeeks = weeks.filter(w => w.teeSheet.length > 0 && (w.date === today || w.date === yesterday));
 
                   if (todayWeeks.length === 0) {
                     return (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-yellow-800 text-sm">
-                        Score entry is only available on game day (Mondays). No game is scheduled for today.
+                        Score entry is only available on game day (Mondays) and the following day. No game is scheduled for today or yesterday.
                       </div>
                     );
                   }
