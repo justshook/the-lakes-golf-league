@@ -173,9 +173,20 @@ export default function HomePage() {
                   className="w-full border rounded-lg px-3 py-2"
                 >
                   <option value="">Select your name...</option>
-                  {players.filter(p => p.type === 'full-time').sort((a, b) => a.name.localeCompare(b.name)).map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
+                  {(() => {
+                    const today = new Date().toLocaleDateString('en-CA');
+                    const yesterdayDate = new Date();
+                    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                    const yesterday = yesterdayDate.toLocaleDateString('en-CA');
+                    const eligibleWeeks = weeks.filter(w => w.teeSheet.length > 0 && (w.date === today || w.date === yesterday));
+                    const playersOnTeeSheet = new Set(eligibleWeeks.flatMap(w => w.teeSheet.flatMap(slot => slot.players)));
+                    return players
+                      .filter(p => p.type === 'full-time' || playersOnTeeSheet.has(p.id))
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ));
+                  })()}
                 </select>
               </div>
 
