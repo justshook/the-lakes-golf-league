@@ -79,6 +79,7 @@ export function LeagueProvider({ children }) {
   });
 
   const [playerScores, setPlayerScores] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Score management state (admin)
   const [showScoreManager, setShowScoreManager] = useState(false);
@@ -530,6 +531,7 @@ export function LeagueProvider({ children }) {
 
   // === Player score submission ===
   const handlePlayerScoreSubmit = async () => {
+    if (isSubmitting) return;
     const { playerId, weekId, totalScore, birdieHoles, eagleHoles, phoneInput } = playerScoreForm;
     if (!playerId || !weekId) { alert('Please select your name and week'); return; }
     const scoreNum = parseInt(totalScore);
@@ -545,6 +547,7 @@ export function LeagueProvider({ children }) {
       }
     }
 
+    setIsSubmitting(true);
     const playerIdNum = parseInt(playerId);
     const weekIdNum = parseInt(weekId);
     const teamType = getTeamTypeForWeek(weekIdNum);
@@ -572,15 +575,17 @@ export function LeagueProvider({ children }) {
         await recalculateGiantSkins();
         setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: '' });
         setShowPlayerScoreEntry(false);
+        setIsSubmitting(false);
         const memberNames = allMembers.map(id => getPlayerById(id)?.name).filter(Boolean).join(', ');
         alert(`Team score submitted for: ${memberNames}`);
       } catch (error) {
         console.error('Error saving team score:', error);
+        setIsSubmitting(false);
         alert('Failed to save score. Please check your connection and try again.');
       }
     } else {
       const player = players.find(p => p.id === playerIdNum);
-      if (!player) return;
+      if (!player) { setIsSubmitting(false); return; }
       const grossScore = parseInt(totalScore);
       const handicap9 = calc9HoleHandicap(player.handicap);
       const netScore = grossScore - handicap9;
@@ -595,9 +600,11 @@ export function LeagueProvider({ children }) {
         await recalculateGiantSkins();
         setPlayerScoreForm({ playerId: '', weekId: '', totalScore: '', birdieHoles: [], eagleHoles: [], phoneInput: '' });
         setShowPlayerScoreEntry(false);
+        setIsSubmitting(false);
         alert('Score submitted successfully! Your gross and net scores have been recorded.');
       } catch (error) {
         console.error('Error saving score:', error);
+        setIsSubmitting(false);
         alert('Failed to save score. Please check your connection and try again.');
       }
     }
@@ -1005,7 +1012,7 @@ export function LeagueProvider({ children }) {
     playerFilter, setPlayerFilter, leaderboardView, setLeaderboardView,
     isLoading,
     showPlayerScoreEntry, setShowPlayerScoreEntry, playerScoreForm, setPlayerScoreForm,
-    playerScores, setPlayerScores,
+    playerScores, setPlayerScores, isSubmitting,
     showScoreManager, setShowScoreManager, editingScore, setEditingScore,
     scoreManagerWeek, setScoreManagerWeek, adminAddScore, setAdminAddScore,
     showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot, selectedSubId, setSelectedSubId,
