@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLeague } from '../LeagueContext';
 import { calc9HoleHandicap, teeTimes, courseHoles, moneyCategories } from '../constants';
 
@@ -50,6 +50,25 @@ export default function AdminPage() {
     // Utilities
     formatDate, formatShortDate,
   } = useLeague();
+
+  const [activeSelectSlot, setActiveSelectSlot] = useState(null);
+  const selectDropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!activeSelectSlot) return;
+    const handleClickOutside = (e) => {
+      if (selectDropdownRef.current && !selectDropdownRef.current.contains(e.target)) {
+        setActiveSelectSlot(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [activeSelectSlot]);
 
   if (!isAdminAuthenticated) {
     return (
@@ -166,7 +185,7 @@ export default function AdminPage() {
         {showScheduleBuilder && (
           <div className="p-4">
             <p className="text-sm text-gray-600 mb-4">
-              Drag and drop players to rearrange tee times. Drag onto another player to swap positions.
+              Tap an empty slot to pick a player. Drag and drop to rearrange or swap.
               <span className="font-medium"> {48 - assignedPlayerIds.length} spots remaining.</span>
             </p>
 
@@ -242,35 +261,75 @@ export default function AdminPage() {
                           </div>
                         );
                       } else {
+                        const isSelectOpen = activeSelectSlot === key;
+                        const unassignedPlayers = players.filter(p =>
+                          (p.type === 'full-time' || p.type === 'substitute') &&
+                          !assignedPlayerIds.includes(p.id)
+                        ).sort((a, b) => a.name.localeCompare(b.name));
+
                         return (
-                          <div
-                            key={slot}
-                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
-                            onDragEnter={(e) => { e.preventDefault(); setDragOverSlot(key); }}
-                            onDragLeave={(e) => {
-                              if (!e.currentTarget.contains(e.relatedTarget)) setDragOverSlot(null);
-                            }}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              setDragOverSlot(null);
-                              if (!dragPlayer) return;
-                              setScheduleSelections(prev => {
-                                const updated = { ...prev };
-                                if (dragPlayer.fromKey) {
-                                  delete updated[dragPlayer.fromKey];
-                                }
-                                updated[key] = dragPlayer.playerId;
-                                return updated;
-                              });
-                              setDragPlayer(null);
-                            }}
-                            className={`px-2 py-2 rounded border-2 border-dashed text-xs text-center transition-all ${
-                              isDragOver
-                                ? 'border-green-500 bg-green-50 text-green-700'
-                                : 'border-gray-300 text-gray-400'
-                            }`}
-                          >
-                            {isDragOver ? 'Drop here' : 'Empty'}
+                          <div key={slot} className="relative">
+                            <div
+                              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
+                              onDragEnter={(e) => { e.preventDefault(); setDragOverSlot(key); }}
+                              onDragLeave={(e) => {
+                                if (!e.currentTarget.contains(e.relatedTarget)) setDragOverSlot(null);
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setDragOverSlot(null);
+                                if (!dragPlayer) return;
+                                setScheduleSelections(prev => {
+                                  const updated = { ...prev };
+                                  if (dragPlayer.fromKey) {
+                                    delete updated[dragPlayer.fromKey];
+                                  }
+                                  updated[key] = dragPlayer.playerId;
+                                  return updated;
+                                });
+                                setDragPlayer(null);
+                              }}
+                              onClick={() => {
+                                if (dragPlayer) return;
+                                setActiveSelectSlot(isSelectOpen ? null : key);
+                              }}
+                              className={`px-2 py-2 rounded border-2 border-dashed text-xs text-center transition-all cursor-pointer ${
+                                isSelectOpen
+                                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                  : isDragOver
+                                  ? 'border-green-500 bg-green-50 text-green-700'
+                                  : 'border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500'
+                              }`}
+                            >
+                              {isDragOver ? 'Drop here' : isSelectOpen ? 'Select player ▲' : '+ Add Player'}
+                            </div>
+                            {isSelectOpen && (
+                              <div
+                                ref={selectDropdownRef}
+                                className="absolute z-50 top-full left-0 mt-1 w-56 bg-white border border-blue-200 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+                              >
+                                {unassignedPlayers.length === 0 ? (
+                                  <div className="px-3 py-2 text-sm text-gray-500">No available players</div>
+                                ) : (
+                                  unassignedPlayers.map(p => (
+                                    <button
+                                      key={p.id}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 flex items-center justify-between gap-2 border-b border-gray-100 last:border-0"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setScheduleSelections(prev => ({ ...prev, [key]: String(p.id) }));
+                                        setActiveSelectSlot(null);
+                                      }}
+                                    >
+                                      <span className="font-medium text-gray-800">{p.name}</span>
+                                      <span className="text-xs text-gray-500 flex-shrink-0">
+                                        ({calc9HoleHandicap(p.handicap)}){p.type === 'substitute' ? ' Sub' : ''}
+                                      </span>
+                                    </button>
+                                  ))
+                                )}
+                              </div>
+                            )}
                           </div>
                         );
                       }
@@ -293,7 +352,7 @@ export default function AdminPage() {
                 <div className="mt-4 border-t pt-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">
                     Available Players ({unassignedPlayers.length})
-                    <span className="text-gray-500 font-normal ml-2">Drag into an empty slot above</span>
+                    <span className="text-gray-500 font-normal ml-2">Tap an empty slot above or drag</span>
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {unassignedPlayers.map(p => (
