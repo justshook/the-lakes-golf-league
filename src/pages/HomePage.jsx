@@ -112,33 +112,80 @@ export default function HomePage() {
                 {currentWeek.teeSheet.map((slot, idx) => (
                   <div key={idx} className="p-2 sm:p-4 bg-cream-300 rounded-card">
                     <div className="font-display font-bold text-forest-800 text-lg mb-2 sm:mb-0 sm:float-left sm:w-24 sm:mr-4">{slot.time}</div>
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-3">
-                      {slot.players.map((playerId, pIdx) => {
-                        const player = getPlayerById(playerId);
-                        return (
+                    {currentGame?.teamType === '2-person' ? (
+                      (() => {
+                        const teamA = [slot.players[0] ?? null, slot.players[1] ?? null];
+                        const teamB = [slot.players[2] ?? null, slot.players[3] ?? null];
+
+                        const renderPlayerCard = (playerId) => {
+                          const player = getPlayerById(playerId);
+                          return (
+                            <div className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between">
+                              <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
+                              <div className="text-sm text-charcoal-600 whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
+                            </div>
+                          );
+                        };
+
+                        const renderEmptySlot = () => (
                           <div
-                            key={pIdx}
-                            className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between"
+                            onClick={() => {
+                              setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
+                              setSelectedSubId('');
+                              setShowSubSignup(true);
+                            }}
+                            className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
                           >
-                            <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
-                            <div className="text-sm text-charcoal-600 whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
+                            + Sign Up
                           </div>
                         );
-                      })}
-                      {[...Array(4 - slot.players.length)].map((_, i) => (
-                        <div
-                          key={`empty-${i}`}
-                          onClick={() => {
-                            setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
-                            setSelectedSubId('');
-                            setShowSubSignup(true);
-                          }}
-                          className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
-                        >
-                          + Sign Up
-                        </div>
-                      ))}
-                    </div>
+
+                        const renderTeamSlot = (playerId) =>
+                          playerId !== null ? renderPlayerCard(playerId) : renderEmptySlot();
+
+                        return (
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="flex-1 flex flex-col gap-2 p-2 rounded-card border-2 border-forest-800/20">
+                              {renderTeamSlot(teamA[0])}
+                              {renderTeamSlot(teamA[1])}
+                            </div>
+                            <div className="hidden sm:block w-px bg-charcoal-800/10 self-stretch" />
+                            <div className="flex-1 flex flex-col gap-2 p-2 rounded-card border-2 border-forest-800/20">
+                              {renderTeamSlot(teamB[0])}
+                              {renderTeamSlot(teamB[1])}
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-3">
+                        {slot.players.map((playerId, pIdx) => {
+                          const player = getPlayerById(playerId);
+                          return (
+                            <div
+                              key={pIdx}
+                              className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between"
+                            >
+                              <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
+                              <div className="text-sm text-charcoal-600 whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
+                            </div>
+                          );
+                        })}
+                        {[...Array(4 - slot.players.length)].map((_, i) => (
+                          <div
+                            key={`empty-${i}`}
+                            onClick={() => {
+                              setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
+                              setSelectedSubId('');
+                              setShowSubSignup(true);
+                            }}
+                            className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
+                          >
+                            + Sign Up
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
