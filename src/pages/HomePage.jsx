@@ -13,6 +13,11 @@ export default function HomePage() {
     getPlayerById, getTeamTypeForWeek, getTeammatesForWeek,
     showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot,
     selectedSubId, setSelectedSubId, handleSubSignup,
+    signupPhoneInput, setSignupPhoneInput,
+    showRemoveFromTeeTime, setShowRemoveFromTeeTime,
+    removeFromTeeTimeInfo, setRemoveFromTeeTimeInfo,
+    removePhoneInput, setRemovePhoneInput,
+    handleRemoveFromTeeTime,
     players, isSubmitting,
     scoreOverwriteConfirm, setScoreOverwriteConfirm,
   } = useLeague();
@@ -122,7 +127,21 @@ export default function HomePage() {
                           return (
                             <div className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between">
                               <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
-                              <div className="text-sm text-charcoal-600 whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
+                              <div className="flex items-center gap-1">
+                                <div className="text-sm text-charcoal-600 whitespace-nowrap">HCP {calc9HoleHandicap(player?.handicap)}</div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setRemoveFromTeeTimeInfo({ weekId: selectedWeek, slotIndex: idx, playerId, playerName: player?.name, time: slot.time });
+                                    setRemovePhoneInput('');
+                                    setShowRemoveFromTeeTime(true);
+                                  }}
+                                  className="w-6 h-6 flex items-center justify-center rounded-full text-charcoal-400 hover:bg-red-100 hover:text-red-600 transition-colors text-lg leading-none"
+                                  title="Remove from tee time"
+                                >
+                                  −
+                                </button>
+                              </div>
                             </div>
                           );
                         };
@@ -132,6 +151,7 @@ export default function HomePage() {
                             onClick={() => {
                               setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
                               setSelectedSubId('');
+                              setSignupPhoneInput('');
                               setShowSubSignup(true);
                             }}
                             className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
@@ -167,7 +187,21 @@ export default function HomePage() {
                               className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between"
                             >
                               <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
-                              <div className="text-sm text-charcoal-600 whitespace-nowrap ml-1">HCP {calc9HoleHandicap(player?.handicap)}</div>
+                              <div className="flex items-center gap-1">
+                                <div className="text-sm text-charcoal-600 whitespace-nowrap">HCP {calc9HoleHandicap(player?.handicap)}</div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setRemoveFromTeeTimeInfo({ weekId: selectedWeek, slotIndex: idx, playerId, playerName: player?.name, time: slot.time });
+                                    setRemovePhoneInput('');
+                                    setShowRemoveFromTeeTime(true);
+                                  }}
+                                  className="w-6 h-6 flex items-center justify-center rounded-full text-charcoal-400 hover:bg-red-100 hover:text-red-600 transition-colors text-lg leading-none"
+                                  title="Remove from tee time"
+                                >
+                                  −
+                                </button>
+                              </div>
                             </div>
                           );
                         })}
@@ -177,6 +211,7 @@ export default function HomePage() {
                             onClick={() => {
                               setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
                               setSelectedSubId('');
+                              setSignupPhoneInput('');
                               setShowSubSignup(true);
                             }}
                             className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
@@ -442,7 +477,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Sub Signup Modal */}
+      {/* Tee Time Signup Modal */}
       {showSubSignup && subSignupSlot && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
@@ -456,21 +491,14 @@ export default function HomePage() {
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-charcoal-950 mb-1">Substitute Name</label>
+                <label className="block text-sm font-medium text-charcoal-950 mb-1">Your Name</label>
                 <select
                   value={selectedSubId}
-                  onChange={(e) => setSelectedSubId(e.target.value)}
+                  onChange={(e) => { setSelectedSubId(e.target.value); setSignupPhoneInput(''); }}
                   className="w-full border border-charcoal-800/20 rounded-input px-3 py-2"
                 >
                   <option value="">Select your name...</option>
                   {players
-                    .filter(p => p.type === 'substitute')
-                    .filter(p => {
-                      const week = weeks.find(w => w.id === subSignupSlot.weekId);
-                      if (!week) return true;
-                      const playersInWeek = week.teeSheet.flatMap(s => s.players);
-                      return !playersInWeek.includes(p.id);
-                    })
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map(p => (
                       <option key={p.id} value={p.id}>{p.name} (HCP: {calc9HoleHandicap(p.handicap)})</option>
@@ -479,19 +507,49 @@ export default function HomePage() {
               </div>
 
               {selectedSubId && (
-                <div className="bg-forest-900/10 border border-forest-700/30 rounded-lg p-3">
-                  <p className="text-forest-900 text-sm">
-                    You'll be added to the <strong>{subSignupSlot.time}</strong> tee time for Week {subSignupSlot.weekId}.
-                  </p>
+                <div>
+                  <label className="block text-sm font-medium text-charcoal-950 mb-1">Verify Your Identity</label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={signupPhoneInput}
+                    onChange={(e) => setSignupPhoneInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    placeholder="Last 4 digits of your phone"
+                    className="w-full border border-charcoal-800/20 rounded-input px-3 py-2"
+                  />
+                  <p className="text-sm text-charcoal-600 mt-1">Enter the last 4 digits of your phone number to confirm</p>
                 </div>
               )}
+
+              {selectedSubId && (() => {
+                const week = weeks.find(w => w.id === subSignupSlot.weekId);
+                if (!week) return null;
+                const existingSlot = week.teeSheet.find(s => s.players.includes(parseInt(selectedSubId)));
+                if (existingSlot) {
+                  return (
+                    <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-3">
+                      <p className="text-yellow-800 text-sm">
+                        You're currently in the <strong>{existingSlot.time}</strong> tee time. Signing up here will move you to <strong>{subSignupSlot.time}</strong>.
+                      </p>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="bg-forest-900/10 border border-forest-700/30 rounded-lg p-3">
+                    <p className="text-forest-900 text-sm">
+                      You'll be added to the <strong>{subSignupSlot.time}</strong> tee time for Week {subSignupSlot.weekId}.
+                    </p>
+                  </div>
+                );
+              })()}
 
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleSubSignup}
-                  disabled={!selectedSubId}
+                  disabled={!selectedSubId || !signupPhoneInput}
                   className={`flex-1 py-3 rounded-lg font-medium ${
-                    selectedSubId
+                    selectedSubId && signupPhoneInput
                       ? 'bg-forest-900 text-white hover:bg-forest-800'
                       : 'bg-charcoal-800/20 text-charcoal-400 cursor-not-allowed'
                   }`}
@@ -503,6 +561,60 @@ export default function HomePage() {
                     setShowSubSignup(false);
                     setSubSignupSlot(null);
                     setSelectedSubId('');
+                    setSignupPhoneInput('');
+                  }}
+                  className="px-6 py-3 border border-charcoal-800/20 rounded-lg hover:bg-cream-200 font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove from Tee Time Modal */}
+      {showRemoveFromTeeTime && removeFromTeeTimeInfo && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full overflow-hidden">
+            <div className="bg-red-600 px-6 py-4">
+              <h3 className="text-xl font-bold text-white">Remove from Tee Time</h3>
+              <p className="text-red-100 text-sm">Week {removeFromTeeTimeInfo.weekId} • {removeFromTeeTimeInfo.time}</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-charcoal-950">
+                Remove <strong>{removeFromTeeTimeInfo.playerName}</strong> from the <strong>{removeFromTeeTimeInfo.time}</strong> tee time?
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-charcoal-950 mb-1">Verify Your Identity</label>
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={removePhoneInput}
+                  onChange={(e) => setRemovePhoneInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  placeholder="Last 4 digits of your phone"
+                  className="w-full border border-charcoal-800/20 rounded-input px-3 py-2"
+                />
+                <p className="text-sm text-charcoal-600 mt-1">Enter the last 4 digits of your phone number to confirm</p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={handleRemoveFromTeeTime}
+                  disabled={!removePhoneInput}
+                  className={`flex-1 py-3 rounded-lg font-medium ${
+                    removePhoneInput
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-charcoal-800/20 text-charcoal-400 cursor-not-allowed'
+                  }`}
+                >
+                  Confirm Removal
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRemoveFromTeeTime(false);
+                    setRemoveFromTeeTimeInfo(null);
+                    setRemovePhoneInput('');
                   }}
                   className="px-6 py-3 border border-charcoal-800/20 rounded-lg hover:bg-cream-200 font-medium"
                 >
