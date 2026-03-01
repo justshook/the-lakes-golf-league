@@ -1492,6 +1492,42 @@ export default function AdminPage() {
         </div>
       </div>
 
+      {/* League Rules */}
+      <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-green-800 px-4 py-3">
+          <h3 className="text-white font-medium">📋 League Rules</h3>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <h4 className="font-semibold text-gray-800 text-base mb-1">Monday Night League Rules</h4>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              The maximum handicap has been raised to <strong>13</strong>. This gives the most league members
+              the opportunity to win a low net game each week.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-semibold text-gray-800 text-base mb-2">League-Specific Rules</h4>
+            <ol className="space-y-3 list-none">
+              <li className="flex gap-3 text-sm text-gray-700 leading-relaxed">
+                <span className="flex-shrink-0 w-5 h-5 bg-green-700 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">1</span>
+                There will be no gimmes or putts given this season. All holes must be finished out.
+              </li>
+              <li className="flex gap-3 text-sm text-gray-700 leading-relaxed">
+                <span className="flex-shrink-0 w-5 h-5 bg-green-700 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</span>
+                A ball hit over the fence and into the army base or onto the road is considered out of bounds.
+                In this situation you must take a drop in a spot where you can take a full swing where the ball
+                went out plus a <strong>2 stroke penalty</strong>. There will be no re-teeing or provisional shots.
+              </li>
+              <li className="flex gap-3 text-sm text-gray-700 leading-relaxed">
+                <span className="flex-shrink-0 w-5 h-5 bg-green-700 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+                All rounds must be completed in <strong>2 hours and 10 minutes</strong> or less. If your pace
+                of play is slower than this you will be assigned a tee time after 5pm.
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
       {/* Remove Player Confirmation Modal */}
       {showRemoveConfirm && (() => {
         const playerToRemove = players.find(p => p.id === showRemoveConfirm);

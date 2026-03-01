@@ -7,6 +7,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import PlayersPage from './pages/PlayersPage';
 import GiantSkinsPage from './pages/GiantSkinsPage';
 import AdminPage from './pages/AdminPage';
+import RulesPage from './pages/RulesPage';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/players" element={<PlayersPage />} />
             <Route path="/players/:playerId" element={<PlayersPage />} />
             <Route path="/skins" element={<GiantSkinsPage />} />
+            <Route path="/rules" element={<RulesPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Route>
         </Routes>

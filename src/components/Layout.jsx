@@ -20,6 +20,7 @@ export default function Layout() {
     { to: '/', label: 'Schedule', shortLabel: 'Schedule' },
     { to: '/leaderboard', label: 'Leaderboard', shortLabel: 'Leaderboard' },
     { to: '/skins', label: 'Skins', shortLabel: 'Skins' },
+    { to: '/rules', label: 'Rules', shortLabel: 'Rules' },
     ...(isAdminAuthenticated ? [{ to: '/admin', label: 'Admin', shortLabel: 'Admin' }] : []),
   ];
 
