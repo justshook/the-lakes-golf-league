@@ -48,6 +48,56 @@ export default function RulesPage() {
               </li>
             </ol>
           </div>
+
+          {/* General Policies & Etiquette */}
+          <div>
+            <h4 className="font-display font-bold text-charcoal-950 text-lg mb-3">General Policies &amp; Etiquette</h4>
+
+            <ul className="space-y-4 list-none">
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-2 h-2 bg-forest-800 rounded-full mt-2"></span>
+                <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
+                  Don't be the asshole that doesn't repair your ball marks or rake bunkers after your shot. This is our Monday night sanctuary, treat it like one.
+                </p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-2 h-2 bg-forest-800 rounded-full mt-2"></span>
+                <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
+                  <span className="font-semibold">Fees (2026):</span> 9 holes — $19 resident / $23 non-resident. Cart — $13. Residents of Arlington Heights and Rolling Meadows qualify for resident rate.
+                </p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-2 h-2 bg-forest-800 rounded-full mt-2"></span>
+                <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
+                  <span className="font-semibold">Carts:</span> Max 2 gas carts per foursome. Single riders pay an extra $12. Keep carts 30' from tee boxes and greens — follow the new exit signs back to cart path.
+                </p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-2 h-2 bg-forest-800 rounded-full mt-2"></span>
+                <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
+                  No outside alcohol. No personal coolers. Illinois law.
+                </p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-2 h-2 bg-forest-800 rounded-full mt-2"></span>
+                <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
+                  Weather/cancellations are at the league rep's discretion. Call the golf shop if canceling. Rain checks issued at a prorated rate if play is cut short.
+                </p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-2 h-2 bg-forest-800 rounded-full mt-2"></span>
+                <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
+                  No play on Memorial Day, Independence Day, or Labor Day — league is not scheduled those days.
+                </p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-2 h-2 bg-forest-800 rounded-full mt-2"></span>
+                <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
+                  <span className="font-semibold">Behavior:</span> respect everyone, no foul language, no fighting. Violations can result in loss of privileges.
+                </p>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
