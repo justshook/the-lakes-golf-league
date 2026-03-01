@@ -91,6 +91,12 @@ export function LeagueProvider({ children }) {
   const [showSubSignup, setShowSubSignup] = useState(false);
   const [subSignupSlot, setSubSignupSlot] = useState(null);
   const [selectedSubId, setSelectedSubId] = useState('');
+  const [signupPhoneInput, setSignupPhoneInput] = useState('');
+
+  // Remove from tee time state
+  const [showRemoveFromTeeTime, setShowRemoveFromTeeTime] = useState(false);
+  const [removeFromTeeTimeInfo, setRemoveFromTeeTimeInfo] = useState(null);
+  const [removePhoneInput, setRemovePhoneInput] = useState('');
 
   // Reset state
   const [showResetConfirm, setShowResetConfirm] = useState(null);
@@ -346,17 +352,34 @@ export function LeagueProvider({ children }) {
     if (error) throw error;
   };
 
-  // === Sub signup ===
+  // === Tee time signup ===
   const handleSubSignup = async () => {
     if (!subSignupSlot || !selectedSubId) return;
     const { weekId, slotIndex } = subSignupSlot;
     const subId = parseInt(selectedSubId);
+
+    // Phone verification
+    const player = players.find(p => p.id === subId);
+    if (player) {
+      const storedLast4 = (player.phone || '').replace(/\D/g, '').slice(-4);
+      if (storedLast4 && signupPhoneInput.trim() !== storedLast4) {
+        alert('Phone verification failed. Please enter the last 4 digits of your phone number.');
+        return;
+      }
+    }
+
     const week = weeks.find(w => w.id === weekId);
     if (!week) return;
 
+    // Build updated tee sheet — handle swap if player already in a slot
     const updatedTeeSheet = week.teeSheet.map((slot, idx) => {
-      if (idx === slotIndex) return { ...slot, players: [...slot.players, subId] };
-      return slot;
+      // Remove player from any existing slot (swap case)
+      let updatedPlayers = slot.players.filter(id => id !== subId);
+      // Add player to the target slot
+      if (idx === slotIndex) {
+        updatedPlayers = [...updatedPlayers, subId];
+      }
+      return { ...slot, players: updatedPlayers };
     });
 
     setWeeks(weeks.map(w => w.id === weekId ? { ...w, teeSheet: updatedTeeSheet } : w));
@@ -364,6 +387,39 @@ export function LeagueProvider({ children }) {
     setShowSubSignup(false);
     setSubSignupSlot(null);
     setSelectedSubId('');
+    setSignupPhoneInput('');
+  };
+
+  // === Remove from tee time ===
+  const handleRemoveFromTeeTime = async () => {
+    if (!removeFromTeeTimeInfo) return;
+    const { weekId, slotIndex, playerId } = removeFromTeeTimeInfo;
+
+    // Phone verification
+    const player = players.find(p => p.id === playerId);
+    if (player) {
+      const storedLast4 = (player.phone || '').replace(/\D/g, '').slice(-4);
+      if (storedLast4 && removePhoneInput.trim() !== storedLast4) {
+        alert('Phone verification failed. Please enter the last 4 digits of your phone number.');
+        return;
+      }
+    }
+
+    const week = weeks.find(w => w.id === weekId);
+    if (!week) return;
+
+    const updatedTeeSheet = week.teeSheet.map((slot, idx) => {
+      if (idx === slotIndex) {
+        return { ...slot, players: slot.players.filter(id => id !== playerId) };
+      }
+      return slot;
+    });
+
+    setWeeks(weeks.map(w => w.id === weekId ? { ...w, teeSheet: updatedTeeSheet } : w));
+    await saveTeeSheetToSupabase(weekId, updatedTeeSheet, week.scoresEntered || false, week.moneyEntered || false);
+    setShowRemoveFromTeeTime(false);
+    setRemoveFromTeeTimeInfo(null);
+    setRemovePhoneInput('');
   };
 
   // === Giant Skins ===
@@ -1071,7 +1127,8 @@ export function LeagueProvider({ children }) {
     playerScores, setPlayerScores, isSubmitting,
     showScoreManager, setShowScoreManager, editingScore, setEditingScore,
     scoreManagerWeek, setScoreManagerWeek, adminAddScore, setAdminAddScore,
-    showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot, selectedSubId, setSelectedSubId,
+    showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot, selectedSubId, setSelectedSubId, signupPhoneInput, setSignupPhoneInput,
+    showRemoveFromTeeTime, setShowRemoveFromTeeTime, removeFromTeeTimeInfo, setRemoveFromTeeTimeInfo, removePhoneInput, setRemovePhoneInput,
     showResetConfirm, setShowResetConfirm, resetWeekId, setResetWeekId,
     scoreOverwriteConfirm, setScoreOverwriteConfirm,
 
@@ -1080,7 +1137,7 @@ export function LeagueProvider({ children }) {
 
     // Functions
     refreshData, saveTeeSheetToSupabase, saveMoneyToSupabase, saveGiantSkinToSupabase, savePlayerScoreToSupabase,
-    handleSubSignup, recalculateGiantSkins, updatePlayerScore, deletePlayerScore,
+    handleSubSignup, handleRemoveFromTeeTime, recalculateGiantSkins, updatePlayerScore, deletePlayerScore,
     resetSingleWeek, resetMoneyData, resetTeeSheets, resetGiantSkins, resetPlayerScores, resetAllData,
     handlePlayerScoreSubmit, handleConfirmedScoreOverwrite, toggleHoleSelection,
     getGameForWeek, getTeamTypeForWeek, getTeammatesForWeek,
