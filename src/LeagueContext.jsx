@@ -789,15 +789,33 @@ export function LeagueProvider({ children }) {
 
   // === Auto-schedule ===
   const autoScheduleWeek = () => {
+    // Fisher-Yates shuffle for randomization
+    const shuffle = (array) => {
+      const arr = [...array];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    };
+
     const eligiblePlayers = players.filter(p => p.type === 'full-time');
     const teamType = getTeamTypeForWeek(selectedWeek);
     const newTeeSheet = teeTimes.map(time => ({ time, players: [] }));
     const assigned = new Set();
 
-    const sortedPlayers = [...eligiblePlayers].sort((a, b) => {
-      if (a.availability.length !== b.availability.length) return a.availability.length - b.availability.length;
-      return a.handicap - b.handicap;
+    // Group players by availability count, shuffle within each group, then concatenate.
+    // Most-constrained players (fewest available slots) are placed first,
+    // but order within each constraint tier is randomized.
+    const playersByConstraint = {};
+    eligiblePlayers.forEach(player => {
+      const key = player.availability.length;
+      if (!playersByConstraint[key]) playersByConstraint[key] = [];
+      playersByConstraint[key].push(player);
     });
+    const sortedPlayers = Object.keys(playersByConstraint)
+      .sort((a, b) => Number(a) - Number(b))
+      .flatMap(key => shuffle(playersByConstraint[key]));
 
     sortedPlayers.forEach(player => {
       const availableSlots = player.availability
@@ -806,19 +824,35 @@ export function LeagueProvider({ children }) {
       const slotsWithRoom = availableSlots.filter(s => s.slot.players.length < 4);
 
       if (slotsWithRoom.length > 0) {
-        slotsWithRoom.sort((a, b) => {
+        // Score each slot (lower score = better fit)
+        const scoredSlots = slotsWithRoom.map(s => {
+          let score = 0;
+          // Capacity: prefer fuller slots on team weeks, emptier on non-team weeks
           if (teamType) {
-            const capacityDiff = b.slot.players.length - a.slot.players.length;
-            if (capacityDiff !== 0) return capacityDiff;
+            score += (4 - s.slot.players.length) * 10;
           } else {
-            const capacityDiff = a.slot.players.length - b.slot.players.length;
-            if (capacityDiff !== 0) return capacityDiff;
+            score += s.slot.players.length * 10;
           }
-          const scoreA = a.slot.players.reduce((sum, id) => sum + getPairingCount(player.id, id), 0);
-          const scoreB = b.slot.players.reduce((sum, id) => sum + getPairingCount(player.id, id), 0);
-          return scoreA - scoreB;
+          // Pairing history: penalize slots with frequently-paired players
+          const pairingScore = s.slot.players.reduce(
+            (sum, id) => sum + getPairingCount(player.id, id), 0
+          );
+          score += pairingScore * 5;
+          return { ...s, score };
         });
-        slotsWithRoom[0].slot.players.push(player.id);
+
+        // Weighted random selection (lower score = higher weight)
+        const maxScore = Math.max(...scoredSlots.map(s => s.score));
+        const weights = scoredSlots.map(s => maxScore - s.score + 1);
+        const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+        let rand = Math.random() * totalWeight;
+        let selectedIdx = 0;
+        for (let i = 0; i < weights.length; i++) {
+          rand -= weights[i];
+          if (rand <= 0) { selectedIdx = i; break; }
+        }
+
+        scoredSlots[selectedIdx].slot.players.push(player.id);
         assigned.add(player.id);
       } else {
         const preferredIndices = player.availability.map(t => teeTimes.indexOf(t)).filter(i => i !== -1);
