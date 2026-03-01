@@ -39,14 +39,14 @@ export default function Layout() {
       {/* Navigation */}
       <nav className="bg-forest-950 border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
-          <div className="flex w-full">
+          <div className="flex justify-center gap-1 sm:gap-2">
             {navItems.map(item => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
-                  `flex-1 px-1 sm:px-4 py-3 font-medium transition-colors text-sm sm:text-base text-center ${
+                  `px-3 sm:px-5 py-3 font-medium transition-colors text-sm sm:text-base whitespace-nowrap ${
                     isActive
                       ? 'text-cream-200 border-b-2 border-gold-500'
                       : 'text-cream-200/80 hover:text-cream-200'
