@@ -9,7 +9,7 @@ export default function PlayersPage() {
   const {
     players, selectedPlayer, setSelectedPlayer,
     playerFilter, setPlayerFilter, filteredPlayers,
-    playerScores, getPlayerById,
+    playerScores, getPlayerById, getTeamTypeForWeek,
   } = useLeague();
 
   // Sync URL param with selectedPlayer state
@@ -94,7 +94,7 @@ export default function PlayersPage() {
                 const playerScoreData = playerScores.filter(s => s.player_id === selectedPlayer.id);
                 if (playerScoreData.length === 0) return null;
 
-                const individualScores = playerScoreData.filter(s => !s.is_team_score);
+                const individualScores = playerScoreData.filter(s => !getTeamTypeForWeek(s.week_id));
                 const avgGross = individualScores.length > 0
                   ? (individualScores.reduce((sum, s) => sum + s.gross_score, 0) / individualScores.length).toFixed(1)
                   : '-';
