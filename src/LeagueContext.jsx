@@ -2,7 +2,7 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import {
-  initialPlayers, calc9HoleHandicap, generateSeasonWeeks,
+  initialPlayers, calc9HoleHandicap, calcTeamHandicap, generateSeasonWeeks,
   teeTimes, courseHoles, moneyCategories, initialWeeklyGames, ADMIN_PASSWORD
 } from './constants';
 
@@ -47,7 +47,8 @@ export function LeagueProvider({ children }) {
   const [weeklyGames, setWeeklyGames] = useState(initialWeeklyGames);
   const [showWeeklyGameEditor, setShowWeeklyGameEditor] = useState(false);
   const [weeklyGameEdit, setWeeklyGameEdit] = useState({
-    gameName: '', gameDescription: '', sideGame: '', sideGameDescription: '', teamType: null
+    gameName: '', gameDescription: '', sideGame: '', sideGameDescription: '', teamType: null,
+    showTeamHandicap: false, handicapFormat: 'scramble'
   });
 
   // Player management state
@@ -749,9 +750,9 @@ export function LeagueProvider({ children }) {
   const loadWeeklyGameForEdit = () => {
     const game = getGameForWeek(selectedWeek);
     if (game) {
-      setWeeklyGameEdit({ gameName: game.gameName, gameDescription: game.gameDescription, sideGame: game.sideGame, sideGameDescription: game.sideGameDescription, teamType: game.teamType || null });
+      setWeeklyGameEdit({ gameName: game.gameName, gameDescription: game.gameDescription, sideGame: game.sideGame, sideGameDescription: game.sideGameDescription, teamType: game.teamType || null, showTeamHandicap: game.showTeamHandicap || false, handicapFormat: game.handicapFormat || 'scramble' });
     } else {
-      setWeeklyGameEdit({ gameName: '', gameDescription: '', sideGame: '', sideGameDescription: '', teamType: null });
+      setWeeklyGameEdit({ gameName: '', gameDescription: '', sideGame: '', sideGameDescription: '', teamType: null, showTeamHandicap: false, handicapFormat: 'scramble' });
     }
     setShowWeeklyGameEditor(true);
   };

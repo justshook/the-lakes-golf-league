@@ -1063,7 +1063,7 @@ export default function AdminPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Team Type</label>
                 <select
                   value={weeklyGameEdit.teamType || ''}
-                  onChange={(e) => setWeeklyGameEdit({ ...weeklyGameEdit, teamType: e.target.value || null })}
+                  onChange={(e) => setWeeklyGameEdit({ ...weeklyGameEdit, teamType: e.target.value || null, showTeamHandicap: e.target.value ? weeklyGameEdit.showTeamHandicap : false })}
                   className="w-full border rounded-lg px-3 py-2"
                 >
                   <option value="">Individual (no teams)</option>
@@ -1071,6 +1071,43 @@ export default function AdminPage() {
                   <option value="4-person">4-Person Teams</option>
                 </select>
               </div>
+              {weeklyGameEdit.teamType && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={weeklyGameEdit.showTeamHandicap}
+                      onChange={(e) => setWeeklyGameEdit({ ...weeklyGameEdit, showTeamHandicap: e.target.checked })}
+                      className="w-5 h-5 rounded border-gray-300 text-green-700 focus:ring-green-600"
+                    />
+                    <div>
+                      <span className="font-medium text-gray-800">Show Team Handicap</span>
+                      <p className="text-xs text-gray-500 mt-0.5">Display calculated team handicap on the tee sheet</p>
+                    </div>
+                  </label>
+                  {weeklyGameEdit.showTeamHandicap && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">USGA Handicap Format</label>
+                      <select
+                        value={weeklyGameEdit.handicapFormat || 'scramble'}
+                        onChange={(e) => setWeeklyGameEdit({ ...weeklyGameEdit, handicapFormat: e.target.value })}
+                        className="w-full border rounded-lg px-3 py-2"
+                      >
+                        <option value="scramble">Scramble (35%/15% or 20%/15%/10%/5%)</option>
+                        <option value="fourBall">Four-Ball / Best Ball (85% of lowest)</option>
+                        <option value="shamble">Shamble (75% each, summed)</option>
+                        <option value="aggregate">Aggregate (100% sum)</option>
+                      </select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {weeklyGameEdit.handicapFormat === 'scramble' && 'USGA Scramble: 2-person = 35% low + 15% high. 4-person = 20% + 15% + 10% + 5% (low to high).'}
+                        {weeklyGameEdit.handicapFormat === 'fourBall' && 'USGA Four-Ball: Each player at 85% of course handicap. Team handicap = lowest adjusted.'}
+                        {weeklyGameEdit.handicapFormat === 'shamble' && 'Shamble: Each player at 75% of course handicap. Team handicap = sum of adjusted handicaps.'}
+                        {weeklyGameEdit.handicapFormat === 'aggregate' && 'Full course handicaps summed together (100% of each player).'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex gap-2 mt-4">
               <button

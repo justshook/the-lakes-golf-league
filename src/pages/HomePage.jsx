@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeague } from '../LeagueContext';
-import { calc9HoleHandicap, courseHoles } from '../constants';
+import { calc9HoleHandicap, calcTeamHandicap, courseHoles } from '../constants';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -163,62 +163,86 @@ export default function HomePage() {
                         const renderTeamSlot = (playerId) =>
                           playerId !== null ? renderPlayerCard(playerId) : renderEmptySlot();
 
+                        const getTeamHcp = (playerIds) => {
+                          const hcps = playerIds.filter(id => id != null).map(id => calc9HoleHandicap(getPlayerById(id)?.handicap));
+                          return calcTeamHandicap(hcps, currentGame.handicapFormat || 'scramble');
+                        };
+
                         return (
                           <div className="flex flex-col sm:flex-row gap-3">
                             <div className="flex-1 flex flex-col gap-2 p-2 rounded-card border-2 border-forest-800/20">
                               {renderTeamSlot(teamA[0])}
                               {renderTeamSlot(teamA[1])}
+                              {currentGame.showTeamHandicap && teamA.some(id => id != null) && (
+                                <div className="text-center bg-forest-900/10 rounded-card py-1 px-2">
+                                  <span className="text-xs font-bold text-forest-800 tracking-wide">TEAM HCP {getTeamHcp(teamA)}</span>
+                                </div>
+                              )}
                             </div>
                             <div className="hidden sm:block w-px bg-charcoal-800/10 self-stretch" />
                             <div className="flex-1 flex flex-col gap-2 p-2 rounded-card border-2 border-forest-800/20">
                               {renderTeamSlot(teamB[0])}
                               {renderTeamSlot(teamB[1])}
+                              {currentGame.showTeamHandicap && teamB.some(id => id != null) && (
+                                <div className="text-center bg-forest-900/10 rounded-card py-1 px-2">
+                                  <span className="text-xs font-bold text-forest-800 tracking-wide">TEAM HCP {getTeamHcp(teamB)}</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
                       })()
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-3">
-                        {slot.players.map((playerId, pIdx) => {
-                          const player = getPlayerById(playerId);
-                          return (
-                            <div
-                              key={pIdx}
-                              className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between"
-                            >
-                              <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
-                              <div className="flex items-center gap-1">
-                                <div className="text-sm text-charcoal-600 whitespace-nowrap">HCP {calc9HoleHandicap(player?.handicap)}</div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setRemoveFromTeeTimeInfo({ weekId: selectedWeek, slotIndex: idx, playerId, playerName: player?.name, time: slot.time });
-                                    setRemovePhoneInput('');
-                                    setShowRemoveFromTeeTime(true);
-                                  }}
-                                  className="w-6 h-6 flex items-center justify-center rounded-full text-charcoal-400 hover:bg-red-100 hover:text-red-600 transition-colors text-lg leading-none"
-                                  title="Remove from tee time"
-                                >
-                                  −
-                                </button>
+                      <div>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 sm:gap-3">
+                          {slot.players.map((playerId, pIdx) => {
+                            const player = getPlayerById(playerId);
+                            return (
+                              <div
+                                key={pIdx}
+                                className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between"
+                              >
+                                <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
+                                <div className="flex items-center gap-1">
+                                  <div className="text-sm text-charcoal-600 whitespace-nowrap">HCP {calc9HoleHandicap(player?.handicap)}</div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setRemoveFromTeeTimeInfo({ weekId: selectedWeek, slotIndex: idx, playerId, playerName: player?.name, time: slot.time });
+                                      setRemovePhoneInput('');
+                                      setShowRemoveFromTeeTime(true);
+                                    }}
+                                    className="w-6 h-6 flex items-center justify-center rounded-full text-charcoal-400 hover:bg-red-100 hover:text-red-600 transition-colors text-lg leading-none"
+                                    title="Remove from tee time"
+                                  >
+                                    −
+                                  </button>
+                                </div>
                               </div>
+                            );
+                          })}
+                          {[...Array(4 - slot.players.length)].map((_, i) => (
+                            <div
+                              key={`empty-${i}`}
+                              onClick={() => {
+                                setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
+                                setSelectedSubId('');
+                                setSignupPhoneInput('');
+                                setShowSubSignup(true);
+                              }}
+                              className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
+                            >
+                              + Sign Up
                             </div>
-                          );
-                        })}
-                        {[...Array(4 - slot.players.length)].map((_, i) => (
-                          <div
-                            key={`empty-${i}`}
-                            onClick={() => {
-                              setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
-                              setSelectedSubId('');
-                              setSignupPhoneInput('');
-                              setShowSubSignup(true);
-                            }}
-                            className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
-                          >
-                            + Sign Up
+                          ))}
+                        </div>
+                        {currentGame?.showTeamHandicap && currentGame?.teamType === '4-person' && slot.players.length > 0 && (
+                          <div className="mt-2 text-center bg-forest-900/10 rounded-card py-1 px-2">
+                            <span className="text-xs font-bold text-forest-800 tracking-wide">
+                              TEAM HCP {calcTeamHandicap(slot.players.map(id => calc9HoleHandicap(getPlayerById(id)?.handicap)), currentGame.handicapFormat || 'scramble')}
+                            </span>
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
                   </div>

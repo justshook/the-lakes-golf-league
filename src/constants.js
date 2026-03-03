@@ -64,6 +64,48 @@ export const calc9HoleHandicap = (handicap18) => {
   return Math.min(Math.ceil((handicap18 / 2) * (slope / standardSlope) + (courseRating - par)), MAX_HANDICAP);
 };
 
+// Calculate team handicap based on USGA format-specific allowances
+// playerHandicaps: array of 9-hole course handicaps (already calculated via calc9HoleHandicap)
+// handicapFormat: 'scramble' | 'fourBall' | 'shamble' | 'aggregate'
+export const calcTeamHandicap = (playerHandicaps, handicapFormat) => {
+  const hcps = [...playerHandicaps].filter(h => h != null);
+  if (hcps.length === 0) return 0;
+
+  // Sort ascending (lowest handicap first)
+  hcps.sort((a, b) => a - b);
+
+  switch (handicapFormat) {
+    case 'scramble': {
+      // USGA Scramble Allowance
+      // 2-person: 35% of low + 15% of high
+      // 3-person: 25% of low + 15% of mid + 10% of high
+      // 4-person: 20% of A + 15% of B + 10% of C + 5% of D
+      if (hcps.length === 2) {
+        return Math.round(0.35 * hcps[0] + 0.15 * hcps[1]);
+      } else if (hcps.length === 3) {
+        return Math.round(0.25 * hcps[0] + 0.15 * hcps[1] + 0.10 * hcps[2]);
+      } else {
+        return Math.round(0.20 * hcps[0] + 0.15 * hcps[1] + 0.10 * hcps[2] + 0.05 * hcps[3]);
+      }
+    }
+    case 'fourBall': {
+      // USGA Four-Ball (Best Ball) Allowance: 85% of each player's course handicap
+      // Team handicap = lowest adjusted handicap in the team
+      const adjusted = hcps.map(h => Math.round(h * 0.85));
+      return Math.min(...adjusted);
+    }
+    case 'shamble': {
+      // Shamble: 75% of each player's course handicap, summed for team total
+      return hcps.reduce((sum, h) => sum + Math.round(h * 0.75), 0);
+    }
+    case 'aggregate':
+    default: {
+      // Aggregate: sum of all full course handicaps (100%)
+      return hcps.reduce((sum, h) => sum + h, 0);
+    }
+  }
+};
+
 // Generate season weeks (2nd week of April through last week of August 2026)
 export const generateSeasonWeeks = () => {
   const weeks = [];
