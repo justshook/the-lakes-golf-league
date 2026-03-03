@@ -209,6 +209,31 @@ export function LeagueProvider({ children }) {
         if (scoresError) throw scoresError;
         if (scoresData && scoresData.length > 0) setPlayerScores(scoresData);
 
+        // Load weekly games from Supabase
+        const { data: gamesData, error: gamesError } = await supabase
+          .from('weekly_games').select('*');
+        if (gamesError) {
+          console.error('Weekly games table error:', gamesError.message);
+          console.error('IMPORTANT: You need to create the "weekly_games" table in your Supabase dashboard. Weekly game changes will NOT persist until the table is created.');
+        } else if (gamesData && gamesData.length > 0) {
+          setWeeklyGames(initialWeeklyGames.map(game => {
+            const saved = gamesData.find(g => g.week_id === game.weekId);
+            if (saved) {
+              return {
+                ...game,
+                gameName: saved.game_name ?? game.gameName,
+                gameDescription: saved.game_description ?? game.gameDescription,
+                sideGame: saved.side_game ?? game.sideGame,
+                sideGameDescription: saved.side_game_description ?? game.sideGameDescription,
+                teamType: saved.team_type ?? game.teamType,
+                showTeamHandicap: saved.show_team_handicap ?? false,
+                handicapFormat: saved.handicap_format ?? 'scramble'
+              };
+            }
+            return game;
+          }));
+        }
+
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -273,6 +298,27 @@ export function LeagueProvider({ children }) {
             return { ...week, teeSheet: savedSheet.tee_sheet || [], scoresEntered: savedSheet.scores_entered || false, moneyEntered: savedSheet.money_entered || false };
           }
           return week;
+        }));
+      }
+
+      // Refresh weekly games from Supabase
+      const { data: gamesData } = await supabase.from('weekly_games').select('*');
+      if (gamesData && gamesData.length > 0) {
+        setWeeklyGames(initialWeeklyGames.map(game => {
+          const saved = gamesData.find(g => g.week_id === game.weekId);
+          if (saved) {
+            return {
+              ...game,
+              gameName: saved.game_name ?? game.gameName,
+              gameDescription: saved.game_description ?? game.gameDescription,
+              sideGame: saved.side_game ?? game.sideGame,
+              sideGameDescription: saved.side_game_description ?? game.sideGameDescription,
+              teamType: saved.team_type ?? game.teamType,
+              showTeamHandicap: saved.show_team_handicap ?? false,
+              handicapFormat: saved.handicap_format ?? 'scramble'
+            };
+          }
+          return game;
         }));
       }
     } catch (error) {
@@ -757,9 +803,23 @@ export function LeagueProvider({ children }) {
     setShowWeeklyGameEditor(true);
   };
 
-  const handleSaveWeeklyGame = () => {
-    setWeeklyGames(weeklyGames.map(g => g.weekId === selectedWeek ? { ...g, ...weeklyGameEdit } : g));
+  const handleSaveWeeklyGame = async () => {
+    const updatedGame = { ...weeklyGames.find(g => g.weekId === selectedWeek), ...weeklyGameEdit };
+    setWeeklyGames(weeklyGames.map(g => g.weekId === selectedWeek ? updatedGame : g));
     setShowWeeklyGameEditor(false);
+
+    // Persist to Supabase
+    const { error } = await supabase.from('weekly_games').upsert({
+      week_id: selectedWeek,
+      game_name: updatedGame.gameName,
+      game_description: updatedGame.gameDescription,
+      side_game: updatedGame.sideGame,
+      side_game_description: updatedGame.sideGameDescription,
+      team_type: updatedGame.teamType,
+      show_team_handicap: updatedGame.showTeamHandicap || false,
+      handicap_format: updatedGame.handicapFormat || 'scramble'
+    }, { onConflict: 'week_id' });
+    if (error) console.error('Error saving weekly game:', error);
   };
 
   // === Player editing ===
