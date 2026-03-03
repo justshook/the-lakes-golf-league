@@ -6,7 +6,7 @@ export default function LeaderboardPage() {
   const {
     players, weeks, selectedWeek, setSelectedWeek,
     leaderboardView, setLeaderboardView,
-    sortedByMoney, playerScores,
+    sortedByMoney, playerScores, getTeamTypeForWeek,
     getWeeklyMoneyTotal, getPlayerById, formatShortDate,
   } = useLeague();
 
@@ -195,7 +195,7 @@ export default function LeaderboardPage() {
             <tbody>
               {(() => {
                 const playerAverages = players.map(player => {
-                  const scores = playerScores.filter(s => s.player_id === player.id && !s.is_team_score);
+                  const scores = playerScores.filter(s => s.player_id === player.id && !getTeamTypeForWeek(s.week_id));
                   if (scores.length === 0) return null;
                   return {
                     ...player,
