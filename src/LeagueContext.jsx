@@ -993,9 +993,10 @@ export function LeagueProvider({ children }) {
       const threesomes = filledSlots.filter(s => s.players.length === 3);
       const foursomes = filledSlots.filter(s => s.players.length === 4);
       const others = filledSlots.filter(s => s.players.length !== 3 && s.players.length !== 4);
-      const reordered = [...foursomes, ...others, ...threesomes];
+      // Deep copy player arrays to avoid reference mutation during reordering
+      const reordered = [...foursomes, ...others, ...threesomes].map(s => [...s.players]);
       const filledIndices = newTeeSheet.reduce((acc, s, i) => s.players.length > 0 ? [...acc, i] : acc, []);
-      filledIndices.forEach((slotIdx, i) => { if (i < reordered.length) newTeeSheet[slotIdx].players = reordered[i].players; });
+      filledIndices.forEach((slotIdx, i) => { if (i < reordered.length) newTeeSheet[slotIdx].players = reordered[i]; });
       if (threesomes.length > 0) alert(`Warning: ${threesomes.length} threesome(s) were created for this team week. They have been moved to the last tee times. Consider adjusting manually.`);
     }
 
