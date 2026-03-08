@@ -405,8 +405,8 @@ export default function HomePage() {
                 />
               </div>
 
-              {/* Birdie/Eagle Selection */}
-              {playerScoreForm.weekId && (
+              {/* Birdie/Eagle Selection - hidden for team game weeks */}
+              {playerScoreForm.weekId && !getTeamTypeForWeek(parseInt(playerScoreForm.weekId)) && (
                 <div>
                   <label className="block text-sm font-medium text-charcoal-950 mb-2">
                     Mark Birdies & Eagles (tap to select)
