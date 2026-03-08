@@ -27,20 +27,28 @@ export default function RulesPage() {
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-forest-800 text-cream-200 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">1</span>
                 <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
-                  There will be no gimmes or putts given this season. All holes must be finished out.
+                  The maximum score you can take on any hole is <span className="font-semibold">4 over par</span>.
+                  For example, a 9 on a par 5, an 8 on a par 4, and a 7 on a par 3.
                 </p>
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-forest-800 text-cream-200 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</span>
                 <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
-                  A ball hit over the fence and into the army base or onto the road is considered out of bounds.
-                  In this situation you must take a drop in a spot where you can take a full swing where the ball
-                  went out plus a <span className="font-semibold">2 stroke penalty</span>. There will be no
-                  re-teeing or provisional shots.
+                  There will be no gimmes or putts given this season. All holes must be finished out.
                 </p>
               </li>
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-forest-800 text-cream-200 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+                <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
+                  A ball hit over the fence and into the army base or onto the road is considered out of bounds.
+                  In this situation you can take your ball and place it in the fairway nearest where your ball
+                  went out and give yourself <span className="font-semibold">2 club lengths</span> to take a drop
+                  plus a <span className="font-semibold">2 stroke penalty</span>. There will be no
+                  re-teeing or provisional shots.
+                </p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-forest-800 text-cream-200 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">4</span>
                 <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
                   All rounds must be completed in <span className="font-semibold">2 hours and 10 minutes</span> or
                   less. If your pace of play is slower than this you will be assigned a tee time after 5pm.
