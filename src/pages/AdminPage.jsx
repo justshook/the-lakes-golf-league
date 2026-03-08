@@ -43,6 +43,10 @@ export default function AdminPage() {
     showAddPlayer, setShowAddPlayer, newPlayer, setNewPlayer,
     showRemoveConfirm, setShowRemoveConfirm,
     handleAddPlayer, handleRemovePlayer, toggleNewPlayerAvailability,
+    // Giant Skins management
+    giantSkins, showGiantSkinsManager, setShowGiantSkinsManager,
+    giantSkinsAddForm, setGiantSkinsAddForm,
+    addPlayerToGiantSkin, removePlayerFromGiantSkin, editGiantSkinType,
     // Reset
     showResetConfirm, setShowResetConfirm,
     resetWeekId, setResetWeekId,
@@ -1444,6 +1448,229 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Giant Skins Manager */}
+      <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-green-800 px-4 py-3 flex items-center justify-between">
+          <h3 className="text-white font-medium">🏆 Giant Skins Manager</h3>
+          <button
+            onClick={() => setShowGiantSkinsManager(!showGiantSkinsManager)}
+            className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
+          >
+            {showGiantSkinsManager ? 'Close' : 'Manage Skins'}
+          </button>
+        </div>
+
+        {showGiantSkinsManager && (
+          <div className="p-4 space-y-4">
+            {/* Add Player to Hole */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-800 mb-3">Add Player to Hole</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Hole</label>
+                  <select
+                    value={giantSkinsAddForm.holeNumber}
+                    onChange={(e) => setGiantSkinsAddForm(prev => ({ ...prev, holeNumber: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="">Select hole...</option>
+                    {courseHoles.map(h => (
+                      <option key={h.number} value={h.number}>Hole {h.number} (Par {h.par})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Player</label>
+                  <select
+                    value={giantSkinsAddForm.playerId}
+                    onChange={(e) => setGiantSkinsAddForm(prev => ({ ...prev, playerId: e.target.value }))}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                  >
+                    <option value="">Select player...</option>
+                    {players.sort((a, b) => a.name.localeCompare(b.name)).map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Type</label>
+                  <div className="flex gap-2 items-center h-[38px]">
+                    <label className="flex items-center gap-1 text-sm">
+                      <input
+                        type="radio"
+                        name="skinType"
+                        value="birdie"
+                        checked={giantSkinsAddForm.type === 'birdie'}
+                        onChange={() => setGiantSkinsAddForm(prev => ({ ...prev, type: 'birdie' }))}
+                      />
+                      Birdie
+                    </label>
+                    {(() => {
+                      const selectedHole = courseHoles.find(h => h.number === parseInt(giantSkinsAddForm.holeNumber));
+                      if (selectedHole && selectedHole.par >= 4) {
+                        return (
+                          <label className="flex items-center gap-1 text-sm">
+                            <input
+                              type="radio"
+                              name="skinType"
+                              value="eagle"
+                              checked={giantSkinsAddForm.type === 'eagle'}
+                              onChange={() => setGiantSkinsAddForm(prev => ({ ...prev, type: 'eagle' }))}
+                            />
+                            Eagle
+                          </label>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  if (!giantSkinsAddForm.holeNumber || !giantSkinsAddForm.playerId) {
+                    alert('Please select a hole and a player');
+                    return;
+                  }
+                  addPlayerToGiantSkin(
+                    parseInt(giantSkinsAddForm.holeNumber),
+                    parseInt(giantSkinsAddForm.playerId),
+                    giantSkinsAddForm.type
+                  );
+                  setGiantSkinsAddForm({ holeNumber: '', playerId: '', type: 'birdie' });
+                }}
+                disabled={!giantSkinsAddForm.holeNumber || !giantSkinsAddForm.playerId}
+                className={`mt-3 px-4 py-2 rounded-lg text-sm font-medium ${
+                  giantSkinsAddForm.holeNumber && giantSkinsAddForm.playerId
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                Add to Hole
+              </button>
+            </div>
+
+            {/* Front 9 */}
+            <div>
+              <h4 className="font-medium text-gray-800 mb-2">Front 9</h4>
+              <div className="space-y-1">
+                {giantSkins.slice(0, 9).map(hole => {
+                  const hasPlayers = hole.players && hole.players.length > 0;
+                  return (
+                    <div key={hole.number} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold">{hole.number}</span>
+                        <span className="text-sm text-gray-500">Par {hole.par}</span>
+                        {hasPlayers && (
+                          <span className="text-sm font-bold text-yellow-600">Low: {hole.lowScore}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        {hasPlayers ? (
+                          hole.players.map((p, idx) => {
+                            const player = getPlayerById(p.playerId);
+                            const scoreType = hole.lowScore === hole.par - 2 ? 'Eagle' : 'Birdie';
+                            return (
+                              <div key={`${p.playerId}-${idx}`} className="flex items-center gap-1 bg-white rounded px-2 py-1 border text-sm">
+                                <span>{player?.name || 'Unknown'}</span>
+                                <span className={`text-xs px-1 rounded ${scoreType === 'Eagle' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                  {scoreType}
+                                </span>
+                                {hole.par >= 4 && (
+                                  <button
+                                    onClick={() => editGiantSkinType(hole.number, p.playerId, scoreType === 'Birdie' ? 'eagle' : 'birdie')}
+                                    className="text-blue-500 hover:text-blue-700 text-xs ml-1"
+                                    title={`Switch to ${scoreType === 'Birdie' ? 'Eagle' : 'Birdie'}`}
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Remove ${player?.name || 'this player'} from Hole ${hole.number}?`)) {
+                                      removePlayerFromGiantSkin(hole.number, p.playerId);
+                                    }
+                                  }}
+                                  className="text-red-500 hover:text-red-700 text-xs ml-1"
+                                  title="Remove from hole"
+                                >
+                                  X
+                                </button>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <span className="text-sm text-gray-400">No score yet</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Back 9 */}
+            <div>
+              <h4 className="font-medium text-gray-800 mb-2">Back 9</h4>
+              <div className="space-y-1">
+                {giantSkins.slice(9, 18).map(hole => {
+                  const hasPlayers = hole.players && hole.players.length > 0;
+                  return (
+                    <div key={hole.number} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-3">
+                        <span className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-bold">{hole.number}</span>
+                        <span className="text-sm text-gray-500">Par {hole.par}</span>
+                        {hasPlayers && (
+                          <span className="text-sm font-bold text-yellow-600">Low: {hole.lowScore}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        {hasPlayers ? (
+                          hole.players.map((p, idx) => {
+                            const player = getPlayerById(p.playerId);
+                            const scoreType = hole.lowScore === hole.par - 2 ? 'Eagle' : 'Birdie';
+                            return (
+                              <div key={`${p.playerId}-${idx}`} className="flex items-center gap-1 bg-white rounded px-2 py-1 border text-sm">
+                                <span>{player?.name || 'Unknown'}</span>
+                                <span className={`text-xs px-1 rounded ${scoreType === 'Eagle' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                  {scoreType}
+                                </span>
+                                {hole.par >= 4 && (
+                                  <button
+                                    onClick={() => editGiantSkinType(hole.number, p.playerId, scoreType === 'Birdie' ? 'eagle' : 'birdie')}
+                                    className="text-blue-500 hover:text-blue-700 text-xs ml-1"
+                                    title={`Switch to ${scoreType === 'Birdie' ? 'Eagle' : 'Birdie'}`}
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Remove ${player?.name || 'this player'} from Hole ${hole.number}?`)) {
+                                      removePlayerFromGiantSkin(hole.number, p.playerId);
+                                    }
+                                  }}
+                                  className="text-red-500 hover:text-red-700 text-xs ml-1"
+                                  title="Remove from hole"
+                                >
+                                  X
+                                </button>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <span className="text-sm text-gray-400">No score yet</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Reset Data */}

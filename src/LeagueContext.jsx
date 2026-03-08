@@ -82,6 +82,10 @@ export function LeagueProvider({ children }) {
   const [playerScores, setPlayerScores] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Giant Skins management state (admin)
+  const [showGiantSkinsManager, setShowGiantSkinsManager] = useState(false);
+  const [giantSkinsAddForm, setGiantSkinsAddForm] = useState({ holeNumber: '', playerId: '', type: 'birdie' });
+
   // Score management state (admin)
   const [showScoreManager, setShowScoreManager] = useState(false);
   const [editingScore, setEditingScore] = useState(null);
@@ -511,9 +515,40 @@ export function LeagueProvider({ children }) {
         }
       }
 
+      // Preserve manual entries from current state
+      const manualEntries = {};
+      for (const skin of giantSkins) {
+        const manualPlayers = (skin.players || []).filter(p => p.manual);
+        if (manualPlayers.length > 0) {
+          // Determine manual score from hole par and whether it's birdie or eagle level
+          manualEntries[skin.number] = { lowScore: skin.lowScore, players: manualPlayers };
+        }
+      }
+
       const updatedGiantSkins = courseHoles.map(hole => {
         const best = holeBestScores[hole.number];
-        if (best) return { ...hole, lowScore: best.lowScore, players: best.players };
+        const manual = manualEntries[hole.number];
+
+        if (best && manual) {
+          // Merge: keep whichever has the lower score, or combine if equal
+          if (best.lowScore < manual.lowScore) {
+            return { ...hole, lowScore: best.lowScore, players: best.players };
+          } else if (manual.lowScore < best.lowScore) {
+            return { ...hole, lowScore: manual.lowScore, players: manual.players };
+          } else {
+            // Equal scores - combine, avoiding duplicates
+            const combined = [...best.players];
+            for (const mp of manual.players) {
+              const exists = combined.some(p => p.playerId === mp.playerId);
+              if (!exists) combined.push(mp);
+            }
+            return { ...hole, lowScore: best.lowScore, players: combined };
+          }
+        } else if (best) {
+          return { ...hole, lowScore: best.lowScore, players: best.players };
+        } else if (manual) {
+          return { ...hole, lowScore: manual.lowScore, players: manual.players };
+        }
         return { ...hole, lowScore: null, players: [] };
       });
 
@@ -522,6 +557,96 @@ export function LeagueProvider({ children }) {
       }
       setGiantSkins(updatedGiantSkins);
     } catch (error) { console.error('Error recalculating giant skins:', error); }
+  };
+
+  // === Giant Skins Admin Management ===
+  const addPlayerToGiantSkin = async (holeNumber, playerId, type) => {
+    const hole = courseHoles.find(h => h.number === holeNumber);
+    if (!hole) return;
+    const score = type === 'eagle' ? hole.par - 2 : hole.par - 1;
+    const newEntry = { playerId, weekId: null, manual: true };
+
+    setGiantSkins(prev => {
+      const updated = prev.map(skin => {
+        if (skin.number !== holeNumber) return skin;
+        if (!skin.lowScore || score < skin.lowScore) {
+          return { ...skin, lowScore: score, players: [newEntry] };
+        } else if (score === skin.lowScore) {
+          const exists = skin.players.some(p => p.playerId === playerId);
+          if (exists) return skin;
+          return { ...skin, players: [...skin.players, newEntry] };
+        }
+        return skin;
+      });
+      // Save async
+      const updatedHole = updated.find(s => s.number === holeNumber);
+      saveGiantSkinToSupabase(holeNumber, updatedHole.lowScore, updatedHole.players || []);
+      return updated;
+    });
+  };
+
+  const removePlayerFromGiantSkin = async (holeNumber, playerId) => {
+    setGiantSkins(prev => {
+      const updated = prev.map(skin => {
+        if (skin.number !== holeNumber) return skin;
+        const newPlayers = skin.players.filter(p => p.playerId !== playerId);
+        if (newPlayers.length === 0) {
+          return { ...skin, lowScore: null, players: [] };
+        }
+        return { ...skin, players: newPlayers };
+      });
+      const updatedHole = updated.find(s => s.number === holeNumber);
+      saveGiantSkinToSupabase(holeNumber, updatedHole.lowScore, updatedHole.players || []);
+      return updated;
+    });
+  };
+
+  const editGiantSkinType = async (holeNumber, playerId, newType) => {
+    const hole = courseHoles.find(h => h.number === holeNumber);
+    if (!hole) return;
+    const newScore = newType === 'eagle' ? hole.par - 2 : hole.par - 1;
+
+    setGiantSkins(prev => {
+      const updated = prev.map(skin => {
+        if (skin.number !== holeNumber) return skin;
+        // Remove this player first
+        const otherPlayers = skin.players.filter(p => p.playerId !== playerId);
+        const playerEntry = skin.players.find(p => p.playerId === playerId);
+        if (!playerEntry) return skin;
+        const updatedEntry = { ...playerEntry, manual: playerEntry.manual || false };
+
+        // Recalculate low score from remaining players + new entry
+        let bestScore = newScore;
+        let bestPlayers = [updatedEntry];
+
+        // Check if other players still have a valid score
+        for (const p of otherPlayers) {
+          // Other players keep their existing score (the current lowScore)
+          if (skin.lowScore < bestScore) {
+            bestScore = skin.lowScore;
+            bestPlayers = [p];
+          } else if (skin.lowScore === bestScore) {
+            bestPlayers.push(p);
+          }
+        }
+
+        // If new type makes a better score, only the edited player remains
+        if (newScore < skin.lowScore && otherPlayers.length > 0) {
+          return { ...skin, lowScore: newScore, players: [updatedEntry] };
+        } else if (newScore === skin.lowScore) {
+          return { ...skin, players: [...otherPlayers, updatedEntry] };
+        } else if (newScore > skin.lowScore && otherPlayers.length > 0) {
+          // New type is worse, remove the player from this hole
+          return { ...skin, players: otherPlayers };
+        } else {
+          // Only player on this hole
+          return { ...skin, lowScore: newScore, players: [updatedEntry] };
+        }
+      });
+      const updatedHole = updated.find(s => s.number === holeNumber);
+      saveGiantSkinToSupabase(holeNumber, updatedHole.lowScore, updatedHole.players || []);
+      return updated;
+    });
   };
 
   // === Score management ===
@@ -1189,6 +1314,7 @@ export function LeagueProvider({ children }) {
     playerScores, setPlayerScores, isSubmitting,
     showScoreManager, setShowScoreManager, editingScore, setEditingScore,
     scoreManagerWeek, setScoreManagerWeek, adminAddScore, setAdminAddScore,
+    showGiantSkinsManager, setShowGiantSkinsManager, giantSkinsAddForm, setGiantSkinsAddForm,
     showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot, selectedSubId, setSelectedSubId, signupPhoneInput, setSignupPhoneInput,
     showRemoveFromTeeTime, setShowRemoveFromTeeTime, removeFromTeeTimeInfo, setRemoveFromTeeTimeInfo, removePhoneInput, setRemovePhoneInput,
     showResetConfirm, setShowResetConfirm, resetWeekId, setResetWeekId,
@@ -1200,6 +1326,7 @@ export function LeagueProvider({ children }) {
     // Functions
     refreshData, saveTeeSheetToSupabase, saveMoneyToSupabase, saveGiantSkinToSupabase, savePlayerScoreToSupabase,
     handleSubSignup, handleRemoveFromTeeTime, recalculateGiantSkins, updatePlayerScore, deletePlayerScore,
+    addPlayerToGiantSkin, removePlayerFromGiantSkin, editGiantSkinType,
     resetSingleWeek, resetMoneyData, resetTeeSheets, resetGiantSkins, resetPlayerScores, resetAllData,
     handlePlayerScoreSubmit, handleConfirmedScoreOverwrite, toggleHoleSelection,
     getGameForWeek, getTeamTypeForWeek, getTeammatesForWeek,
