@@ -169,10 +169,80 @@ export const moneyCategories = [
   { id: '1st', name: '1st Place', icon: '🥇' },
   { id: '2nd', name: '2nd Place', icon: '🥈' },
   { id: '3rd', name: '3rd Place', icon: '🥉' },
+  { id: 'gross', name: 'Low Gross', icon: '💪' },
   { id: 'ctp1', name: 'CTP #1', icon: '🎯' },
   { id: 'ctp2', name: 'CTP #2', icon: '🎯' },
   { id: 'ctp3', name: 'CTP #3', icon: '🎯' }
 ];
+
+// Default season buy-in per player
+export const DEFAULT_SEASON_BUY_IN = 150;
+
+// Default payout templates
+export const defaultPayoutTemplates = [
+  {
+    id: 'standard',
+    name: 'Standard Week',
+    payouts: [
+      { label: '1st Place', category: '1st', amount: 90 },
+      { label: '2nd Place', category: '2nd', amount: 55 },
+      { label: '3rd Place', category: '3rd', amount: 35 },
+      { label: 'Low Gross', category: 'gross', amount: 50 }
+    ],
+    sideGameTotal: 30,
+    isDefault: true
+  },
+  {
+    id: 'stableford',
+    name: 'Stableford',
+    payouts: [
+      { label: '1st Place', category: '1st', amount: 130 },
+      { label: '2nd Place', category: '2nd', amount: 70 },
+      { label: '3rd Place', category: '3rd', amount: 50 }
+    ],
+    sideGameTotal: 30,
+    isDefault: false
+  },
+  {
+    id: 'ryder-cup',
+    name: 'Ryder Cup',
+    payouts: [
+      { label: 'Winning Team Split', category: '1st', amount: 700 }
+    ],
+    sideGameTotal: 30,
+    isDefault: false
+  },
+  {
+    id: 'championship',
+    name: 'Championship Final',
+    payouts: [
+      { label: 'Group A 1st', category: '1st', amount: 300 },
+      { label: 'Group A 2nd', category: '2nd', amount: 150 },
+      { label: 'Group B 1st', category: '1st', amount: 120 },
+      { label: 'Group B 2nd', category: '2nd', amount: 60 },
+      { label: 'Group C 1st', category: '1st', amount: 50 },
+      { label: 'Group C 2nd', category: '2nd', amount: 20 }
+    ],
+    sideGameTotal: 30,
+    isDefault: false
+  },
+  {
+    id: 'no-payout',
+    name: 'No Payout',
+    payouts: [],
+    sideGameTotal: 30,
+    isDefault: false
+  }
+];
+
+// Default template assignments for each week
+export const defaultWeekTemplates = {
+  1: 'standard', 2: 'standard', 3: 'standard', 4: 'standard',
+  5: 'no-payout', 6: 'ryder-cup', 7: 'standard', 8: 'standard',
+  9: 'standard', 10: 'standard', 11: 'standard', 12: 'standard',
+  13: 'standard', 14: 'stableford', 15: 'standard', 16: 'standard',
+  17: 'standard', 18: 'no-payout', 19: 'championship', 20: 'standard'
+};
 
 // Weekly games data with payouts
 export const initialWeeklyGames = [

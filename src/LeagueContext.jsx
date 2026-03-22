@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import {
   initialPlayers, calc9HoleHandicap, calcTeamHandicap, generateSeasonWeeks,
-  teeTimes, courseHoles, moneyCategories, initialWeeklyGames, ADMIN_PASSWORD
+  teeTimes, courseHoles, moneyCategories, initialWeeklyGames, ADMIN_PASSWORD,
+  DEFAULT_SEASON_BUY_IN, defaultPayoutTemplates, defaultWeekTemplates
 } from './constants';
 
 const LeagueContext = createContext(null);
@@ -109,6 +110,14 @@ export function LeagueProvider({ children }) {
 
   // Score overwrite confirmation state
   const [scoreOverwriteConfirm, setScoreOverwriteConfirm] = useState(null);
+
+  // Payout tracker state
+  const [seasonBuyIn, setSeasonBuyIn] = useState(DEFAULT_SEASON_BUY_IN);
+  const [payoutTemplates, setPayoutTemplates] = useState(defaultPayoutTemplates);
+  const [weekTemplateAssignments, setWeekTemplateAssignments] = useState(defaultWeekTemplates);
+  const [showBudgetDashboard, setShowBudgetDashboard] = useState(false);
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState(null);
 
   // Helper to convert Supabase player row to app player object
   const supabasePlayerToApp = (row) => ({
@@ -236,6 +245,22 @@ export function LeagueProvider({ children }) {
             }
             return game;
           }));
+        }
+
+        // Load league settings (payout tracker)
+        const { data: settingsData } = await supabase.from('league_settings').select('*').eq('id', 1).single();
+        if (settingsData) {
+          if (settingsData.season_buy_in) setSeasonBuyIn(settingsData.season_buy_in);
+          if (settingsData.week_template_assignments) setWeekTemplateAssignments(settingsData.week_template_assignments);
+        }
+
+        // Load payout templates
+        const { data: templatesData } = await supabase.from('payout_templates').select('*');
+        if (templatesData && templatesData.length > 0) {
+          setPayoutTemplates(templatesData.map(t => ({
+            id: t.id, name: t.name, payouts: t.payouts || [],
+            sideGameTotal: t.side_game_total || 0, isDefault: t.is_default || false
+          })));
         }
 
       } catch (error) {
@@ -393,6 +418,40 @@ export function LeagueProvider({ children }) {
       }, { onConflict: 'hole_number' });
       if (error) throw error;
     } catch (error) { console.error('Error saving giant skin:', error); }
+  };
+
+  // === Payout tracker Supabase helpers ===
+  const saveLeagueSettings = async (buyIn) => {
+    try {
+      const { error } = await supabase.from('league_settings').upsert({
+        id: 1, season_buy_in: buyIn
+      }, { onConflict: 'id' });
+      if (error) throw error;
+    } catch (error) { console.error('Error saving league settings:', error); }
+  };
+
+  const savePayoutTemplatesData = async (templates) => {
+    try {
+      const { error: deleteError } = await supabase.from('payout_templates').delete().neq('id', '');
+      if (deleteError) throw deleteError;
+      if (templates.length > 0) {
+        const rows = templates.map(t => ({
+          id: t.id, name: t.name, payouts: t.payouts,
+          side_game_total: t.sideGameTotal, is_default: t.isDefault || false
+        }));
+        const { error } = await supabase.from('payout_templates').upsert(rows, { onConflict: 'id' });
+        if (error) throw error;
+      }
+    } catch (error) { console.error('Error saving payout templates:', error); }
+  };
+
+  const saveWeekTemplateAssignments = async (assignments) => {
+    try {
+      const { error } = await supabase.from('league_settings').upsert({
+        id: 1, season_buy_in: seasonBuyIn, week_template_assignments: assignments
+      }, { onConflict: 'id' });
+      if (error) throw error;
+    } catch (error) { console.error('Error saving week template assignments:', error); }
   };
 
   const savePlayerScoreToSupabase = async (playerId, weekId, grossScore, netScore, handicapUsed, birdieHoles = [], eagleHoles = [], isTeamScore = false) => {
@@ -1199,6 +1258,67 @@ export function LeagueProvider({ children }) {
     setScheduleSelections({});
   };
 
+  // === Payout tracker helpers ===
+  const fullTimePlayers = players.filter(p => p.type === 'full-time');
+  const seasonBudget = seasonBuyIn * fullTimePlayers.length;
+
+  const getTemplateById = (templateId) => payoutTemplates.find(t => t.id === templateId);
+
+  const getWeekPlannedPayout = (weekId) => {
+    const templateId = weekTemplateAssignments[weekId];
+    if (!templateId) return 0;
+    const template = getTemplateById(templateId);
+    if (!template) return 0;
+    return template.payouts.reduce((sum, p) => sum + p.amount, 0) + (template.sideGameTotal || 0);
+  };
+
+  const totalPlannedPayouts = Object.keys(weekTemplateAssignments).reduce((sum, weekId) => {
+    return sum + getWeekPlannedPayout(parseInt(weekId));
+  }, 0);
+
+  const totalActualPayouts = players.reduce((sum, p) => sum + p.totalMoney, 0);
+
+  const remainingBudget = seasonBudget - totalActualPayouts;
+
+  const handleUpdateBuyIn = async (newBuyIn) => {
+    setSeasonBuyIn(newBuyIn);
+    await saveLeagueSettings(newBuyIn);
+  };
+
+  const handleSavePayoutTemplate = async (template) => {
+    const updated = payoutTemplates.some(t => t.id === template.id)
+      ? payoutTemplates.map(t => t.id === template.id ? template : t)
+      : [...payoutTemplates, template];
+    setPayoutTemplates(updated);
+    await savePayoutTemplatesData(updated);
+  };
+
+  const handleDeletePayoutTemplate = async (templateId) => {
+    const inUse = Object.values(weekTemplateAssignments).includes(templateId);
+    if (inUse) {
+      alert('Cannot delete a template that is assigned to a week. Unassign it first.');
+      return;
+    }
+    const updated = payoutTemplates.filter(t => t.id !== templateId);
+    setPayoutTemplates(updated);
+    await savePayoutTemplatesData(updated);
+  };
+
+  const handleAssignTemplateToWeek = async (weekId, templateId) => {
+    const updated = { ...weekTemplateAssignments, [weekId]: templateId || null };
+    if (!templateId) delete updated[weekId];
+    setWeekTemplateAssignments(updated);
+    await saveWeekTemplateAssignments(updated);
+  };
+
+  const getTemplateMoneyEntries = (weekId) => {
+    const templateId = weekTemplateAssignments[weekId];
+    if (!templateId) return null;
+    const template = getTemplateById(templateId);
+    if (!template) return null;
+    return template;
+  };
+
   // === Money entry ===
   const handleEnterMoney = async () => {
     const weekObj = weeks.find(w => w.id === selectedWeek);
@@ -1319,9 +1439,17 @@ export function LeagueProvider({ children }) {
     showRemoveFromTeeTime, setShowRemoveFromTeeTime, removeFromTeeTimeInfo, setRemoveFromTeeTimeInfo, removePhoneInput, setRemovePhoneInput,
     showResetConfirm, setShowResetConfirm, resetWeekId, setResetWeekId,
     scoreOverwriteConfirm, setScoreOverwriteConfirm,
+    // Payout tracker state
+    seasonBuyIn, setSeasonBuyIn, payoutTemplates, setPayoutTemplates,
+    weekTemplateAssignments, setWeekTemplateAssignments,
+    showBudgetDashboard, setShowBudgetDashboard,
+    showTemplateManager, setShowTemplateManager,
+    editingTemplate, setEditingTemplate,
 
     // Derived
     currentWeek, currentGame, sortedByMoney, filteredPlayers, filteredPlayersForAdmin, assignedPlayerIds,
+    // Payout tracker derived
+    seasonBudget, totalPlannedPayouts, totalActualPayouts, remainingBudget, fullTimePlayers,
 
     // Functions
     refreshData, saveTeeSheetToSupabase, saveMoneyToSupabase, saveGiantSkinToSupabase, savePlayerScoreToSupabase,
@@ -1339,6 +1467,10 @@ export function LeagueProvider({ children }) {
     getPlayerById, getPlayersForWeek, getWeeklyMoneyTotal,
     formatDate, formatShortDate,
     getAvailablePlayersForTime,
+    // Payout tracker functions
+    handleUpdateBuyIn, handleSavePayoutTemplate, handleDeletePayoutTemplate,
+    handleAssignTemplateToWeek, getTemplateById, getWeekPlannedPayout,
+    getTemplateMoneyEntries,
   };
 
   return <LeagueContext.Provider value={value}>{children}</LeagueContext.Provider>;
