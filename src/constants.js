@@ -250,7 +250,7 @@ export const initialWeeklyGames = [
     weekId: 1,
     date: '2026-04-13',
     gameName: '2-Man Scramble',
-    gameDescription: 'Teams of 2. Both players hit, pick the best shot, and both play from that spot until the ball is holed. Team handicap is adjusted.\n\nPayouts ($230 total):\n\u2022 Team Low Net 1st: $90 per team\n\u2022 Team Low Net 2nd: $55 per team\n\u2022 Team Low Net 3rd: $35 per team\n\u2022 Team Low Gross 1st: $50 per team',
+    gameDescription: 'Teams of 2. Both players hit, pick the best shot, and both play from that spot until the ball is holed. Team handicap is adjusted.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: '2-person'
@@ -259,7 +259,7 @@ export const initialWeeklyGames = [
     weekId: 2,
     date: '2026-04-20',
     gameName: 'Throw Out 3 Worst Holes',
-    gameDescription: 'Individual game. After the round, throw out your 3 highest scores.\n\nPayouts ($230 total):\n\u2022 Low Net 1st: $90\n\u2022 Low Net 2nd: $55\n\u2022 Low Net 3rd: $35\n\u2022 Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Individual game. After the round, throw out your 3 highest scores.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -268,7 +268,7 @@ export const initialWeeklyGames = [
     weekId: 3,
     date: '2026-04-27',
     gameName: 'Shamble',
-    gameDescription: 'Everyone tees off, select the best drive, then each plays their own ball from that spot.\n\nPayouts ($230 total):\n\u2022 Team Low Net 1st: $90 per team\n\u2022 Team Low Net 2nd: $55 per team\n\u2022 Team Low Net 3rd: $35 per team\n\u2022 Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Everyone tees off, select the best drive, then each plays their own ball from that spot.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: '4-person'
@@ -277,7 +277,7 @@ export const initialWeeklyGames = [
     weekId: 4,
     date: '2026-05-04',
     gameName: 'Low Net Team Tournament',
-    gameDescription: 'Teams of 4. For the first 8 holes, count the two lowest net scores. On the last hole, count all four scores.\n\nPayouts ($230 total):\n\u2022 Team Low Net 1st: $90 per team\n\u2022 Team Low Net 2nd: $55 per team\n\u2022 Team Low Net 3rd: $35 per team\n\u2022 Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Teams of 4. For the first 8 holes, count the two lowest net scores. On the last hole, count all four scores.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Team Giant Skins',
     sideGameDescription: '$60 split between Giant Skins winners',
     teamType: '4-person'
@@ -286,7 +286,7 @@ export const initialWeeklyGames = [
     weekId: 5,
     date: '2026-05-11',
     gameName: 'Ryder Cup \u2013 Fourball',
-    gameDescription: 'Two-player teams each play their own ball; best score counts per team.\n\nNo main game payout this week - points accumulate for Ryder Cup finale next week.',
+    gameDescription: 'Two-player teams each play their own ball; best score counts per team.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: '2-person'
@@ -295,7 +295,7 @@ export const initialWeeklyGames = [
     weekId: 6,
     date: '2026-05-18',
     gameName: 'Ryder Cup \u2013 Singles',
-    gameDescription: 'Head-to-head singles matches; team with most points wins the Ryder Cup.\n\nPayout ($700 total):\n\u2022 Winning team splits entire pot (~$29 per player on 24-person team)',
+    gameDescription: 'Head-to-head singles matches; team with most points wins the Ryder Cup.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -304,7 +304,7 @@ export const initialWeeklyGames = [
     weekId: 7,
     date: '2026-06-01',
     gameName: 'Special Events Night',
-    gameDescription: 'Each hole has a contest (longest drive, closest to pin, longest putt, etc.). Each contest has a cash prize.\n\nPayouts ($230 total):\n\u2022 Low Net 1st: $90\n\u2022 Low Net 2nd: $55\n\u2022 Low Net 3rd: $35\n\u2022 Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Each hole has a contest (longest drive, closest to pin, longest putt, etc.). Each contest has a cash prize.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -313,7 +313,7 @@ export const initialWeeklyGames = [
     weekId: 8,
     date: '2026-06-08',
     gameName: 'Best Ball / Scramble / Worst Ball',
-    gameDescription: 'Each tee time will rotate between taking their best individual net score, playing a 4-man scramble, and taking their worst individual net score. The total of the 9 hole scores will be added up.\n\nPayouts ($230 total):\n\u2022 Team Low Net 1st: $90 per team\n\u2022 Team Low Net 2nd: $55 per team\n\u2022 Team Low Net 3rd: $35 per team\n\u2022 Team Low Gross 1st: $50 per team\n\nTie breaker is lowest score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Each tee time will rotate between taking their best individual net score, playing a 4-man scramble, and taking their worst individual net score. The total of the 9 hole scores will be added up.\n\nTie breaker is lowest score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Low Worst Score Total',
     sideGameDescription: '$30 split between team with lowest "worst ball" total',
     teamType: '4-person'
@@ -322,7 +322,7 @@ export const initialWeeklyGames = [
     weekId: 9,
     date: '2026-06-15',
     gameName: 'Low Net / Low Gross',
-    gameDescription: 'Individual stroke play using net scores (adjusted for handicap).\n\nPayouts ($230 total):\n\u2022 Low Net 1st: $90\n\u2022 Low Net 2nd: $55\n\u2022 Low Net 3rd: $35\n\u2022 Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Individual stroke play using net scores (adjusted for handicap).\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -331,7 +331,7 @@ export const initialWeeklyGames = [
     weekId: 10,
     date: '2026-06-22',
     gameName: 'Player B Special',
-    gameDescription: 'Players receive 2 mulligans to use on any hole for any shot.\n\nPayouts ($230 total):\n\u2022 Low Net 1st: $90\n\u2022 Low Net 2nd: $55\n\u2022 Low Net 3rd: $35\n\u2022 Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Players receive 2 mulligans to use on any hole for any shot.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies (No Mulligans)',
     sideGameDescription: '$10 per greenie (3 holes = $30 total) - Mulligans cannot be used on greenie holes',
     teamType: null
@@ -340,7 +340,7 @@ export const initialWeeklyGames = [
     weekId: 11,
     date: '2026-06-29',
     gameName: '1-2-3 Best Ball',
-    gameDescription: 'Teams of 4. On hole 1 use the best single score, on hole 2 use the best two scores, on hole 3 use the best three scores. Repeat this rotation the whole round.\n\nPayouts ($230 total):\n\u2022 Team Low Net 1st: $90 per team\n\u2022 Team Low Net 2nd: $55 per team\n\u2022 Team Low Net 3rd: $35 per team\n\u2022 Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Teams of 4. On hole 1 use the best single score, on hole 2 use the best two scores, on hole 3 use the best three scores. Repeat this rotation the whole round.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: '4-person'
@@ -349,7 +349,7 @@ export const initialWeeklyGames = [
     weekId: 12,
     date: '2026-07-06',
     gameName: 'Black, White & Green',
-    gameDescription: 'Individual game. Start from the black tees, then white, then green & then repeat.\n\nPayouts ($230 total):\n\u2022 Low Net 1st: $90\n\u2022 Low Net 2nd: $55\n\u2022 Low Net 3rd: $35\n\u2022 Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Individual game. Start from the black tees, then white, then green & then repeat.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Lowest Net Score On Green Holes',
     sideGameDescription: '$60 split between players with lowest net scores on the green tee holes',
     teamType: null
@@ -358,7 +358,7 @@ export const initialWeeklyGames = [
     weekId: 13,
     date: '2026-07-13',
     gameName: 'Pick a Player',
-    gameDescription: 'Before teeing off, choose another player in the league as your partner. Your score is combined with their score for the team total.\n\nPayouts ($230 total):\n\u2022 Team Low Net 1st: $90 per team\n\u2022 Team Low Net 2nd: $55 per team\n\u2022 Team Low Net 3rd: $35 per team\n\u2022 Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Before teeing off, choose another player in the league as your partner. Your score is combined with their score for the team total.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -367,7 +367,7 @@ export const initialWeeklyGames = [
     weekId: 14,
     date: '2026-07-20',
     gameName: 'Stableford Points',
-    gameDescription: 'Individual scoring system. Earn points based on net score: Eagle +5, Birdie +3, Par +1, Bogey -1, Double Bogey -2. Goal is to score the most points.\n\nPayouts ($250 total):\n\u2022 Most Points 1st: $130\n\u2022 Most Points 2nd: $70\n\u2022 Most Points 3rd: $50',
+    gameDescription: 'Individual scoring system. Earn points based on net score: Eagle +5, Birdie +3, Par +1, Bogey -1, Double Bogey -2. Goal is to score the most points.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -376,7 +376,7 @@ export const initialWeeklyGames = [
     weekId: 15,
     date: '2026-07-27',
     gameName: '3 Club Challenge',
-    gameDescription: 'Each player can only bring 3 clubs plus a putter. Scores are kept for low gross and low net.\n\nPayouts ($230 total):\n\u2022 Low Net 1st: $90\n\u2022 Low Net 2nd: $55\n\u2022 Low Net 3rd: $35\n\u2022 Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Each player can only bring 3 clubs plus a putter. Scores are kept for low gross and low net.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -385,7 +385,7 @@ export const initialWeeklyGames = [
     weekId: 16,
     date: '2026-08-03',
     gameName: 'Low Net / Low Gross',
-    gameDescription: 'Individual stroke play using net scores (adjusted for handicap).\n\nPayouts ($230 total):\n\u2022 Low Net 1st: $90\n\u2022 Low Net 2nd: $55\n\u2022 Low Net 3rd: $35\n\u2022 Low Gross 1st: $50\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Individual stroke play using net scores (adjusted for handicap).\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -394,7 +394,7 @@ export const initialWeeklyGames = [
     weekId: 17,
     date: '2026-08-10',
     gameName: 'Two Ball Low Net',
-    gameDescription: 'Teams of 4. On each hole, take the two lowest net scores from the group as the team score.\n\nPayouts ($230 total):\n\u2022 Team Low Net 1st: $90 per team\n\u2022 Team Low Net 2nd: $55 per team\n\u2022 Team Low Net 3rd: $35 per team\n\u2022 Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Teams of 4. On each hole, take the two lowest net scores from the group as the team score.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: '4-person'
@@ -403,7 +403,7 @@ export const initialWeeklyGames = [
     weekId: 18,
     date: '2026-08-17',
     gameName: 'Championship Seeding',
-    gameDescription: 'Low Net Singles Tournament. Your net score will determine which group you qualify for in the final.\n\nNo main game payout this week - seeding only for Championship Final.',
+    gameDescription: 'Low Net Singles Tournament. Your net score will determine which group you qualify for in the final.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -412,7 +412,7 @@ export const initialWeeklyGames = [
     weekId: 19,
     date: '2026-08-24',
     gameName: 'Championship Final',
-    gameDescription: 'Low Net Singles Final. A, B and C group champions to be crowned.\n\nPayouts ($700 total):\n\u2022 Group A: 1st $300, 2nd $150\n\u2022 Group B: 1st $120, 2nd $60\n\u2022 Group C: 1st $50, 2nd $20',
+    gameDescription: 'Low Net Singles Final. A, B and C group champions to be crowned.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -421,7 +421,7 @@ export const initialWeeklyGames = [
     weekId: 20,
     date: '2026-08-31',
     gameName: '2-Man Scramble',
-    gameDescription: 'Teams of 2. Both players hit, pick the best shot, and both play from that spot until the ball is holed. Team handicap is adjusted.\n\nPayouts ($230 total):\n\u2022 Team Low Net 1st: $90 per team\n\u2022 Team Low Net 2nd: $55 per team\n\u2022 Team Low Net 3rd: $35 per team\n\u2022 Team Low Gross 1st: $50 per team\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Teams of 2. Both players hit, pick the best shot, and both play from that spot until the ball is holed. Team handicap is adjusted.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: '2-person'

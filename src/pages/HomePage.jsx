@@ -6,7 +6,7 @@ import { calc9HoleHandicap, calcTeamHandicap, courseHoles } from '../constants';
 export default function HomePage() {
   const navigate = useNavigate();
   const {
-    weeks, selectedWeek, setSelectedWeek, currentWeek, currentGame,
+    weeks, selectedWeek, setSelectedWeek, currentWeek, currentGame, getTemplateMoneyEntries,
     showPlayerScoreEntry, setShowPlayerScoreEntry,
     playerScoreForm, setPlayerScoreForm,
     handlePlayerScoreSubmit, handleConfirmedScoreOverwrite, toggleHoleSelection,
@@ -77,6 +77,32 @@ export default function HomePage() {
                     )}
                   </div>
                   <p className="text-charcoal-600 text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
+                  {(() => {
+                    const template = getTemplateMoneyEntries(selectedWeek);
+                    if (!template || template.payouts.length === 0) return null;
+                    const total = template.payouts.reduce((sum, p) => sum + p.amount, 0) + (template.sideGameTotal || 0);
+                    return (
+                      <div className="mt-3">
+                        <h5 className="font-display font-bold text-sm text-charcoal-700 mb-1">
+                          Payouts <span className="font-normal text-charcoal-500">(${total} total)</span>
+                        </h5>
+                        <ul className="space-y-0.5">
+                          {template.payouts.map((p, i) => (
+                            <li key={i} className="flex justify-between text-sm text-charcoal-600">
+                              <span>{p.label}</span>
+                              <span className="font-medium text-charcoal-800">${p.amount}</span>
+                            </li>
+                          ))}
+                          {template.sideGameTotal > 0 && (
+                            <li className="flex justify-between text-sm text-charcoal-500 italic">
+                              <span>Side Game</span>
+                              <span>${template.sideGameTotal}</span>
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div>
                   <div className="flex items-center gap-2 mb-2">
