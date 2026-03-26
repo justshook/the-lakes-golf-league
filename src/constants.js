@@ -190,6 +190,8 @@ export const defaultPayoutTemplates = [
       { label: 'Low Gross', category: 'gross', amount: 50 }
     ],
     sideGameTotal: 30,
+    sideGameName: 'Greenies',
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     isDefault: true
   },
   {
@@ -201,6 +203,8 @@ export const defaultPayoutTemplates = [
       { label: '3rd Place', category: '3rd', amount: 50 }
     ],
     sideGameTotal: 30,
+    sideGameName: 'Greenies',
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     isDefault: false
   },
   {
@@ -210,6 +214,8 @@ export const defaultPayoutTemplates = [
       { label: 'Winning Team Split', category: '1st', amount: 700 }
     ],
     sideGameTotal: 30,
+    sideGameName: 'Greenies',
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     isDefault: false
   },
   {
@@ -224,13 +230,17 @@ export const defaultPayoutTemplates = [
       { label: 'Group C 2nd', category: '2nd', amount: 20 }
     ],
     sideGameTotal: 30,
+    sideGameName: 'Greenies',
+    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     isDefault: false
   },
   {
     id: 'no-payout',
     name: 'No Payout',
     payouts: [],
-    sideGameTotal: 30,
+    sideGameTotal: 0,
+    sideGameName: '',
+    sideGameDescription: '',
     isDefault: false
   }
 ];

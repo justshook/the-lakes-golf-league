@@ -62,55 +62,46 @@ export default function HomePage() {
           {/* Game Info Section */}
           {currentGame && (
             <div className="border-b border-charcoal-800/10 bg-cream-300 p-4 sm:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                <div>
-                  <div className="flex items-center gap-2 mb-2 flex-wrap">
-                    <h4 className="font-display font-bold text-2xl sm:text-3xl text-charcoal-950">{currentGame.gameName}</h4>
-                    {currentGame.teamType && (
-                      <span className={`px-2 py-0.5 rounded-pill text-xs font-bold tracking-wide ${
-                        currentGame.teamType === '2-person'
-                          ? 'bg-forest-900/[0.08] text-forest-900'
-                          : 'bg-gold-300 text-forest-950'
-                      }`}>
-                        {currentGame.teamType === '2-person' ? '2-Person Teams' : '4-Person Teams'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-charcoal-600 text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
-                  {(() => {
-                    const template = getTemplateMoneyEntries(selectedWeek);
-                    if (!template || template.payouts.length === 0) return null;
-                    const total = template.payouts.reduce((sum, p) => sum + p.amount, 0) + (template.sideGameTotal || 0);
-                    return (
-                      <div className="mt-3">
-                        <h5 className="font-display font-bold text-sm text-charcoal-700 mb-1">
-                          Payouts <span className="font-normal text-charcoal-500">(${total} total)</span>
-                        </h5>
-                        <ul className="space-y-0.5">
-                          {template.payouts.map((p, i) => (
-                            <li key={i} className="flex justify-between text-sm text-charcoal-600">
-                              <span>{p.label}</span>
-                              <span className="font-medium text-charcoal-800">${p.amount}</span>
-                            </li>
-                          ))}
-                          {template.sideGameTotal > 0 && (
-                            <li className="flex justify-between text-sm text-charcoal-500 italic">
-                              <span>Side Game</span>
-                              <span>${template.sideGameTotal}</span>
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    );
-                  })()}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <h4 className="font-display font-bold text-base sm:text-lg text-gold-600">Side Game: {currentGame.sideGame}</h4>
-                  </div>
-                  <p className="text-charcoal-600 text-sm">{currentGame.sideGameDescription}</p>
-                </div>
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <h4 className="font-display font-bold text-2xl sm:text-3xl text-charcoal-950">{currentGame.gameName}</h4>
+                {currentGame.teamType && (
+                  <span className={`px-2 py-0.5 rounded-pill text-xs font-bold tracking-wide ${
+                    currentGame.teamType === '2-person'
+                      ? 'bg-forest-900/[0.08] text-forest-900'
+                      : 'bg-gold-300 text-forest-950'
+                  }`}>
+                    {currentGame.teamType === '2-person' ? '2-Person Teams' : '4-Person Teams'}
+                  </span>
+                )}
               </div>
+              <p className="text-charcoal-600 text-sm whitespace-pre-line">{currentGame.gameDescription}</p>
+              {(() => {
+                const template = getTemplateMoneyEntries(selectedWeek);
+                if (!template || template.payouts.length === 0) return null;
+                const mainTotal = template.payouts.reduce((sum, p) => sum + p.amount, 0);
+                const total = mainTotal + (template.sideGameTotal || 0);
+                return (
+                  <div className="mt-3">
+                    <p className="text-charcoal-600 text-sm mb-1">
+                      Payouts (${total} total):
+                    </p>
+                    <ul className="divide-y divide-charcoal-800/10">
+                      {template.payouts.map((p, i) => (
+                        <li key={i} className="flex justify-between text-sm text-charcoal-600 py-1">
+                          <span>• {p.label}</span>
+                          <span>${p.amount}</span>
+                        </li>
+                      ))}
+                      {template.sideGameTotal > 0 && (
+                        <li className="flex justify-between text-sm text-charcoal-600 py-1 italic">
+                          <span>• {template.sideGameName || 'Side Game'}{template.sideGameDescription ? ` — ${template.sideGameDescription}` : ''}</span>
+                          <span>${template.sideGameTotal}</span>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
