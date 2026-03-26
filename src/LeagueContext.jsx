@@ -9,6 +9,12 @@ import {
 
 const LeagueContext = createContext(null);
 
+// Strip legacy hardcoded payout text from game descriptions (migrates old Supabase data)
+const stripPayoutText = (desc) => {
+  if (!desc) return desc;
+  return desc.replace(/\n\n(Payouts?|No main game payout)[\s\S]*$/, '');
+};
+
 export function useLeague() {
   const ctx = useContext(LeagueContext);
   if (!ctx) throw new Error('useLeague must be used within a LeagueProvider');
@@ -235,7 +241,7 @@ export function LeagueProvider({ children }) {
               return {
                 ...game,
                 gameName: saved.game_name ?? game.gameName,
-                gameDescription: saved.game_description ?? game.gameDescription,
+                gameDescription: stripPayoutText(saved.game_description ?? game.gameDescription),
                 sideGame: saved.side_game ?? game.sideGame,
                 sideGameDescription: saved.side_game_description ?? game.sideGameDescription,
                 teamType: saved.team_type ?? game.teamType,
@@ -259,7 +265,10 @@ export function LeagueProvider({ children }) {
         if (templatesData && templatesData.length > 0) {
           setPayoutTemplates(templatesData.map(t => ({
             id: t.id, name: t.name, payouts: t.payouts || [],
-            sideGameTotal: t.side_game_total || 0, isDefault: t.is_default || false
+            sideGameTotal: t.side_game_total || 0,
+            sideGameName: t.side_game_name || '',
+            sideGameDescription: t.side_game_description || '',
+            isDefault: t.is_default || false
           })));
         }
 
@@ -339,7 +348,7 @@ export function LeagueProvider({ children }) {
             return {
               ...game,
               gameName: saved.game_name ?? game.gameName,
-              gameDescription: saved.game_description ?? game.gameDescription,
+              gameDescription: stripPayoutText(saved.game_description ?? game.gameDescription),
               sideGame: saved.side_game ?? game.sideGame,
               sideGameDescription: saved.side_game_description ?? game.sideGameDescription,
               teamType: saved.team_type ?? game.teamType,
@@ -437,7 +446,10 @@ export function LeagueProvider({ children }) {
       if (templates.length > 0) {
         const rows = templates.map(t => ({
           id: t.id, name: t.name, payouts: t.payouts,
-          side_game_total: t.sideGameTotal, is_default: t.isDefault || false
+          side_game_total: t.sideGameTotal,
+          side_game_name: t.sideGameName || '',
+          side_game_description: t.sideGameDescription || '',
+          is_default: t.isDefault || false
         }));
         const { error } = await supabase.from('payout_templates').upsert(rows, { onConflict: 'id' });
         if (error) throw error;

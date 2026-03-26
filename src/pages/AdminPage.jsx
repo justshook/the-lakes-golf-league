@@ -328,7 +328,7 @@ export default function AdminPage() {
                 onClick={(e) => {
                   e.stopPropagation();
                   setTemplateForm({
-                    id: '', name: '', payouts: [{ label: '', category: '1st', amount: '' }], sideGameTotal: '30', isDefault: false
+                    id: '', name: '', payouts: [{ label: '', category: '1st', amount: '' }], sideGameTotal: '30', sideGameName: '', sideGameDescription: '', isDefault: false
                   });
                   setShowTemplateManager(true);
                 }}
@@ -419,6 +419,28 @@ export default function AdminPage() {
                 </div>
 
                 <div>
+                  <label className="text-sm text-gray-600">Side Game Name</label>
+                  <input
+                    type="text"
+                    value={templateForm.sideGameName}
+                    onChange={(e) => setTemplateForm({ ...templateForm, sideGameName: e.target.value })}
+                    placeholder="e.g., Greenies"
+                    className="w-full border rounded px-2 py-1.5 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600">Side Game Description</label>
+                  <input
+                    type="text"
+                    value={templateForm.sideGameDescription}
+                    onChange={(e) => setTemplateForm({ ...templateForm, sideGameDescription: e.target.value })}
+                    placeholder="e.g., $10 per greenie (3 holes = $30 total)"
+                    className="w-full border rounded px-2 py-1.5 text-sm"
+                  />
+                </div>
+
+                <div>
                   <label className="text-sm text-gray-600">Side Game Total</label>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-500">$</span>
@@ -449,6 +471,8 @@ export default function AdminPage() {
                           ...p, amount: parseFloat(p.amount) || 0
                         })),
                         sideGameTotal: parseFloat(templateForm.sideGameTotal) || 0,
+                        sideGameName: templateForm.sideGameName || '',
+                        sideGameDescription: templateForm.sideGameDescription || '',
                         isDefault: templateForm.isDefault || false
                       };
                       handleSavePayoutTemplate(template);
@@ -484,7 +508,9 @@ export default function AdminPage() {
                           setTemplateForm({
                             ...t,
                             payouts: t.payouts.map(p => ({ ...p, amount: String(p.amount) })),
-                            sideGameTotal: String(t.sideGameTotal || 0)
+                            sideGameTotal: String(t.sideGameTotal || 0),
+                            sideGameName: t.sideGameName || '',
+                            sideGameDescription: t.sideGameDescription || ''
                           });
                         }}
                         className="text-blue-600 hover:text-blue-800 text-sm"
