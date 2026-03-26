@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLeague } from '../LeagueContext';
-import { calc9HoleHandicap, teeTimes, courseHoles, moneyCategories } from '../constants';
+import { calc9HoleHandicap, teeTimes, courseHoles, moneyCategories, defaultPayoutTemplates } from '../constants';
 
 export default function AdminPage() {
   const {
@@ -53,10 +53,25 @@ export default function AdminPage() {
     resetSingleWeek, resetMoneyData, resetTeeSheets, resetGiantSkins, resetPlayerScores, resetAllData,
     // Utilities
     formatDate, formatShortDate,
+    // Payout tracker
+    seasonBuyIn, payoutTemplates, weekTemplateAssignments,
+    showBudgetDashboard, setShowBudgetDashboard,
+    showTemplateManager, setShowTemplateManager,
+    editingTemplate, setEditingTemplate,
+    seasonBudget, totalPlannedPayouts, totalActualPayouts, remainingBudget, fullTimePlayers,
+    handleUpdateBuyIn, handleSavePayoutTemplate, handleDeletePayoutTemplate,
+    handleAssignTemplateToWeek, getTemplateById, getWeekPlannedPayout,
+    getTemplateMoneyEntries, getWeeklyMoneyTotal,
+    weeklyGames,
   } = useLeague();
 
   const [activeSelectSlot, setActiveSelectSlot] = useState(null);
   const selectDropdownRef = useRef(null);
+
+  // Payout tracker local state
+  const [editBuyIn, setEditBuyIn] = useState(false);
+  const [buyInInput, setBuyInInput] = useState('');
+  const [templateForm, setTemplateForm] = useState(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -161,6 +176,339 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+
+      {/* Season Budget Dashboard */}
+      <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-green-800 px-4 py-3 flex items-center justify-between cursor-pointer" onClick={() => setShowBudgetDashboard(!showBudgetDashboard)}>
+          <h3 className="text-white font-medium">💵 Season Budget & Payouts</h3>
+          <span className="text-white text-sm">{showBudgetDashboard ? '▲' : '▼'}</span>
+        </div>
+
+        {showBudgetDashboard && (
+          <div className="p-4 space-y-4">
+            {/* Season Buy-In Config */}
+            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+              <div>
+                <div className="text-sm font-medium text-gray-700">Season Buy-In</div>
+                <div className="text-xs text-gray-500">{fullTimePlayers.length} full-time players</div>
+              </div>
+              {editBuyIn ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-500">$</span>
+                  <input
+                    type="number"
+                    value={buyInInput}
+                    onChange={(e) => setBuyInInput(e.target.value)}
+                    className="w-24 border rounded px-2 py-1 text-sm"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => { handleUpdateBuyIn(parseFloat(buyInInput) || 0); setEditBuyIn(false); }}
+                    className="bg-green-700 text-white px-3 py-1 rounded text-sm hover:bg-green-800"
+                  >Save</button>
+                  <button
+                    onClick={() => setEditBuyIn(false)}
+                    className="text-gray-500 hover:text-gray-700 text-sm"
+                  >Cancel</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setBuyInInput(String(seasonBuyIn)); setEditBuyIn(true); }}
+                  className="text-lg font-bold text-green-800 hover:underline"
+                >${seasonBuyIn} / player</button>
+              )}
+            </div>
+
+            {/* Budget Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                <div className="text-xs text-green-600 font-medium">Collected</div>
+                <div className="text-lg font-bold text-green-800">${seasonBudget.toLocaleString()}</div>
+              </div>
+              <div className={`border rounded-lg p-3 text-center ${totalPlannedPayouts > seasonBudget ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
+                <div className={`text-xs font-medium ${totalPlannedPayouts > seasonBudget ? 'text-red-600' : 'text-blue-600'}`}>Planned</div>
+                <div className={`text-lg font-bold ${totalPlannedPayouts > seasonBudget ? 'text-red-800' : 'text-blue-800'}`}>${totalPlannedPayouts.toLocaleString()}</div>
+              </div>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                <div className="text-xs text-yellow-600 font-medium">Paid Out</div>
+                <div className="text-lg font-bold text-yellow-800">${totalActualPayouts.toLocaleString()}</div>
+              </div>
+              <div className={`border rounded-lg p-3 text-center ${remainingBudget < 0 ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className={`text-xs font-medium ${remainingBudget < 0 ? 'text-red-600' : 'text-gray-600'}`}>Remaining</div>
+                <div className={`text-lg font-bold ${remainingBudget < 0 ? 'text-red-800' : 'text-gray-800'}`}>${remainingBudget.toLocaleString()}</div>
+              </div>
+            </div>
+
+            {totalPlannedPayouts > seasonBudget && (
+              <div className="bg-red-50 border border-red-300 rounded-lg p-3 text-sm text-red-700">
+                Planned payouts exceed collected budget by <strong>${(totalPlannedPayouts - seasonBudget).toLocaleString()}</strong>. Adjust templates or buy-in.
+              </div>
+            )}
+
+            {/* Budget Progress Bar */}
+            <div>
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Paid: ${totalActualPayouts.toLocaleString()}</span>
+                <span>Budget: ${seasonBudget.toLocaleString()}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className={`h-3 rounded-full transition-all ${totalActualPayouts > seasonBudget ? 'bg-red-500' : 'bg-green-600'}`}
+                  style={{ width: `${Math.min((totalActualPayouts / seasonBudget) * 100, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Per-Week Breakdown Table */}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-2">Weekly Breakdown</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-gray-500 border-b">
+                      <th className="py-2 pr-2">Wk</th>
+                      <th className="py-2 pr-2">Date</th>
+                      <th className="py-2 pr-2">Game</th>
+                      <th className="py-2 pr-2">Template</th>
+                      <th className="py-2 pr-2 text-right">Planned</th>
+                      <th className="py-2 text-right">Paid</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {weeks.map(w => {
+                      const game = weeklyGames.find(g => g.weekId === w.id);
+                      const templateId = weekTemplateAssignments[w.id];
+                      const template = templateId ? getTemplateById(templateId) : null;
+                      const planned = getWeekPlannedPayout(w.id);
+                      const paid = getWeeklyMoneyTotal(w.id);
+                      return (
+                        <tr key={w.id} className={`border-b border-gray-100 ${w.id === selectedWeek ? 'bg-green-50' : ''}`}>
+                          <td className="py-2 pr-2 font-medium">{w.id}</td>
+                          <td className="py-2 pr-2 text-gray-600">{formatShortDate(w.date)}</td>
+                          <td className="py-2 pr-2 text-gray-700 max-w-[120px] truncate">{game?.gameName || '-'}</td>
+                          <td className="py-2 pr-2">
+                            <select
+                              value={templateId || ''}
+                              onChange={(e) => handleAssignTemplateToWeek(w.id, e.target.value || null)}
+                              className="text-xs border rounded px-1 py-0.5 max-w-[110px]"
+                            >
+                              <option value="">None</option>
+                              {payoutTemplates.map(t => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="py-2 pr-2 text-right">{planned ? `$${planned}` : '-'}</td>
+                          <td className={`py-2 text-right ${paid > 0 ? 'text-green-700 font-medium' : 'text-gray-400'}`}>
+                            {paid > 0 ? `$${paid}` : '-'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="border-t-2 border-gray-300 font-semibold">
+                      <td colSpan={4} className="py-2 text-right pr-2">Totals:</td>
+                      <td className="py-2 pr-2 text-right">${totalPlannedPayouts.toLocaleString()}</td>
+                      <td className="py-2 text-right text-green-700">${totalActualPayouts.toLocaleString()}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Payout Template Manager */}
+      <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-green-800 px-4 py-3 flex items-center justify-between cursor-pointer" onClick={() => { if (!templateForm) setShowTemplateManager(!showTemplateManager); }}>
+          <h3 className="text-white font-medium">📋 Payout Templates</h3>
+          <div className="flex items-center gap-2">
+            {!templateForm && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTemplateForm({
+                    id: '', name: '', payouts: [{ label: '', category: '1st', amount: '' }], sideGameTotal: '30', isDefault: false
+                  });
+                  setShowTemplateManager(true);
+                }}
+                className="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
+              >+ Add Template</button>
+            )}
+            <span className="text-white text-sm">{showTemplateManager ? '▲' : '▼'}</span>
+          </div>
+        </div>
+
+        {showTemplateManager && (
+          <div className="p-4 space-y-3">
+            {/* Template Form (Add/Edit) */}
+            {templateForm && (
+              <div className="border-2 border-green-300 rounded-lg p-4 bg-green-50 space-y-3">
+                <h4 className="font-semibold text-gray-800">{templateForm.id ? 'Edit Template' : 'New Template'}</h4>
+                <div>
+                  <label className="text-sm text-gray-600">Template Name</label>
+                  <input
+                    type="text"
+                    value={templateForm.name}
+                    onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
+                    placeholder="e.g., Standard Week"
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600">Payout Breakdown</label>
+                  <div className="space-y-2">
+                    {templateForm.payouts.map((p, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={p.label}
+                          onChange={(e) => {
+                            const updated = [...templateForm.payouts];
+                            updated[idx] = { ...updated[idx], label: e.target.value };
+                            setTemplateForm({ ...templateForm, payouts: updated });
+                          }}
+                          placeholder="Label (e.g., 1st Place)"
+                          className="flex-1 border rounded px-2 py-1.5 text-sm"
+                        />
+                        <select
+                          value={p.category}
+                          onChange={(e) => {
+                            const updated = [...templateForm.payouts];
+                            updated[idx] = { ...updated[idx], category: e.target.value };
+                            setTemplateForm({ ...templateForm, payouts: updated });
+                          }}
+                          className="border rounded px-2 py-1.5 text-sm w-28"
+                        >
+                          {moneyCategories.filter(c => !c.id.startsWith('ctp')).map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                        <div className="flex items-center">
+                          <span className="text-gray-500 text-sm">$</span>
+                          <input
+                            type="number"
+                            value={p.amount}
+                            onChange={(e) => {
+                              const updated = [...templateForm.payouts];
+                              updated[idx] = { ...updated[idx], amount: e.target.value };
+                              setTemplateForm({ ...templateForm, payouts: updated });
+                            }}
+                            placeholder="0"
+                            className="w-20 border rounded px-2 py-1.5 text-sm"
+                          />
+                        </div>
+                        <button
+                          onClick={() => {
+                            const updated = templateForm.payouts.filter((_, i) => i !== idx);
+                            setTemplateForm({ ...templateForm, payouts: updated });
+                          }}
+                          className="text-red-500 hover:text-red-700 text-lg"
+                        >×</button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => setTemplateForm({
+                        ...templateForm,
+                        payouts: [...templateForm.payouts, { label: '', category: '1st', amount: '' }]
+                      })}
+                      className="text-green-700 hover:text-green-900 text-sm font-medium"
+                    >+ Add Payout Row</button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600">Side Game Total</label>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">$</span>
+                    <input
+                      type="number"
+                      value={templateForm.sideGameTotal}
+                      onChange={(e) => setTemplateForm({ ...templateForm, sideGameTotal: e.target.value })}
+                      className="w-24 border rounded px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  Template Total: <strong>${(
+                    templateForm.payouts.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0) +
+                    (parseFloat(templateForm.sideGameTotal) || 0)
+                  ).toLocaleString()}</strong>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (!templateForm.name.trim()) { alert('Template name is required.'); return; }
+                      const template = {
+                        id: templateForm.id || templateForm.name.toLowerCase().replace(/\s+/g, '-'),
+                        name: templateForm.name,
+                        payouts: templateForm.payouts.filter(p => p.label && p.amount).map(p => ({
+                          ...p, amount: parseFloat(p.amount) || 0
+                        })),
+                        sideGameTotal: parseFloat(templateForm.sideGameTotal) || 0,
+                        isDefault: templateForm.isDefault || false
+                      };
+                      handleSavePayoutTemplate(template);
+                      setTemplateForm(null);
+                    }}
+                    className="bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 text-sm font-medium"
+                  >Save Template</button>
+                  <button
+                    onClick={() => setTemplateForm(null)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                  >Cancel</button>
+                </div>
+              </div>
+            )}
+
+            {/* Existing Templates List */}
+            {payoutTemplates.map(t => {
+              const mainTotal = t.payouts.reduce((s, p) => s + p.amount, 0);
+              const total = mainTotal + (t.sideGameTotal || 0);
+              const weeksUsingThis = Object.entries(weekTemplateAssignments).filter(([, tid]) => tid === t.id).length;
+              return (
+                <div key={t.id} className="border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="font-medium text-gray-800">{t.name}</span>
+                      {t.isDefault && <span className="ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full">Default</span>}
+                      <span className="ml-2 text-xs text-gray-500">{weeksUsingThis} week{weeksUsingThis !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-green-800">${total}</span>
+                      <button
+                        onClick={() => {
+                          setTemplateForm({
+                            ...t,
+                            payouts: t.payouts.map(p => ({ ...p, amount: String(p.amount) })),
+                            sideGameTotal: String(t.sideGameTotal || 0)
+                          });
+                        }}
+                        className="text-blue-600 hover:text-blue-800 text-sm"
+                      >Edit</button>
+                      <button
+                        onClick={() => handleDeletePayoutTemplate(t.id)}
+                        className="text-red-500 hover:text-red-700 text-sm"
+                      >Delete</button>
+                    </div>
+                  </div>
+                  {t.payouts.length > 0 && (
+                    <div className="text-xs text-gray-600 space-y-0.5">
+                      {t.payouts.map((p, i) => (
+                        <div key={i}>{p.label}: ${p.amount}</div>
+                      ))}
+                      {t.sideGameTotal > 0 && <div>Side Game: ${t.sideGameTotal}</div>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Build Schedule */}
       <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
@@ -422,7 +770,20 @@ export default function AdminPage() {
               </button>
             ) : (
               <button
-                onClick={() => setShowMoneyEntry(true)}
+                onClick={() => {
+                  // Pre-fill amounts from template if one is assigned
+                  const template = getTemplateMoneyEntries(selectedWeek);
+                  if (template && template.payouts.length > 0) {
+                    const prefilled = {};
+                    template.payouts.forEach(p => {
+                      // Set placeholder entries with amounts but no player selected yet
+                      prefilled[`_template_${p.category}_${p.label}`] = String(p.amount);
+                    });
+                    // Don't pre-fill entries since we need player selection first
+                    // Just open the form - amounts will show from template
+                  }
+                  setShowMoneyEntry(true);
+                }}
                 className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
               >
                 Enter Money
@@ -431,12 +792,30 @@ export default function AdminPage() {
           )}
         </div>
 
-        {showMoneyEntry && currentWeek && (
+        {showMoneyEntry && currentWeek && (() => {
+          const weekTemplate = getTemplateMoneyEntries(selectedWeek);
+          const currentTotal = Object.values(moneyEntries).reduce((s, v) => s + (parseFloat(v) || 0), 0);
+          const plannedTotal = getWeekPlannedPayout(selectedWeek);
+          // Get template default amount for a category
+          const getTemplateAmount = (category) => {
+            if (!weekTemplate) return '';
+            const match = weekTemplate.payouts.find(p => p.category === category);
+            return match ? String(match.amount) : '';
+          };
+          return (
           <div className="p-4">
+            {weekTemplate && (
+              <div className="mb-3 bg-blue-50 border border-blue-200 rounded-lg p-2 text-sm text-blue-700 flex items-center justify-between">
+                <span>Template: <strong>{weekTemplate.name}</strong></span>
+                <span className={`font-medium ${currentTotal > plannedTotal && plannedTotal > 0 ? 'text-red-600' : ''}`}>
+                  Entering: ${currentTotal} / Planned: ${plannedTotal > 0 ? `$${plannedTotal}` : '-'}
+                </span>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <h4 className="font-semibold text-gray-700">🏆 Main Game</h4>
-                {['1st', '2nd', '3rd'].map(place => {
+                {['1st', '2nd', '3rd', 'gross'].map(place => {
                   const cat = moneyCategories.find(c => c.id === place);
                   const teamType = getTeamTypeForWeek(selectedWeek);
                   const selectedForPlace = Object.keys(moneyEntries).filter(k => k.endsWith(`-${place}`)).map(k => k.split('-')[0]);
@@ -452,7 +831,7 @@ export default function AdminPage() {
                             <span className="text-gray-500 text-sm">$ each</span>
                             <input
                               type="number"
-                              placeholder="0"
+                              placeholder={getTemplateAmount(place) || '0'}
                               value={amountForPlace}
                               onChange={(e) => {
                                 const newEntries = { ...moneyEntries };
@@ -479,7 +858,7 @@ export default function AdminPage() {
                                   onChange={(e) => {
                                     const newEntries = { ...moneyEntries };
                                     if (e.target.checked) {
-                                      newEntries[`${id}-${place}`] = amountForPlace;
+                                      newEntries[`${id}-${place}`] = amountForPlace || getTemplateAmount(place);
                                     } else {
                                       delete newEntries[`${id}-${place}`];
                                     }
@@ -509,7 +888,7 @@ export default function AdminPage() {
                               if (k.endsWith(`-${place}`)) delete newEntries[k];
                             });
                             if (e.target.value) {
-                              newEntries[`${e.target.value}-${place}`] = moneyEntries[`${e.target.value}-${place}`] || '';
+                              newEntries[`${e.target.value}-${place}`] = moneyEntries[`${e.target.value}-${place}`] || getTemplateAmount(place) || '';
                             }
                             setMoneyEntries(newEntries);
                           }}
@@ -525,7 +904,7 @@ export default function AdminPage() {
                           <span className="text-gray-500">$</span>
                           <input
                             type="number"
-                            placeholder="0"
+                            placeholder={getTemplateAmount(place) || '0'}
                             value={amountForPlace}
                             onChange={(e) => {
                               const newEntries = { ...moneyEntries };
@@ -604,7 +983,8 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Manage Player Scores */}
@@ -1012,6 +1392,15 @@ export default function AdminPage() {
                 <div className="font-bold text-yellow-700">{currentGame.sideGame}</div>
               </div>
             </div>
+            {weekTemplateAssignments[selectedWeek] && (() => {
+              const t = getTemplateById(weekTemplateAssignments[selectedWeek]);
+              return t ? (
+                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-2 text-sm">
+                  <span className="text-blue-600 font-medium">Payout: {t.name}</span>
+                  <span className="text-blue-800 ml-2 font-bold">${t.payouts.reduce((s, p) => s + p.amount, 0) + (t.sideGameTotal || 0)}</span>
+                </div>
+              ) : null;
+            })()}
           </div>
         )}
 
@@ -1112,6 +1501,28 @@ export default function AdminPage() {
                   )}
                 </div>
               )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payout Template</label>
+                <select
+                  value={weekTemplateAssignments[selectedWeek] || ''}
+                  onChange={(e) => handleAssignTemplateToWeek(selectedWeek, e.target.value || null)}
+                  className="w-full border rounded-lg px-3 py-2"
+                >
+                  <option value="">None</option>
+                  {payoutTemplates.map(t => (
+                    <option key={t.id} value={t.id}>{t.name} (${t.payouts.reduce((s, p) => s + p.amount, 0) + (t.sideGameTotal || 0)})</option>
+                  ))}
+                </select>
+                {weekTemplateAssignments[selectedWeek] && (() => {
+                  const t = getTemplateById(weekTemplateAssignments[selectedWeek]);
+                  return t ? (
+                    <div className="mt-1 text-xs text-gray-500">
+                      {t.payouts.map((p, i) => <span key={i}>{p.label}: ${p.amount}{i < t.payouts.length - 1 ? ' | ' : ''}</span>)}
+                      {t.sideGameTotal > 0 && <span> | Side: ${t.sideGameTotal}</span>}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
             </div>
             <div className="flex gap-2 mt-4">
               <button
