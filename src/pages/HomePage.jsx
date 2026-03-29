@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeague } from '../LeagueContext';
 import { calc9HoleHandicap, calcTeamHandicap, courseHoles } from '../constants';
+import { jsPDF } from 'jspdf';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -28,6 +29,148 @@ export default function HomePage() {
   const currentDate = currentWeek ? new Date(currentWeek.date + 'T00:00:00') : null;
   const currentMonth = currentDate ? currentDate.toLocaleDateString('en-US', { month: 'long' }) : '';
   const currentDay = currentDate ? currentDate.getDate() : '';
+
+  const exportTeeTimes = () => {
+    if (!currentWeek) return;
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    let y = 18;
+
+    // Header: week date
+    const weekDateStr = currentDate
+      ? currentDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+      : '';
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('The Lakes Golf League', pageW / 2, y, { align: 'center' });
+    y += 9;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.text(weekDateStr, pageW / 2, y, { align: 'center' });
+    y += 6;
+
+    // Nine holes badge
+    const nineLabel = currentWeek.nineHoles === 'front' ? 'Front 9 (Holes 1-9)' : 'Back 9 (Holes 10-18)';
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.text(nineLabel, pageW / 2, y, { align: 'center' });
+    y += 8;
+
+    // Divider
+    doc.setDrawColor(100, 120, 100);
+    doc.line(margin, y, pageW - margin, y);
+    y += 6;
+
+    // Game info
+    if (currentGame) {
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.text(currentGame.gameName, margin, y);
+      if (currentGame.teamType) {
+        const label = currentGame.teamType === '2-person' ? '2-Person Teams' : '4-Person Teams';
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(label, pageW - margin, y, { align: 'right' });
+      }
+      y += 7;
+    }
+
+    // Tee sheet
+    const totalPlayers = currentWeek.teeSheet.reduce((sum, t) => sum + t.players.length, 0);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(`${totalPlayers} players scheduled`, margin, y);
+    y += 8;
+
+    doc.setTextColor(0, 0, 0);
+
+    currentWeek.teeSheet.forEach((slot) => {
+      if (slot.players.length === 0) return;
+
+      // Check if we need a new page
+      if (y > 265) {
+        doc.addPage();
+        y = 18;
+      }
+
+      const rowH = 8;
+      doc.setFillColor(235, 240, 235);
+      doc.rect(margin, y - 5, pageW - margin * 2, rowH + 2, 'F');
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(slot.time, margin + 2, y);
+
+      const is2person = currentGame?.teamType === '2-person';
+      if (is2person) {
+        const teamA = [slot.players[0] ?? null, slot.players[1] ?? null];
+        const teamB = [slot.players[2] ?? null, slot.players[3] ?? null];
+        const colMid = pageW / 2;
+
+        // Team A handicap
+        const hcpA = calcTeamHandicap(
+          teamA.filter(id => id != null).map(id => calc9HoleHandicap(getPlayerById(id)?.handicap)),
+          currentGame?.handicapFormat || 'scramble'
+        );
+        // Team B handicap
+        const hcpB = calcTeamHandicap(
+          teamB.filter(id => id != null).map(id => calc9HoleHandicap(getPlayerById(id)?.handicap)),
+          currentGame?.handicapFormat || 'scramble'
+        );
+
+        if (currentGame?.showTeamHandicap) {
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(80, 80, 80);
+          doc.text(`Team HCP ${hcpA}`, colMid - 4, y, { align: 'right' });
+          doc.text(`Team HCP ${hcpB}`, pageW - margin - 2, y, { align: 'right' });
+          doc.setTextColor(0, 0, 0);
+        }
+
+        y += rowH;
+        const allIds = [...teamA, ...teamB];
+        const half = allIds.slice(0, 2);
+        const secondHalf = allIds.slice(2, 4);
+        [[half, margin + 2], [secondHalf, colMid + 2]].forEach(([ids, xStart]) => {
+          ids.forEach((playerId) => {
+            if (y > 270) { doc.addPage(); y = 18; }
+            doc.setFontSize(10);
+            doc.setFont('helvetica', playerId ? 'normal' : 'italic');
+            doc.setTextColor(playerId ? 0 : 140, playerId ? 0 : 140, playerId ? 0 : 140);
+            const player = getPlayerById(playerId);
+            const name = player ? player.name : '—';
+            const hcp = player ? `HCP ${calc9HoleHandicap(player.handicap)}` : '';
+            doc.text(name, xStart + 4, y);
+            if (hcp) doc.text(hcp, (xStart === margin + 2 ? colMid : pageW - margin) - 4, y, { align: 'right' });
+            doc.setTextColor(0, 0, 0);
+            y += 6;
+          });
+        });
+      } else {
+        y += rowH;
+        slot.players.forEach((playerId) => {
+          if (y > 270) { doc.addPage(); y = 18; }
+          const player = getPlayerById(playerId);
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.text(player ? player.name : '—', margin + 4, y);
+          if (player) {
+            doc.setTextColor(80, 80, 80);
+            doc.text(`HCP ${calc9HoleHandicap(player.handicap)}`, pageW - margin - 2, y, { align: 'right' });
+            doc.setTextColor(0, 0, 0);
+          }
+          y += 6;
+        });
+      }
+
+      y += 3;
+    });
+
+    const fileName = `tee-times-${currentWeek.date}.pdf`;
+    doc.save(fileName);
+  };
 
   return (
     <div className="space-y-4">
@@ -116,9 +259,17 @@ export default function HomePage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm text-charcoal-600 mb-4 px-1">
                   <span>{currentWeek.teeSheet.reduce((sum, t) => sum + t.players.length, 0)} players scheduled</span>
-                  {currentWeek.moneyEntered && (
-                    <span className="bg-gold-300 text-forest-900 px-3 py-1 rounded-pill text-xs font-bold">✓ Money Entered</span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {currentWeek.moneyEntered && (
+                      <span className="bg-gold-300 text-forest-900 px-3 py-1 rounded-pill text-xs font-bold">✓ Money Entered</span>
+                    )}
+                    <button
+                      onClick={exportTeeTimes}
+                      className="px-3 py-1 bg-forest-800 text-cream-200 rounded-pill text-xs font-bold hover:bg-forest-700 transition-colors"
+                    >
+                      Export PDF
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mb-4 px-1">
