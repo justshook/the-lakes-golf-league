@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLeague } from '../LeagueContext';
-import { calc9HoleHandicap, teeTimes, courseHoles, moneyCategories, defaultPayoutTemplates } from '../constants';
+import { calc9HoleHandicap, calcTeamHandicap, teeTimes, courseHoles, moneyCategories, defaultPayoutTemplates } from '../constants';
+import { jsPDF } from 'jspdf';
 
 export default function AdminPage() {
   const {
@@ -91,6 +92,134 @@ export default function AdminPage() {
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [activeSelectSlot]);
+
+  const exportTeeTimes = () => {
+    if (!currentWeek) return;
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    let y = 18;
+
+    const weekDate = new Date(currentWeek.date + 'T00:00:00');
+    const weekDateStr = weekDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('The Lakes Golf League', pageW / 2, y, { align: 'center' });
+    y += 9;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.text(weekDateStr, pageW / 2, y, { align: 'center' });
+    y += 6;
+
+    const nineLabel = currentWeek.nineHoles === 'front' ? 'Front 9 (Holes 1-9)' : 'Back 9 (Holes 10-18)';
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.text(nineLabel, pageW / 2, y, { align: 'center' });
+    y += 8;
+
+    doc.setDrawColor(100, 120, 100);
+    doc.line(margin, y, pageW - margin, y);
+    y += 6;
+
+    if (currentGame) {
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(currentGame.gameName, margin, y);
+      if (currentGame.teamType) {
+        const label = currentGame.teamType === '2-person' ? '2-Person Teams' : '4-Person Teams';
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text(label, pageW - margin, y, { align: 'right' });
+      }
+      y += 7;
+    }
+
+    const totalPlayers = currentWeek.teeSheet.reduce((sum, t) => sum + t.players.length, 0);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(`${totalPlayers} players scheduled`, margin, y);
+    y += 8;
+    doc.setTextColor(0, 0, 0);
+
+    currentWeek.teeSheet.forEach((slot) => {
+      if (slot.players.length === 0) return;
+      if (y > 265) { doc.addPage(); y = 18; }
+
+      const rowH = 8;
+      doc.setFillColor(235, 240, 235);
+      doc.rect(margin, y - 5, pageW - margin * 2, rowH + 2, 'F');
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(slot.time, margin + 2, y);
+
+      const is2person = currentGame?.teamType === '2-person';
+      if (is2person) {
+        const teamA = [slot.players[0] ?? null, slot.players[1] ?? null];
+        const teamB = [slot.players[2] ?? null, slot.players[3] ?? null];
+        const colMid = pageW / 2;
+
+        if (currentGame?.showTeamHandicap) {
+          const hcpA = calcTeamHandicap(
+            teamA.filter(id => id != null).map(id => calc9HoleHandicap(getPlayerById(id)?.handicap)),
+            currentGame?.handicapFormat || 'scramble'
+          );
+          const hcpB = calcTeamHandicap(
+            teamB.filter(id => id != null).map(id => calc9HoleHandicap(getPlayerById(id)?.handicap)),
+            currentGame?.handicapFormat || 'scramble'
+          );
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(80, 80, 80);
+          doc.text(`Team HCP ${hcpA}`, colMid - 4, y, { align: 'right' });
+          doc.text(`Team HCP ${hcpB}`, pageW - margin - 2, y, { align: 'right' });
+          doc.setTextColor(0, 0, 0);
+        }
+
+        y += rowH;
+        [[teamA, margin + 2], [teamB, colMid + 2]].forEach(([ids, xStart]) => {
+          ids.forEach((playerId) => {
+            if (y > 270) { doc.addPage(); y = 18; }
+            const player = getPlayerById(playerId);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', player ? 'normal' : 'italic');
+            doc.setTextColor(player ? 0 : 140, player ? 0 : 140, player ? 0 : 140);
+            doc.text(player ? player.name : '—', xStart + 4, y);
+            if (player) {
+              doc.setTextColor(80, 80, 80);
+              const rightEdge = xStart === margin + 2 ? colMid - 4 : pageW - margin - 2;
+              doc.text(`HCP ${calc9HoleHandicap(player.handicap)}`, rightEdge, y, { align: 'right' });
+            }
+            doc.setTextColor(0, 0, 0);
+            y += 6;
+          });
+        });
+      } else {
+        y += rowH;
+        slot.players.forEach((playerId) => {
+          if (y > 270) { doc.addPage(); y = 18; }
+          const player = getPlayerById(playerId);
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(0, 0, 0);
+          doc.text(player ? player.name : '—', margin + 4, y);
+          if (player) {
+            doc.setTextColor(80, 80, 80);
+            doc.text(`HCP ${calc9HoleHandicap(player.handicap)}`, pageW - margin - 2, y, { align: 'right' });
+            doc.setTextColor(0, 0, 0);
+          }
+          y += 6;
+        });
+      }
+
+      y += 3;
+    });
+
+    doc.save(`tee-times-${currentWeek.date}.pdf`);
+  };
 
   if (!isAdminAuthenticated) {
     return (
@@ -359,6 +488,14 @@ export default function AdminPage() {
             <div className="bg-cream-300 px-4 py-3 flex items-center justify-between">
               <h3 className="font-display font-semibold text-charcoal-950">📅 Build Weekly Schedule</h3>
               <div className="flex gap-2">
+                {!showScheduleBuilder && currentWeek?.teeSheet.length > 0 && (
+                  <button
+                    onClick={exportTeeTimes}
+                    className="bg-gold-500 text-forest-950 px-3 py-1 rounded-pill hover:bg-gold-400 text-sm font-medium"
+                  >
+                    Export PDF
+                  </button>
+                )}
                 {!showScheduleBuilder && (
                   <>
                     <button
