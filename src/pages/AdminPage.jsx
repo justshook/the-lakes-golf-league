@@ -1878,6 +1878,48 @@ export default function AdminPage() {
             {showAddPlayer ? (
               <div className="space-y-4">
                 <h4 className="font-semibold text-charcoal-950">Add New Player</h4>
+      {/* Player Management */}
+      <div className="bg-white/95 rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-green-800 px-4 py-3 flex items-center justify-between">
+          <h3 className="text-white font-medium">👤 Player Management</h3>
+          <div className="flex gap-2">
+            {!showPlayerEditor && !showAddPlayer && (
+              <button
+                onClick={() => {
+                  const fullTimePlayers = players.filter(p => p.type === 'full-time');
+                  const rows = [
+                    ['Full Name', 'Email', 'Phone'],
+                    ...fullTimePlayers.map(p => [p.name, p.email, p.phone])
+                  ];
+                  const csv = rows.map(r => r.map(v => `"${(v || '').replace(/"/g, '""')}"`).join(',')).join('\n');
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'full-time-players.csv';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                className="bg-blue-500 text-white px-4 py-1 rounded-lg hover:bg-blue-600 text-sm font-medium"
+              >
+                Export CSV
+              </button>
+            )}
+            {!showPlayerEditor && !showAddPlayer && (
+              <button
+                onClick={() => setShowAddPlayer(true)}
+                className="bg-yellow-500 text-white px-4 py-1 rounded-lg hover:bg-yellow-600 text-sm font-medium"
+              >
+                + Add Player
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="p-4">
+          {showAddPlayer ? (
+            <div className="space-y-4">
+              <h4 className="font-semibold text-gray-800">Add New Player</h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
