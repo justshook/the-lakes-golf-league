@@ -1246,9 +1246,9 @@ export default function AdminPage() {
 
               {/* Budget Summary Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-green-50 border border-green-200 rounded-card p-3 text-center">
-                  <div className="text-xs text-green-600 font-medium">Collected</div>
-                  <div className="text-lg font-bold text-green-800">${seasonBudget.toLocaleString()}</div>
+                <div className="bg-forest-900/5 border border-forest-900/20 rounded-card p-3 text-center">
+                  <div className="text-xs text-forest-900 font-medium">Collected</div>
+                  <div className="text-lg font-bold text-forest-900">${seasonBudget.toLocaleString()}</div>
                 </div>
                 <div className={`border rounded-card p-3 text-center ${totalPlannedPayouts > seasonBudget ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-200'}`}>
                   <div className={`text-xs font-medium ${totalPlannedPayouts > seasonBudget ? 'text-red-600' : 'text-blue-600'}`}>Planned</div>
