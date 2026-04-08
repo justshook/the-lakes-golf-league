@@ -485,42 +485,40 @@ export default function AdminPage() {
 
           {/* Build Weekly Schedule */}
           <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
-            <div className="bg-cream-300 px-4 py-3 flex items-center justify-between">
+            <div className="bg-cream-300 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="font-display font-semibold text-charcoal-950">📅 Build Weekly Schedule</h3>
-              <div className="flex gap-2">
-                {!showScheduleBuilder && currentWeek?.teeSheet.length > 0 && (
-                  <button
-                    onClick={exportTeeTimes}
-                    className="bg-gold-500 text-forest-950 px-3 py-1 rounded-pill hover:bg-gold-400 text-sm font-medium"
-                  >
-                    Export PDF
-                  </button>
-                )}
-                {!showScheduleBuilder && (
-                  <>
+              {!showScheduleBuilder && (
+                <div className="flex flex-wrap gap-2">
+                  {currentWeek?.teeSheet.length > 0 && (
                     <button
-                      onClick={autoScheduleWeek}
+                      onClick={exportTeeTimes}
+                      className="bg-gold-500 text-forest-950 px-3 py-1 rounded-pill hover:bg-gold-400 text-sm font-medium"
+                    >
+                      Export PDF
+                    </button>
+                  )}
+                  <button
+                    onClick={autoScheduleWeek}
+                    className="bg-forest-800 text-cream-200 px-3 py-1 rounded-pill hover:bg-forest-700 text-sm font-medium"
+                  >
+                    ✨ Auto-Generate
+                  </button>
+                  {currentWeek?.teeSheet.length > 0 && (
+                    <button
+                      onClick={compactTeeSheet}
                       className="bg-forest-800 text-cream-200 px-3 py-1 rounded-pill hover:bg-forest-700 text-sm font-medium"
                     >
-                      ✨ Auto-Generate
+                      Compact
                     </button>
-                    {currentWeek?.teeSheet.length > 0 && (
-                      <button
-                        onClick={compactTeeSheet}
-                        className="bg-forest-800 text-cream-200 px-3 py-1 rounded-pill hover:bg-forest-700 text-sm font-medium"
-                      >
-                        Compact Schedule
-                      </button>
-                    )}
-                    <button
-                      onClick={loadExistingSchedule}
-                      className="bg-forest-900 text-cream-200 px-3 py-1 rounded-pill hover:bg-forest-800 text-sm font-medium"
-                    >
-                      {currentWeek?.teeSheet.length ? 'Edit Schedule' : 'Manual Build'}
-                    </button>
-                  </>
-                )}
-              </div>
+                  )}
+                  <button
+                    onClick={loadExistingSchedule}
+                    className="bg-forest-900 text-cream-200 px-3 py-1 rounded-pill hover:bg-forest-800 text-sm font-medium"
+                  >
+                    {currentWeek?.teeSheet.length ? 'Edit Schedule' : 'Manual Build'}
+                  </button>
+                </div>
+              )}
             </div>
 
             {showScheduleBuilder && (

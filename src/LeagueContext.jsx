@@ -1214,20 +1214,35 @@ export function LeagueProvider({ children }) {
   };
 
   // === Compact schedule (push empty slots to the end) ===
-  const compactTeeSheet = async () => {
+  const compactTeeSheet = () => {
     const currentWeekData = weeks.find(w => w.id === selectedWeek);
-    if (!currentWeekData?.teeSheet?.length) return;
+    if (!currentWeekData?.teeSheet?.length) {
+      alert('No schedule found for this week.');
+      return;
+    }
 
     const filledSlots = currentWeekData.teeSheet.filter(slot => slot.players?.length > 0);
-    const emptyCount = teeTimes.length - filledSlots.length;
 
+    if (filledSlots.length === 0) {
+      alert('No players are scheduled this week.');
+      return;
+    }
+
+    const alreadyCompact = filledSlots.every((slot, i) => slot.time === teeTimes[i]);
+    if (alreadyCompact) {
+      alert('Schedule is already compact — teams are already filling the earliest tee times.');
+      return;
+    }
+
+    const emptyCount = Math.max(0, teeTimes.length - filledSlots.length);
     const newTeeSheet = [
       ...filledSlots.map((slot, idx) => ({ time: teeTimes[idx], players: slot.players })),
       ...Array.from({ length: emptyCount }, (_, i) => ({ time: teeTimes[filledSlots.length + i], players: [] })),
     ];
 
     setWeeks(weeks.map(w => w.id === selectedWeek ? { ...w, teeSheet: newTeeSheet } : w));
-    await saveTeeSheetToSupabase(selectedWeek, newTeeSheet, currentWeekData.scoresEntered || false, currentWeekData.moneyEntered || false);
+    saveTeeSheetToSupabase(selectedWeek, newTeeSheet, currentWeekData.scoresEntered || false, currentWeekData.moneyEntered || false);
+    alert(`Done! ${filledSlots.length} teams now fill ${teeTimes[0]}–${teeTimes[filledSlots.length - 1]}. Open slots are at the end.`);
   };
 
   // === Manual schedule ===
