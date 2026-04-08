@@ -1213,6 +1213,23 @@ export function LeagueProvider({ children }) {
     saveTeeSheetToSupabase(selectedWeek, newTeeSheet, false, false);
   };
 
+  // === Compact schedule (push empty slots to the end) ===
+  const compactTeeSheet = async () => {
+    const currentWeekData = weeks.find(w => w.id === selectedWeek);
+    if (!currentWeekData?.teeSheet?.length) return;
+
+    const filledSlots = currentWeekData.teeSheet.filter(slot => slot.players?.length > 0);
+    const emptyCount = teeTimes.length - filledSlots.length;
+
+    const newTeeSheet = [
+      ...filledSlots.map((slot, idx) => ({ time: teeTimes[idx], players: slot.players })),
+      ...Array.from({ length: emptyCount }, (_, i) => ({ time: teeTimes[filledSlots.length + i], players: [] })),
+    ];
+
+    setWeeks(weeks.map(w => w.id === selectedWeek ? { ...w, teeSheet: newTeeSheet } : w));
+    await saveTeeSheetToSupabase(selectedWeek, newTeeSheet, currentWeekData.scoresEntered || false, currentWeekData.moneyEntered || false);
+  };
+
   // === Manual schedule ===
   const loadExistingSchedule = () => {
     if (currentWeek && currentWeek.teeSheet.length > 0) {
@@ -1474,7 +1491,7 @@ export function LeagueProvider({ children }) {
     loadPlayerForEdit, handleSavePlayer, toggleAvailability,
     handleAddPlayer, handleRemovePlayer, toggleNewPlayerAvailability,
     handleAdminLogin,
-    autoScheduleWeek, loadExistingSchedule, handleBuildSchedule,
+    autoScheduleWeek, compactTeeSheet, loadExistingSchedule, handleBuildSchedule,
     handleEnterMoney, loadMoneyForEdit,
     getPlayerById, getPlayersForWeek, getWeeklyMoneyTotal,
     formatDate, formatShortDate,
