@@ -16,7 +16,7 @@ export default function AdminPage() {
     scheduleSelections, setScheduleSelections,
     dragPlayer, setDragPlayer, dragOverSlot, setDragOverSlot,
     assignedPlayerIds,
-    autoScheduleWeek, loadExistingSchedule, handleBuildSchedule,
+    autoScheduleWeek, compactTeeSheet, loadExistingSchedule, handleBuildSchedule,
     // Money entry
     showMoneyEntry, setShowMoneyEntry,
     moneyEntries, setMoneyEntries,
@@ -504,6 +504,14 @@ export default function AdminPage() {
                     >
                       ✨ Auto-Generate
                     </button>
+                    {currentWeek?.teeSheet.length > 0 && (
+                      <button
+                        onClick={compactTeeSheet}
+                        className="bg-forest-800 text-cream-200 px-3 py-1 rounded-pill hover:bg-forest-700 text-sm font-medium"
+                      >
+                        Compact Schedule
+                      </button>
+                    )}
                     <button
                       onClick={loadExistingSchedule}
                       className="bg-forest-900 text-cream-200 px-3 py-1 rounded-pill hover:bg-forest-800 text-sm font-medium"
