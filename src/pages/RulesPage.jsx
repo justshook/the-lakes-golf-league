@@ -50,6 +50,17 @@ export default function RulesPage() {
               <li className="flex gap-3">
                 <span className="flex-shrink-0 w-6 h-6 bg-forest-800 text-cream-200 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">4</span>
                 <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
+                  Out-of-bounds fences are being played as{' '}
+                  <span className="font-semibold">temporary immovable obstructions</span> this season.
+                  If your ball comes to rest near an OB fence, you are entitled to{' '}
+                  <span className="font-semibold">free relief</span> — drop within{' '}
+                  <span className="font-semibold">2 club lengths</span> of the nearest point of relief,
+                  no closer to the hole. No penalty stroke.
+                </p>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-6 h-6 bg-forest-800 text-cream-200 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">5</span>
+                <p className="text-charcoal-800 text-[0.9375rem] leading-relaxed">
                   All rounds must be completed in <span className="font-semibold">2 hours and 10 minutes</span> or
                   less. If your pace of play is slower than this you will be assigned a tee time after 5pm.
                 </p>
