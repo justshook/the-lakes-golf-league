@@ -176,7 +176,7 @@ export function LeagueProvider({ children }) {
           setWeeks(prevWeeks => prevWeeks.map(week => {
             const savedSheet = teeSheetData.find(ts => ts.week_id === week.id);
             if (savedSheet) {
-              return { ...week, teeSheet: (savedSheet.tee_sheet || []).filter(slot => slot.time !== '5:20 PM'), scoresEntered: savedSheet.scores_entered || false, moneyEntered: savedSheet.money_entered || false };
+              return { ...week, teeSheet: (savedSheet.tee_sheet || []), scoresEntered: savedSheet.scores_entered || false, moneyEntered: savedSheet.money_entered || false };
             }
             return week;
           }));
@@ -333,7 +333,7 @@ export function LeagueProvider({ children }) {
         setWeeks(prevWeeks => prevWeeks.map(week => {
           const savedSheet = teeSheetData.find(ts => ts.week_id === week.id);
           if (savedSheet) {
-            return { ...week, teeSheet: (savedSheet.tee_sheet || []).filter(slot => slot.time !== '5:20 PM'), scoresEntered: savedSheet.scores_entered || false, moneyEntered: savedSheet.money_entered || false };
+            return { ...week, teeSheet: (savedSheet.tee_sheet || []), scoresEntered: savedSheet.scores_entered || false, moneyEntered: savedSheet.money_entered || false };
           }
           return week;
         }));

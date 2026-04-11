@@ -136,10 +136,10 @@ export const generateSeasonWeeks = () => {
   return weeks;
 };
 
-// 11 Tee times from 3:30 PM to 5:10 PM in 10-minute intervals
+// 12 Tee times from 3:30 PM to 5:20 PM in 10-minute intervals
 export const teeTimes = [
   '3:30 PM', '3:40 PM', '3:50 PM', '4:00 PM', '4:10 PM', '4:20 PM',
-  '4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM', '5:10 PM'
+  '4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM', '5:10 PM', '5:20 PM'
 ];
 
 // Arlington Lakes Golf Club - All 18 holes (Black Tees - Par 68, 5252 yards)
