@@ -373,6 +373,23 @@ export function LeagueProvider({ children }) {
           return game;
         }));
       }
+
+      // Refresh payout templates and league settings
+      const { data: settingsData } = await supabase.from('league_settings').select('*').eq('id', 1).single();
+      if (settingsData) {
+        if (settingsData.season_buy_in) setSeasonBuyIn(settingsData.season_buy_in);
+        if (settingsData.week_template_assignments) setWeekTemplateAssignments(settingsData.week_template_assignments);
+      }
+      const { data: templatesData } = await supabase.from('payout_templates').select('*');
+      if (templatesData && templatesData.length > 0) {
+        setPayoutTemplates(templatesData.map(t => ({
+          id: t.id, name: t.name, payouts: t.payouts || [],
+          sideGameTotal: t.side_game_total || 0,
+          sideGameName: t.side_game_name || '',
+          sideGameDescription: t.side_game_description || '',
+          isDefault: t.is_default || false
+        })));
+      }
     } catch (error) {
       console.error('Error refreshing data:', error);
     }
@@ -468,7 +485,7 @@ export function LeagueProvider({ children }) {
         const { error } = await supabase.from('payout_templates').upsert(rows, { onConflict: 'id' });
         if (error) throw error;
       }
-    } catch (error) { console.error('Error saving payout templates:', error); }
+    } catch (error) { console.error('Error saving payout templates:', error); alert('Failed to save payout templates. Check the browser console for details.'); }
   };
 
   const saveWeekTemplateAssignments = async (assignments) => {
@@ -477,7 +494,7 @@ export function LeagueProvider({ children }) {
         id: 1, season_buy_in: seasonBuyIn, week_template_assignments: assignments
       }, { onConflict: 'id' });
       if (error) throw error;
-    } catch (error) { console.error('Error saving week template assignments:', error); }
+    } catch (error) { console.error('Error saving week template assignments:', error); alert('Failed to save week assignments. Check the browser console for details.'); }
   };
 
   const savePlayerScoreToSupabase = async (playerId, weekId, grossScore, netScore, handicapUsed, birdieHoles = [], eagleHoles = [], isTeamScore = false) => {
