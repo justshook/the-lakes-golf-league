@@ -473,19 +473,29 @@ export function LeagueProvider({ children }) {
   const savePayoutTemplatesData = async (templates) => {
     try {
       const { error: deleteError } = await supabase.from('payout_templates').delete().neq('id', '');
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error('Delete step failed:', deleteError);
+        alert(`Failed to clear payout templates (delete step): ${deleteError.message || JSON.stringify(deleteError)}`);
+        return;
+      }
       if (templates.length > 0) {
         const rows = templates.map(t => ({
           id: t.id, name: t.name, payouts: t.payouts,
-          side_game_total: t.sideGameTotal,
+          side_game_total: t.sideGameTotal ?? 0,
           side_game_name: t.sideGameName || '',
           side_game_description: t.sideGameDescription || '',
           is_default: t.isDefault || false
         }));
         const { error } = await supabase.from('payout_templates').upsert(rows, { onConflict: 'id' });
-        if (error) throw error;
+        if (error) {
+          console.error('Upsert step failed:', error, 'rows sent:', JSON.stringify(rows));
+          alert(`Failed to save payout templates (upsert step): ${error.message || JSON.stringify(error)}`);
+        }
       }
-    } catch (error) { console.error('Error saving payout templates:', error); alert('Failed to save payout templates. Check the browser console for details.'); }
+    } catch (error) {
+      console.error('Error saving payout templates:', error);
+      alert(`Failed to save payout templates: ${error.message || JSON.stringify(error)}`);
+    }
   };
 
   const saveWeekTemplateAssignments = async (assignments) => {
