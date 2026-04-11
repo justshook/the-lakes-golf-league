@@ -156,6 +156,20 @@ export function LeagueProvider({ children }) {
           loadedPlayers = initialPlayers;
         } else if (playersData && playersData.length > 0) {
           loadedPlayers = playersData.map(supabasePlayerToApp);
+          // Migration: restore '5:20 PM' to any player whose initialPlayers availability includes it
+          const initialPlayerMap = new Map(initialPlayers.map(p => [p.id, p]));
+          const toMigrate = loadedPlayers.filter(p => {
+            const orig = initialPlayerMap.get(p.id);
+            return orig && orig.availability.includes('5:20 PM') && !p.availability.includes('5:20 PM');
+          });
+          if (toMigrate.length > 0) {
+            await Promise.all(toMigrate.map(p =>
+              supabase.from('players').update({ availability: [...p.availability, '5:20 PM'] }).eq('id', p.id)
+            ));
+            loadedPlayers = loadedPlayers.map(p =>
+              toMigrate.some(m => m.id === p.id) ? { ...p, availability: [...p.availability, '5:20 PM'] } : p
+            );
+          }
         } else {
           // Table exists but is empty — seed it from initialPlayers
           const rows = initialPlayers.map(p => ({
