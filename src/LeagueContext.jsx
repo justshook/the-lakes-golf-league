@@ -515,11 +515,16 @@ export function LeagueProvider({ children }) {
   };
 
   const savePlayerScoreToSupabase = async (playerId, weekId, grossScore, netScore, handicapUsed, birdieHoles = [], eagleHoles = [], isTeamScore = false) => {
-    const { error } = await supabase.from('player_scores').upsert({
+    // Delete any existing score for this player/week first, then insert fresh.
+    // This avoids relying on a unique constraint for upsert conflict resolution.
+    const { error: deleteError } = await supabase.from('player_scores')
+      .delete().eq('player_id', playerId).eq('week_id', weekId);
+    if (deleteError) throw deleteError;
+    const { error: insertError } = await supabase.from('player_scores').insert({
       player_id: playerId, week_id: weekId, gross_score: grossScore, net_score: netScore,
       handicap_used: handicapUsed, birdie_holes: birdieHoles, eagle_holes: eagleHoles, is_team_score: isTeamScore
-    }, { onConflict: 'player_id,week_id' });
-    if (error) throw error;
+    });
+    if (insertError) throw insertError;
   };
 
   // === Tee time signup ===
@@ -916,7 +921,7 @@ export function LeagueProvider({ children }) {
       } catch (error) {
         console.error('Error saving team score:', error);
         setIsSubmitting(false);
-        alert('Failed to save score. Please check your connection and try again.');
+        alert(`Failed to save score: ${error?.message || JSON.stringify(error)}`);
       }
     } else {
       const player = players.find(p => p.id === playerIdNum);
@@ -940,7 +945,7 @@ export function LeagueProvider({ children }) {
       } catch (error) {
         console.error('Error saving score:', error);
         setIsSubmitting(false);
-        alert('Failed to save score. Please check your connection and try again.');
+        alert(`Failed to save score: ${error?.message || JSON.stringify(error)}`);
       }
     }
   };
