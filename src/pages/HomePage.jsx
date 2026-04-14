@@ -20,6 +20,7 @@ export default function HomePage() {
     handleRemoveFromTeeTime,
     players, isSubmitting,
     scoreOverwriteConfirm, setScoreOverwriteConfirm,
+    formatShortDate,
   } = useLeague();
 
   const today = new Date().toLocaleDateString('en-CA');
