@@ -805,22 +805,7 @@ export default function AdminPage() {
                               <div className="flex items-center gap-2 mb-2">
                                 <span className="text-xl">{cat.icon}</span>
                                 <span className="font-medium text-charcoal-800">{cat.name}</span>
-                                <div className="flex items-center ml-auto">
-                                  <span className="text-charcoal-400 text-sm">$ each</span>
-                                  <input
-                                    type="number"
-                                    placeholder={getTemplateAmount(place) || '0'}
-                                    value={amountForPlace}
-                                    onChange={(e) => {
-                                      const newEntries = { ...moneyEntries };
-                                      Object.keys(newEntries).forEach(k => {
-                                        if (k.endsWith(`-${place}`)) newEntries[k] = e.target.value;
-                                      });
-                                      setMoneyEntries(newEntries);
-                                    }}
-                                    className="w-20 border border-charcoal-800/20 rounded-input px-2 py-1 ml-1 text-sm bg-cream-200"
-                                  />
-                                </div>
+                                <span className="text-charcoal-500 text-sm ml-auto">{getTemplateAmount(place) ? `$${getTemplateAmount(place)} each` : '—'}</span>
                               </div>
                               <div className="max-h-32 overflow-y-auto space-y-1">
                                 {getPlayersForWeek(selectedWeek).map(id => {
@@ -834,7 +819,7 @@ export default function AdminPage() {
                                         onChange={(e) => {
                                           const newEntries = { ...moneyEntries };
                                           if (e.target.checked) {
-                                            newEntries[`${id}-${place}`] = amountForPlace || getTemplateAmount(place);
+                                            newEntries[`${id}-${place}`] = getTemplateAmount(place);
                                           } else {
                                             delete newEntries[`${id}-${place}`];
                                           }
@@ -864,7 +849,7 @@ export default function AdminPage() {
                                     if (k.endsWith(`-${place}`)) delete newEntries[k];
                                   });
                                   if (e.target.value) {
-                                    newEntries[`${e.target.value}-${place}`] = moneyEntries[`${e.target.value}-${place}`] || getTemplateAmount(place) || '';
+                                    newEntries[`${e.target.value}-${place}`] = getTemplateAmount(place) || '';
                                   }
                                   setMoneyEntries(newEntries);
                                 }}
@@ -876,22 +861,7 @@ export default function AdminPage() {
                                   return <option key={id} value={id}>{p?.name}</option>;
                                 })}
                               </select>
-                              <div className="flex items-center">
-                                <span className="text-charcoal-400">$</span>
-                                <input
-                                  type="number"
-                                  placeholder={getTemplateAmount(place) || '0'}
-                                  value={amountForPlace}
-                                  onChange={(e) => {
-                                    const newEntries = { ...moneyEntries };
-                                    Object.keys(newEntries).forEach(k => {
-                                      if (k.endsWith(`-${place}`)) newEntries[k] = e.target.value;
-                                    });
-                                    setMoneyEntries(newEntries);
-                                  }}
-                                  className="w-20 border border-charcoal-800/20 rounded-input px-2 py-1 bg-cream-100"
-                                />
-                              </div>
+                              <span className="text-charcoal-500 text-sm whitespace-nowrap">{getTemplateAmount(place) ? `$${getTemplateAmount(place)}` : '—'}</span>
                             </div>
                           );
                         }
