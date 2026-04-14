@@ -184,9 +184,10 @@ export function LeagueProvider({ children }) {
 
         const { data: teeSheetData, error: teeSheetError } = await supabase
           .from('tee_sheets').select('*');
-        if (teeSheetError) throw teeSheetError;
-
-        if (teeSheetData && teeSheetData.length > 0) {
+        if (teeSheetError) {
+          console.error('Tee sheets table error:', teeSheetError.message);
+          console.error('IMPORTANT: You need to create the "tee_sheets" table in your Supabase dashboard. Tee sheet changes will NOT persist until the table is created.');
+        } else if (teeSheetData && teeSheetData.length > 0) {
           setWeeks(prevWeeks => prevWeeks.map(week => {
             const savedSheet = teeSheetData.find(ts => ts.week_id === week.id);
             if (savedSheet) {
@@ -198,9 +199,10 @@ export function LeagueProvider({ children }) {
 
         const { data: moneyData, error: moneyError } = await supabase
           .from('player_money').select('*');
-        if (moneyError) throw moneyError;
-
-        if (moneyData && moneyData.length > 0) {
+        if (moneyError) {
+          console.error('Player money table error:', moneyError.message);
+          console.error('IMPORTANT: You need to create the "player_money" table in your Supabase dashboard. Money tracking will NOT persist until the table is created.');
+        } else if (moneyData && moneyData.length > 0) {
           setPlayers(prevPlayers => prevPlayers.map(player => {
             const playerMoney = moneyData.filter(m => m.player_id === player.id);
             if (playerMoney.length > 0) {
@@ -221,9 +223,10 @@ export function LeagueProvider({ children }) {
 
         const { data: skinsData, error: skinsError } = await supabase
           .from('giant_skins').select('*');
-        if (skinsError) throw skinsError;
-
-        if (skinsData && skinsData.length > 0) {
+        if (skinsError) {
+          console.error('Giant skins table error:', skinsError.message);
+          console.error('IMPORTANT: You need to create the "giant_skins" table in your Supabase dashboard. Giant skins tracking will NOT persist until the table is created.');
+        } else if (skinsData && skinsData.length > 0) {
           setGiantSkins(prevSkins => prevSkins.map(skin => {
             const savedSkin = skinsData.find(s => s.hole_number === skin.number);
             if (savedSkin && savedSkin.low_score) {
@@ -239,8 +242,12 @@ export function LeagueProvider({ children }) {
 
         const { data: scoresData, error: scoresError } = await supabase
           .from('player_scores').select('*');
-        if (scoresError) throw scoresError;
-        if (scoresData && scoresData.length > 0) setPlayerScores(scoresData);
+        if (scoresError) {
+          console.error('Player scores table error:', scoresError.message);
+          console.error('IMPORTANT: You need to create the "player_scores" table in your Supabase dashboard. Score tracking will NOT persist until the table is created.');
+        } else if (scoresData && scoresData.length > 0) {
+          setPlayerScores(scoresData);
+        }
 
         // Load weekly games from Supabase
         const { data: gamesData, error: gamesError } = await supabase

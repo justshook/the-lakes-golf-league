@@ -301,7 +301,7 @@ export default function HomePage() {
                     const yesterdayDate = new Date();
                     yesterdayDate.setDate(yesterdayDate.getDate() - 1);
                     const yesterday = yesterdayDate.toLocaleDateString('en-CA');
-                    const eligibleWeeks = weeks.filter(w => w.teeSheet.length > 0 && (w.date === today || w.date === yesterday));
+                    const eligibleWeeks = weeks.filter(w => w.date === today || w.date === yesterday);
                     const playersOnTeeSheet = new Set(eligibleWeeks.flatMap(w => w.teeSheet.flatMap(slot => slot.players)));
                     return players
                       .filter(p => p.type === 'full-time' || playersOnTeeSheet.has(p.id))
@@ -338,7 +338,7 @@ export default function HomePage() {
                   const yesterdayDate = new Date();
                   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
                   const yesterday = yesterdayDate.toLocaleDateString('en-CA');
-                  const todayWeeks = weeks.filter(w => w.teeSheet.length > 0 && (w.date === today || w.date === yesterday));
+                  const todayWeeks = weeks.filter(w => w.date === today || w.date === yesterday);
 
                   if (todayWeeks.length === 0) {
                     return (
