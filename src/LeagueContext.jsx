@@ -777,7 +777,7 @@ export function LeagueProvider({ children }) {
   const updatePlayerScore = async (playerId, weekId, newGrossScore, newBirdieHoles = [], newEagleHoles = []) => {
     const player = players.find(p => p.id === playerId);
     if (!player) return;
-    const handicap9 = calc9HoleHandicap(player.handicap);
+    const { handicap: handicap9 } = getHandicapForWeek(playerId, weekId);
     const newNetScore = newGrossScore - handicap9;
     try {
       const { error } = await supabase.from('player_scores').update({
@@ -897,12 +897,13 @@ export function LeagueProvider({ children }) {
       const { teammates, isSolo } = getTeammatesForWeek(playerIdNum, weekIdNum);
       const allMembers = isSolo ? [playerIdNum] : [playerIdNum, ...teammates];
       const grossScore = parseInt(totalScore);
+      const { handicap: teamHcp } = getHandicapForWeek(playerIdNum, weekIdNum);
 
       try {
         for (const memberId of allMembers) {
           const member = players.find(p => p.id === memberId);
           if (!member) continue;
-          const handicap9 = calc9HoleHandicap(member.handicap);
+          const handicap9 = teamHcp;
           const netScore = grossScore - handicap9;
           await savePlayerScoreToSupabase(memberId, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles, true);
           setPlayerScores(prev => {
@@ -927,7 +928,7 @@ export function LeagueProvider({ children }) {
       const player = players.find(p => p.id === playerIdNum);
       if (!player) { setIsSubmitting(false); return; }
       const grossScore = parseInt(totalScore);
-      const handicap9 = calc9HoleHandicap(player.handicap);
+      const { handicap: handicap9 } = getHandicapForWeek(playerIdNum, weekIdNum);
       const netScore = grossScore - handicap9;
       try {
         await savePlayerScoreToSupabase(playerIdNum, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles, false);
@@ -1039,6 +1040,38 @@ export function LeagueProvider({ children }) {
     }
 
     return { teammates: [], teamType: null, slot: null };
+  };
+
+  // Returns { handicap, isTeamHcp } to use for a player's net score on a given week.
+  // When the week's game has showTeamHandicap + a teamType and the player has teammates
+  // on the tee sheet, returns the team handicap computed via calcTeamHandicap from each
+  // team member's 9-hole course handicap. Otherwise falls back to the player's
+  // individual 9-hole handicap.
+  const getHandicapForWeek = (playerId, weekId) => {
+    const player = players.find(p => p.id === playerId);
+    if (!player) return { handicap: 0, isTeamHcp: false };
+    const individual = calc9HoleHandicap(player.handicap);
+
+    const game = weeklyGames.find(g => g.weekId === weekId);
+    if (!game?.showTeamHandicap || !game?.teamType) {
+      return { handicap: individual, isTeamHcp: false };
+    }
+
+    const { teammates, isSolo } = getTeammatesForWeek(playerId, weekId);
+    if (isSolo || !teammates || teammates.length === 0) {
+      return { handicap: individual, isTeamHcp: false };
+    }
+
+    const teamIds = [playerId, ...teammates];
+    const teamHcps = teamIds
+      .map(id => players.find(p => p.id === id))
+      .filter(Boolean)
+      .map(p => calc9HoleHandicap(p.handicap));
+
+    return {
+      handicap: calcTeamHandicap(teamHcps, game.handicapFormat || 'scramble'),
+      isTeamHcp: true,
+    };
   };
 
   // === Weekly game edit ===
@@ -1554,7 +1587,7 @@ export function LeagueProvider({ children }) {
     addPlayerToGiantSkin, removePlayerFromGiantSkin, editGiantSkinType,
     resetSingleWeek, resetMoneyData, resetTeeSheets, resetGiantSkins, resetPlayerScores, resetAllData,
     handlePlayerScoreSubmit, handleConfirmedScoreOverwrite, toggleHoleSelection,
-    getGameForWeek, getTeamTypeForWeek, getTeammatesForWeek,
+    getGameForWeek, getTeamTypeForWeek, getTeammatesForWeek, getHandicapForWeek,
     loadWeeklyGameForEdit, handleSaveWeeklyGame,
     loadPlayerForEdit, handleSavePlayer, toggleAvailability,
     handleAddPlayer, handleRemovePlayer, toggleNewPlayerAvailability,

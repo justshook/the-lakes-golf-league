@@ -30,7 +30,7 @@ export default function AdminPage() {
     playerScores, setPlayerScores,
     savePlayerScoreToSupabase, recalculateGiantSkins,
     updatePlayerScore, deletePlayerScore,
-    getTeammatesForWeek,
+    getTeammatesForWeek, getHandicapForWeek,
     // Weekly games
     showWeeklyGameEditor, setShowWeeklyGameEditor,
     weeklyGameEdit, setWeeklyGameEdit,
@@ -1079,11 +1079,12 @@ export default function AdminPage() {
                       if (isTeamScore) {
                         const { teammates, isSolo } = getTeammatesForWeek(playerId, scoreManagerWeek);
                         const allMembers = isSolo ? [playerId] : [playerId, ...teammates];
+                        const { handicap: teamHcp } = getHandicapForWeek(playerId, scoreManagerWeek);
 
                         for (const memberId of allMembers) {
                           const member = players.find(p => p.id === memberId);
                           if (!member) continue;
-                          const handicap9 = calc9HoleHandicap(member.handicap);
+                          const handicap9 = teamHcp;
                           const netScore = grossScore - handicap9;
 
                           await savePlayerScoreToSupabase(memberId, scoreManagerWeek, grossScore, netScore, handicap9, adminAddScore.birdieHoles, adminAddScore.eagleHoles, true);
@@ -1100,7 +1101,7 @@ export default function AdminPage() {
                         }
                       } else {
                         const player = players.find(p => p.id === playerId);
-                        const handicap9 = calc9HoleHandicap(player.handicap);
+                        const { handicap: handicap9 } = getHandicapForWeek(playerId, scoreManagerWeek);
                         const netScore = grossScore - handicap9;
 
                         await savePlayerScoreToSupabase(playerId, scoreManagerWeek, grossScore, netScore, handicap9, adminAddScore.birdieHoles, adminAddScore.eagleHoles, false);
@@ -1185,7 +1186,7 @@ export default function AdminPage() {
                                   </td>
                                   <td className="p-2 text-center text-charcoal-400">-{score.handicap_used}</td>
                                   <td className="p-2 text-center font-bold text-forest-900">
-                                    {isEditing ? (editingScore.gross_score - calc9HoleHandicap(player?.handicap || 0)) : score.net_score}
+                                    {isEditing ? (editingScore.gross_score - getHandicapForWeek(score.player_id, score.week_id).handicap) : score.net_score}
                                   </td>
                                   <td className="p-2">
                                     {isEditing ? (
