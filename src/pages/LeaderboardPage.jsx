@@ -48,14 +48,11 @@ export default function LeaderboardPage() {
             </div>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px]">
+            <table className="w-full">
               <thead className="bg-cream-300/60">
                 <tr>
                   <th className="th-label text-left w-16 sticky left-0 z-10 bg-cream-300/60">Rank</th>
                   <th className="th-label text-left sticky left-16 z-10 bg-cream-300/60">Player</th>
-                  <th className="th-label text-center">Rounds</th>
-                  <th className="th-label text-center">Avg Gross</th>
-                  <th className="th-label text-center">Avg Net</th>
                   <th className="th-label text-right">Total Won</th>
                 </tr>
               </thead>
@@ -68,9 +65,6 @@ export default function LeaderboardPage() {
                     );
                     scoreMap[player.id] = {
                       rounds: scores.length,
-                      avgGross: scores.length > 0
-                        ? (scores.reduce((sum, s) => sum + s.gross_score, 0) / scores.length).toFixed(1)
-                        : null,
                       avgNet: scores.length > 0
                         ? (scores.reduce((sum, s) => sum + s.net_score, 0) / scores.length).toFixed(1)
                         : null,
@@ -90,7 +84,7 @@ export default function LeaderboardPage() {
                   if (unified.length === 0) {
                     return (
                       <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-charcoal-500">
+                        <td colSpan={3} className="px-4 py-12 text-center text-charcoal-500">
                           No data yet. Scores and winnings will appear here as the season progresses.
                         </td>
                       </tr>
@@ -118,27 +112,6 @@ export default function LeaderboardPage() {
                         index === 0 ? 'bg-gold-500/10 group-hover:bg-gold-500/20' : 'bg-cream-200 group-hover:bg-cream-300/40'
                       }`}>
                         {player.name}
-                      </td>
-                      <td className="px-2 sm:px-4 py-4 text-center text-charcoal-600">
-                        {player.rounds > 0 ? player.rounds : <span className="text-charcoal-400">—</span>}
-                      </td>
-                      <td className="px-2 sm:px-4 py-4 text-center">
-                        {player.avgGross !== null ? (
-                          <span className="bg-charcoal-800/10 text-charcoal-600 px-2 py-1 rounded font-medium text-sm">
-                            {player.avgGross}
-                          </span>
-                        ) : (
-                          <span className="text-charcoal-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-2 sm:px-4 py-4 text-center">
-                        {player.avgNet !== null ? (
-                          <span className="bg-forest-800/10 text-forest-900 px-3 py-1 rounded-pill font-bold text-sm">
-                            {player.avgNet}
-                          </span>
-                        ) : (
-                          <span className="text-charcoal-400">—</span>
-                        )}
                       </td>
                       <td className="px-2 sm:px-4 py-4 text-right">
                         {player.totalMoney > 0 ? (
@@ -238,6 +211,53 @@ export default function LeaderboardPage() {
               )}
             </div>
           </div>
+
+          {/* Weekly scores table */}
+          {(() => {
+            const weekScores = playerScores
+              .filter(s => s.week_id === selectedWeek)
+              .sort((a, b) => a.net_score - b.net_score);
+            if (weekScores.length === 0) return null;
+            return (
+              <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
+                <div className="bg-cream-300 px-4 sm:px-6 py-4 border-b border-charcoal-800/10">
+                  <h3 className="text-base font-display font-bold text-charcoal-950">Week {selectedWeek} Scores</h3>
+                </div>
+                <table className="w-full">
+                  <thead className="bg-cream-300/60">
+                    <tr>
+                      <th className="th-label text-left">Player</th>
+                      <th className="th-label text-center">Gross</th>
+                      <th className="th-label text-center">Net</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {weekScores.map((score, index) => {
+                      const player = getPlayerById(score.player_id);
+                      if (!player) return null;
+                      return (
+                        <tr key={`${score.player_id}-${index}`} className="border-b border-charcoal-800/10">
+                          <td className="px-4 sm:px-6 py-3 font-display font-semibold text-charcoal-950 text-[0.9375rem]">
+                            {player.name}
+                          </td>
+                          <td className="px-4 sm:px-6 py-3 text-center">
+                            <span className="bg-charcoal-800/10 text-charcoal-600 px-2 py-1 rounded font-medium text-sm">
+                              {score.gross_score}
+                            </span>
+                          </td>
+                          <td className="px-4 sm:px-6 py-3 text-center">
+                            <span className="bg-forest-800/10 text-forest-900 px-3 py-1 rounded-pill font-bold text-sm">
+                              {score.net_score}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
