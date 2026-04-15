@@ -71,8 +71,7 @@ export default function LeaderboardPage() {
                     };
                   });
 
-                  const unified = players
-                    .filter(p => p.totalMoney > 0 || scoreMap[p.id].rounds > 0)
+                  const sorted = players
                     .map(p => ({ ...p, ...scoreMap[p.id] }))
                     .sort((a, b) => {
                       if (b.totalMoney !== a.totalMoney) return b.totalMoney - a.totalMoney;
@@ -80,6 +79,15 @@ export default function LeaderboardPage() {
                       if (b.avgNet === null) return -1;
                       return parseFloat(a.avgNet) - parseFloat(b.avgNet);
                     });
+
+                  let lastMoney = null;
+                  let lastRank = 0;
+                  const unified = sorted.map((p, i) => {
+                    const rank = p.totalMoney === lastMoney ? lastRank : i + 1;
+                    lastMoney = p.totalMoney;
+                    lastRank = rank;
+                    return { ...p, rank };
+                  });
 
                   if (unified.length === 0) {
                     return (
@@ -91,25 +99,25 @@ export default function LeaderboardPage() {
                     );
                   }
 
-                  return unified.map((player, index) => (
+                  return unified.map((player) => (
                     <tr
                       key={player.id}
                       className={`group border-b border-charcoal-800/10 transition-colors ${
-                        index === 0 ? 'bg-gold-500/10' : ''
+                        player.rank === 1 ? 'bg-gold-500/10' : ''
                       }`}
                     >
                       <td className={`px-2 sm:px-4 py-4 w-16 sticky left-0 z-10 transition-colors ${
-                        index === 0 ? 'bg-gold-500/10 group-hover:bg-gold-500/20' : 'bg-cream-200 group-hover:bg-cream-300/40'
+                        player.rank === 1 ? 'bg-gold-500/10 group-hover:bg-gold-500/20' : 'bg-cream-200 group-hover:bg-cream-300/40'
                       }`}>
                         <div className="flex items-center gap-1 sm:gap-2">
-                          {index === 0 && <span>🥇</span>}
-                          {index === 1 && <span>🥈</span>}
-                          {index === 2 && <span>🥉</span>}
-                          <span className="font-bold text-charcoal-600">{index + 1}</span>
+                          {player.rank === 1 && <span>🥇</span>}
+                          {player.rank === 2 && <span>🥈</span>}
+                          {player.rank === 3 && <span>🥉</span>}
+                          <span className="font-bold text-charcoal-600">{player.rank}</span>
                         </div>
                       </td>
                       <td className={`px-2 sm:px-4 py-4 sticky left-16 z-10 font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base transition-colors ${
-                        index === 0 ? 'bg-gold-500/10 group-hover:bg-gold-500/20' : 'bg-cream-200 group-hover:bg-cream-300/40'
+                        player.rank === 1 ? 'bg-gold-500/10 group-hover:bg-gold-500/20' : 'bg-cream-200 group-hover:bg-cream-300/40'
                       }`}>
                         {player.name}
                       </td>
