@@ -6,7 +6,7 @@ export default function LeaderboardPage() {
   const {
     players, weeks, selectedWeek, setSelectedWeek,
     leaderboardView, setLeaderboardView,
-    sortedByMoney, playerScores, getTeamTypeForWeek,
+    sortedByMoney, playerScores, getTeamTypeForWeek, getTeammatesForWeek,
     getWeeklyMoneyTotal, getPlayerById, formatShortDate,
   } = useLeague();
 
@@ -214,10 +214,48 @@ export default function LeaderboardPage() {
 
           {/* Weekly scores table */}
           {(() => {
-            const weekScores = playerScores
-              .filter(s => s.week_id === selectedWeek)
-              .sort((a, b) => a.net_score - b.net_score);
+            const weekScores = playerScores.filter(s => s.week_id === selectedWeek);
             if (weekScores.length === 0) return null;
+
+            const teamType = getTeamTypeForWeek(selectedWeek);
+            let rows;
+
+            if (teamType) {
+              // Team week: deduplicate by team, show one row per team
+              const seen = new Set();
+              rows = [];
+              weekScores.forEach(score => {
+                const { teammates, isSolo } = getTeammatesForWeek(score.player_id, selectedWeek);
+                const teamIds = isSolo
+                  ? [score.player_id]
+                  : [score.player_id, ...teammates].sort((a, b) => a - b);
+                const key = teamIds.join('-');
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  rows.push({
+                    key,
+                    players: teamIds.map(id => getPlayerById(id)).filter(Boolean),
+                    gross_score: score.gross_score,
+                    net_score: score.net_score,
+                  });
+                }
+              });
+              rows.sort((a, b) => a.net_score - b.net_score);
+            } else {
+              // Individual week: one row per player
+              rows = weekScores
+                .map(score => ({
+                  key: String(score.player_id),
+                  players: [getPlayerById(score.player_id)].filter(Boolean),
+                  gross_score: score.gross_score,
+                  net_score: score.net_score,
+                }))
+                .filter(row => row.players.length > 0)
+                .sort((a, b) => a.net_score - b.net_score);
+            }
+
+            if (rows.length === 0) return null;
+
             return (
               <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
                 <div className="bg-cream-300 px-4 sm:px-6 py-4 border-b border-charcoal-800/10">
@@ -226,33 +264,29 @@ export default function LeaderboardPage() {
                 <table className="w-full">
                   <thead className="bg-cream-300/60">
                     <tr>
-                      <th className="th-label text-left">Player</th>
+                      <th className="th-label text-left">{teamType ? 'Team' : 'Player'}</th>
                       <th className="th-label text-center">Gross</th>
                       <th className="th-label text-center">Net</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {weekScores.map((score, index) => {
-                      const player = getPlayerById(score.player_id);
-                      if (!player) return null;
-                      return (
-                        <tr key={`${score.player_id}-${index}`} className="border-b border-charcoal-800/10">
-                          <td className="px-4 sm:px-6 py-3 font-display font-semibold text-charcoal-950 text-[0.9375rem]">
-                            {player.name}
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 text-center">
-                            <span className="bg-charcoal-800/10 text-charcoal-600 px-2 py-1 rounded font-medium text-sm">
-                              {score.gross_score}
-                            </span>
-                          </td>
-                          <td className="px-4 sm:px-6 py-3 text-center">
-                            <span className="bg-forest-800/10 text-forest-900 px-3 py-1 rounded-pill font-bold text-sm">
-                              {score.net_score}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {rows.map(row => (
+                      <tr key={row.key} className="border-b border-charcoal-800/10">
+                        <td className="px-4 sm:px-6 py-3 font-display font-semibold text-charcoal-950 text-[0.9375rem]">
+                          {row.players.map(p => p.name).join(' & ')}
+                        </td>
+                        <td className="px-4 sm:px-6 py-3 text-center">
+                          <span className="bg-charcoal-800/10 text-charcoal-600 px-2 py-1 rounded font-medium text-sm">
+                            {row.gross_score}
+                          </span>
+                        </td>
+                        <td className="px-4 sm:px-6 py-3 text-center">
+                          <span className="bg-forest-800/10 text-forest-900 px-3 py-1 rounded-pill font-bold text-sm">
+                            {row.net_score}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
