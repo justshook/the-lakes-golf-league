@@ -188,9 +188,9 @@ export default function LeaderboardPage() {
                           <div key={place} className="flex items-center justify-between p-3 bg-cream-300 rounded-card border border-charcoal-800/10">
                             <div className="flex items-center gap-2">
                               <span className="text-xl">{cat.icon}</span>
-                              <span className="font-medium text-charcoal-950">{winners.map(w => w.name).join(' & ')}</span>
+                              <span className="font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">{winners.map(w => w.name).join(' & ')}</span>
                             </div>
-                            <span className="font-display font-bold text-gold-600">${winners[0].weeklyMoney[selectedWeek][place]}{winners.length > 1 ? ' ea' : ''}</span>
+                            <span className="bg-gold-500/20 text-gold-600 px-2 sm:px-4 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">${winners[0].weeklyMoney[selectedWeek][place]}{winners.length > 1 ? ' ea' : ''}</span>
                           </div>
                         );
                       })}
@@ -207,9 +207,9 @@ export default function LeaderboardPage() {
                           <div key={ctp} className="flex items-center justify-between p-3 bg-cream-300 rounded-card border border-charcoal-800/10">
                             <div className="flex items-center gap-2">
                               <span className="text-sm text-charcoal-500">CTP #{idx + 1}</span>
-                              <span className="font-medium text-charcoal-950">{winners.map(w => w.name).join(' & ')}</span>
+                              <span className="font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">{winners.map(w => w.name).join(' & ')}</span>
                             </div>
-                            <span className="font-bold text-gold-600">${winners[0].weeklyMoney[selectedWeek][ctp]}{winners.length > 1 ? ' ea' : ''}</span>
+                            <span className="bg-gold-500/20 text-gold-600 px-2 sm:px-4 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">${winners[0].weeklyMoney[selectedWeek][ctp]}{winners.length > 1 ? ' ea' : ''}</span>
                           </div>
                         );
                       })}
@@ -280,16 +280,16 @@ export default function LeaderboardPage() {
                   <tbody>
                     {rows.map(row => (
                       <tr key={row.key} className="border-b border-charcoal-800/10">
-                        <td className="px-4 sm:px-6 py-3 font-display font-semibold text-charcoal-950 text-[0.9375rem]">
+                        <td className="px-2 sm:px-4 py-4 font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">
                           {row.players.map(p => p.name).join(' & ')}
                         </td>
-                        <td className="px-4 sm:px-6 py-3 text-center">
-                          <span className="bg-charcoal-800/10 text-charcoal-600 px-2 py-1 rounded font-medium text-sm">
+                        <td className="px-2 sm:px-4 py-4 text-center">
+                          <span className="bg-charcoal-800/10 text-charcoal-600 px-3 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">
                             {row.gross_score}
                           </span>
                         </td>
-                        <td className="px-4 sm:px-6 py-3 text-center">
-                          <span className="bg-forest-800/10 text-forest-900 px-3 py-1 rounded-pill font-bold text-sm">
+                        <td className="px-2 sm:px-4 py-4 text-center">
+                          <span className="bg-forest-800/10 text-forest-900 px-3 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">
                             {row.net_score}
                           </span>
                         </td>
