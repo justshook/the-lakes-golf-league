@@ -30,7 +30,7 @@ export default function AdminPage() {
     playerScores, setPlayerScores,
     savePlayerScoreToSupabase, recalculateGiantSkins,
     updatePlayerScore, deletePlayerScore,
-    getTeammatesForWeek, getHandicapForWeek,
+    getTeammatesForWeek, getHandicapForWeek, getGameForWeek,
     // Weekly games
     showWeeklyGameEditor, setShowWeeklyGameEditor,
     weeklyGameEdit, setWeeklyGameEdit,
@@ -1101,8 +1101,10 @@ export default function AdminPage() {
                         }
                       } else {
                         const player = players.find(p => p.id === playerId);
-                        const { handicap: handicap9 } = getHandicapForWeek(playerId, scoreManagerWeek);
-                        const netScore = grossScore - handicap9;
+                        const manualNetEntry = !!getGameForWeek(scoreManagerWeek)?.manualNetEntry;
+                        const { handicap: rawHandicap9 } = getHandicapForWeek(playerId, scoreManagerWeek);
+                        const handicap9 = manualNetEntry ? 0 : rawHandicap9;
+                        const netScore = manualNetEntry ? grossScore : grossScore - handicap9;
 
                         await savePlayerScoreToSupabase(playerId, scoreManagerWeek, grossScore, netScore, handicap9, adminAddScore.birdieHoles, adminAddScore.eagleHoles, false);
 
@@ -1186,7 +1188,11 @@ export default function AdminPage() {
                                   </td>
                                   <td className="p-2 text-center text-charcoal-400">-{score.handicap_used}</td>
                                   <td className="p-2 text-center font-bold text-forest-900">
-                                    {isEditing ? (editingScore.gross_score - getHandicapForWeek(score.player_id, score.week_id).handicap) : score.net_score}
+                                    {isEditing
+                                      ? (getGameForWeek(score.week_id)?.manualNetEntry
+                                          ? editingScore.gross_score
+                                          : editingScore.gross_score - getHandicapForWeek(score.player_id, score.week_id).handicap)
+                                      : score.net_score}
                                   </td>
                                   <td className="p-2">
                                     {isEditing ? (

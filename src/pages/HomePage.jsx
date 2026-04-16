@@ -10,7 +10,7 @@ export default function HomePage() {
     showPlayerScoreEntry, setShowPlayerScoreEntry,
     playerScoreForm, setPlayerScoreForm,
     handlePlayerScoreSubmit, handleConfirmedScoreOverwrite, toggleHoleSelection,
-    getPlayerById, getTeamTypeForWeek, getTeammatesForWeek,
+    getPlayerById, getTeamTypeForWeek, getTeammatesForWeek, getGameForWeek,
     showSubSignup, setShowSubSignup, subSignupSlot, setSubSignupSlot,
     selectedSubId, setSelectedSubId, handleSubSignup,
     signupPhoneInput, setSignupPhoneInput,
@@ -408,9 +408,15 @@ export default function HomePage() {
               {/* Total Score */}
               <div>
                 <label className="block text-sm font-medium text-charcoal-950 mb-1">
-                  {playerScoreForm.weekId && getTeamTypeForWeek(parseInt(playerScoreForm.weekId))
-                    ? 'Team Score (9 holes)'
-                    : 'Total Score (9 holes)'}
+                  {(() => {
+                    const weekIdNum = parseInt(playerScoreForm.weekId);
+                    if (playerScoreForm.weekId && getGameForWeek(weekIdNum)?.manualNetEntry) {
+                      return 'Net Score';
+                    }
+                    return playerScoreForm.weekId && getTeamTypeForWeek(weekIdNum)
+                      ? 'Team Score (9 holes)'
+                      : 'Total Score (9 holes)';
+                  })()}
                 </label>
                 <input
                   type="number"
@@ -418,7 +424,7 @@ export default function HomePage() {
                   onChange={(e) => setPlayerScoreForm({ ...playerScoreForm, totalScore: e.target.value })}
                   placeholder="e.g., 42"
                   className="w-full border border-charcoal-800/20 rounded-input px-3 py-2"
-                  min="20"
+                  min={playerScoreForm.weekId && getGameForWeek(parseInt(playerScoreForm.weekId))?.manualNetEntry ? "10" : "20"}
                   max="80"
                 />
               </div>

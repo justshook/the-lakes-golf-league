@@ -777,8 +777,11 @@ export function LeagueProvider({ children }) {
   const updatePlayerScore = async (playerId, weekId, newGrossScore, newBirdieHoles = [], newEagleHoles = []) => {
     const player = players.find(p => p.id === playerId);
     if (!player) return;
-    const { handicap: handicap9 } = getHandicapForWeek(playerId, weekId);
-    const newNetScore = newGrossScore - handicap9;
+    const game = weeklyGames.find(g => g.weekId === weekId);
+    const manualNetEntry = !!game?.manualNetEntry;
+    const { handicap: rawHandicap9 } = getHandicapForWeek(playerId, weekId);
+    const handicap9 = manualNetEntry ? 0 : rawHandicap9;
+    const newNetScore = manualNetEntry ? newGrossScore : newGrossScore - handicap9;
     try {
       const { error } = await supabase.from('player_scores').update({
         gross_score: newGrossScore, net_score: newNetScore, handicap_used: handicap9,
@@ -927,9 +930,13 @@ export function LeagueProvider({ children }) {
     } else {
       const player = players.find(p => p.id === playerIdNum);
       if (!player) { setIsSubmitting(false); return; }
-      const grossScore = parseInt(totalScore);
-      const { handicap: handicap9 } = getHandicapForWeek(playerIdNum, weekIdNum);
-      const netScore = grossScore - handicap9;
+      const entered = parseInt(totalScore);
+      const game = weeklyGames.find(g => g.weekId === weekIdNum);
+      const manualNetEntry = !!game?.manualNetEntry;
+      const { handicap: rawHandicap9 } = getHandicapForWeek(playerIdNum, weekIdNum);
+      const handicap9 = manualNetEntry ? 0 : rawHandicap9;
+      const grossScore = entered;
+      const netScore = manualNetEntry ? entered : entered - handicap9;
       try {
         await savePlayerScoreToSupabase(playerIdNum, weekIdNum, grossScore, netScore, handicap9, birdieHoles, eagleHoles, false);
         setPlayerScores(prev => {
