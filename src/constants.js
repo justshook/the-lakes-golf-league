@@ -272,7 +272,8 @@ export const initialWeeklyGames = [
     gameDescription: 'Individual game. After the round, throw out your 3 highest scores.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
-    teamType: null
+    teamType: null,
+    manualNetEntry: true
   },
   {
     weekId: 3,
