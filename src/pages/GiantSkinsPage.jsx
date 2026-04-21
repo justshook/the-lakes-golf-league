@@ -107,8 +107,8 @@ export default function GiantSkinsPage() {
         </div>
       </div>
 
-      <div className="bg-forest-800/10 rounded-card p-4 text-charcoal-700 text-[0.9375rem] border border-forest-700/20">
-        <strong>How it works:</strong> The player with the lowest score on each hole across the entire season wins that hole's pot. Ties at season end split the money.
+      <div className="bg-forest-700 rounded-card p-4 text-white text-[0.9375rem]">
+        <strong>How it works:</strong> The player with the lowest score on each hole across the entire season wins a giant skin. At the end of the season the players with a giant skin split the giant skin pot.
       </div>
     </div>
   );
