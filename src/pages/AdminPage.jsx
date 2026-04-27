@@ -65,6 +65,7 @@ export default function AdminPage() {
     handleAssignTemplateToWeek, getTemplateById, getWeekPlannedPayout,
     getTemplateMoneyEntries, getWeeklyMoneyTotal,
     weeklyGames,
+    toggleWeatherCancelled,
   } = useLeague();
 
   const [searchParams] = useSearchParams();
@@ -284,6 +285,7 @@ export default function AdminPage() {
                   </span>
                   {currentWeek.teeSheet.length > 0 && <span className="bg-cream-200/10 text-cream-200/80 px-2.5 py-0.5 rounded-pill text-xs">✓ Scheduled</span>}
                   {currentWeek.moneyEntered && <span className="bg-gold-500/20 text-gold-400 px-2.5 py-0.5 rounded-pill text-xs">✓ Money</span>}
+                  {currentWeek.weatherCancelled && <span className="bg-red-500/20 text-red-300 px-2.5 py-0.5 rounded-pill text-xs">⛈ Weather Cancelled</span>}
                 </div>
               )}
             </div>
@@ -305,6 +307,31 @@ export default function AdminPage() {
               </button>
             </div>
           </div>
+
+          {/* Weather Cancellation */}
+          {currentWeek && (
+            <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
+              <div className="bg-cream-300 px-4 py-3">
+                <h3 className="font-display font-semibold text-charcoal-950">⛈ Weather Cancellation</h3>
+              </div>
+              <div className="p-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!currentWeek.weatherCancelled}
+                    onChange={() => toggleWeatherCancelled(currentWeek.id)}
+                    className="w-5 h-5 mt-0.5 rounded border-gray-300 text-forest-900 focus:ring-forest-800"
+                  />
+                  <div>
+                    <span className="font-medium text-charcoal-950">Cancel this week due to weather</span>
+                    <p className="text-xs text-charcoal-400 mt-0.5">
+                      The tee time schedule and game data are retained, but the public schedule will display "This Week Is Cancelled Due To Weather" instead of the tee times.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Weekly Games Editor */}
           <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
