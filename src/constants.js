@@ -127,7 +127,8 @@ export const generateSeasonWeeks = () => {
       nineHoles: isFrontNine ? 'front' : 'back',
       teeSheet: [],
       scoresEntered: false,
-      moneyEntered: false
+      moneyEntered: false,
+      weatherCancelled: false
     });
     currentDate.setDate(currentDate.getDate() + 7);
     isFrontNine = !isFrontNine;

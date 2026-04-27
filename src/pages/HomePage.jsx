@@ -107,7 +107,14 @@ export default function HomePage() {
           )}
 
           <div className="p-2 sm:p-6">
-            {currentWeek.teeSheet.length === 0 ? (
+            {currentWeek.weatherCancelled ? (
+              <div className="text-center py-12 px-4">
+                <div className="text-5xl mb-4">⛈</div>
+                <p className="font-display font-bold text-2xl sm:text-3xl text-forest-900 leading-tight">
+                  This Week Is Cancelled Due To Weather
+                </p>
+              </div>
+            ) : currentWeek.teeSheet.length === 0 ? (
               <div className="text-center py-12 text-charcoal-600">
                 <div className="text-4xl mb-4">📋</div>
                 <p className="text-lg">No tee sheet created yet</p>
