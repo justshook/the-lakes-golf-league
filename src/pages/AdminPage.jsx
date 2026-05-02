@@ -468,6 +468,20 @@ export default function AdminPage() {
                       )}
                     </div>
                   )}
+                  <div className="bg-cream-100 border border-charcoal-800/10 rounded-card p-4">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={weeklyGameEdit.reducedHandicap || false}
+                        onChange={(e) => setWeeklyGameEdit({ ...weeklyGameEdit, reducedHandicap: e.target.checked })}
+                        className="w-5 h-5 rounded border-gray-300 text-forest-900 focus:ring-forest-800"
+                      />
+                      <div>
+                        <span className="font-medium text-charcoal-950">80% Individual Handicap Allowance</span>
+                        <p className="text-xs text-charcoal-400 mt-0.5">When on, each player's net score uses 80% of their 9-hole handicap (rounded). Does not affect team handicap formats.</p>
+                      </div>
+                    </label>
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-charcoal-600 mb-1">Payout Template</label>
                     <select
