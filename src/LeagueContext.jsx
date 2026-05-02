@@ -55,7 +55,7 @@ export function LeagueProvider({ children }) {
   const [showWeeklyGameEditor, setShowWeeklyGameEditor] = useState(false);
   const [weeklyGameEdit, setWeeklyGameEdit] = useState({
     gameName: '', gameDescription: '', sideGame: '', sideGameDescription: '', teamType: null,
-    showTeamHandicap: false, handicapFormat: 'scramble'
+    showTeamHandicap: false, handicapFormat: 'scramble', reducedHandicap: false
   });
 
   // Player management state
@@ -267,7 +267,8 @@ export function LeagueProvider({ children }) {
                 sideGameDescription: saved.side_game_description ?? game.sideGameDescription,
                 teamType: saved.team_type ?? game.teamType,
                 showTeamHandicap: saved.show_team_handicap ?? false,
-                handicapFormat: saved.handicap_format ?? 'scramble'
+                handicapFormat: saved.handicap_format ?? 'scramble',
+                reducedHandicap: saved.reduced_handicap ?? false
               };
             }
             return game;
@@ -374,7 +375,8 @@ export function LeagueProvider({ children }) {
               sideGameDescription: saved.side_game_description ?? game.sideGameDescription,
               teamType: saved.team_type ?? game.teamType,
               showTeamHandicap: saved.show_team_handicap ?? false,
-              handicapFormat: saved.handicap_format ?? 'scramble'
+              handicapFormat: saved.handicap_format ?? 'scramble',
+              reducedHandicap: saved.reduced_handicap ?? false
             };
           }
           return game;
@@ -1076,9 +1078,10 @@ export function LeagueProvider({ children }) {
   const getHandicapForWeek = (playerId, weekId) => {
     const player = players.find(p => p.id === playerId);
     if (!player) return { handicap: 0, isTeamHcp: false };
-    const individual = calc9HoleHandicap(player.handicap);
-
     const game = weeklyGames.find(g => g.weekId === weekId);
+    const applyAllowance = (h) => game?.reducedHandicap ? Math.round(h * 0.8) : h;
+    const individual = applyAllowance(calc9HoleHandicap(player.handicap));
+
     if (!game?.showTeamHandicap || !game?.teamType) {
       return { handicap: individual, isTeamHcp: false };
     }
@@ -1104,9 +1107,9 @@ export function LeagueProvider({ children }) {
   const loadWeeklyGameForEdit = () => {
     const game = getGameForWeek(selectedWeek);
     if (game) {
-      setWeeklyGameEdit({ gameName: game.gameName, gameDescription: game.gameDescription, sideGame: game.sideGame, sideGameDescription: game.sideGameDescription, teamType: game.teamType || null, showTeamHandicap: game.showTeamHandicap || false, handicapFormat: game.handicapFormat || 'scramble' });
+      setWeeklyGameEdit({ gameName: game.gameName, gameDescription: game.gameDescription, sideGame: game.sideGame, sideGameDescription: game.sideGameDescription, teamType: game.teamType || null, showTeamHandicap: game.showTeamHandicap || false, handicapFormat: game.handicapFormat || 'scramble', reducedHandicap: game.reducedHandicap || false });
     } else {
-      setWeeklyGameEdit({ gameName: '', gameDescription: '', sideGame: '', sideGameDescription: '', teamType: null, showTeamHandicap: false, handicapFormat: 'scramble' });
+      setWeeklyGameEdit({ gameName: '', gameDescription: '', sideGame: '', sideGameDescription: '', teamType: null, showTeamHandicap: false, handicapFormat: 'scramble', reducedHandicap: false });
     }
     setShowWeeklyGameEditor(true);
   };
@@ -1125,7 +1128,8 @@ export function LeagueProvider({ children }) {
       side_game_description: updatedGame.sideGameDescription,
       team_type: updatedGame.teamType,
       show_team_handicap: updatedGame.showTeamHandicap || false,
-      handicap_format: updatedGame.handicapFormat || 'scramble'
+      handicap_format: updatedGame.handicapFormat || 'scramble',
+      reduced_handicap: updatedGame.reducedHandicap || false
     }, { onConflict: 'week_id' });
     if (error) console.error('Error saving weekly game:', error);
   };
