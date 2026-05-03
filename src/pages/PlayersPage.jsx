@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { jsPDF } from 'jspdf';
 import { useLeague } from '../LeagueContext';
 import { calc9HoleHandicap, moneyCategories } from '../constants';
 
@@ -24,106 +23,6 @@ export default function PlayersPage() {
       setSelectedPlayer(null);
     }
   }, [playerId, players]);
-
-  const exportPlayersPdf = () => {
-    const doc = new jsPDF();
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 14;
-    let y = 18;
-
-    const filterLabel = playerFilter === 'all'
-      ? 'All Players'
-      : playerFilter === 'full-time' ? 'Members' : 'Substitutes';
-
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('The Lakes Golf League', pageW / 2, y, { align: 'center' });
-    y += 8;
-    doc.setFontSize(13);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Player Roster — ${filterLabel}`, pageW / 2, y, { align: 'center' });
-    y += 6;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(80, 80, 80);
-    doc.text(
-      `Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} • ${filteredPlayers.length} players`,
-      pageW / 2,
-      y,
-      { align: 'center' }
-    );
-    doc.setTextColor(0, 0, 0);
-    y += 6;
-
-    doc.setDrawColor(100, 120, 100);
-    doc.line(margin, y, pageW - margin, y);
-    y += 6;
-
-    const colName = margin + 2;
-    const colType = margin + 70;
-    const colHcp = margin + 105;
-    const colTimes = margin + 130;
-    const timesWidth = pageW - margin - colTimes - 2;
-
-    const drawHeader = () => {
-      doc.setFillColor(235, 240, 235);
-      doc.rect(margin, y - 5, pageW - margin * 2, 8, 'F');
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 0, 0);
-      doc.text('Name', colName, y);
-      doc.text('Type', colType, y);
-      doc.text('HCP (9 / 18)', colHcp, y);
-      doc.text('Available Tee Times', colTimes, y);
-      y += 7;
-    };
-
-    drawHeader();
-
-    const sorted = [...filteredPlayers].sort((a, b) =>
-      calc9HoleHandicap(a.handicap) - calc9HoleHandicap(b.handicap)
-    );
-
-    sorted.forEach((player, idx) => {
-      const timesStr = player.availability.length > 0 ? player.availability.join(', ') : '—';
-      const timeLines = doc.splitTextToSize(timesStr, timesWidth);
-      const rowH = Math.max(6, timeLines.length * 4.5) + 2;
-
-      if (y + rowH > pageH - 12) {
-        doc.addPage();
-        y = 18;
-        drawHeader();
-      }
-
-      if (idx % 2 === 1) {
-        doc.setFillColor(248, 248, 244);
-        doc.rect(margin, y - 4, pageW - margin * 2, rowH, 'F');
-      }
-
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(0, 0, 0);
-      doc.text(player.name, colName, y);
-
-      doc.setFontSize(9);
-      doc.setTextColor(80, 80, 80);
-      doc.text(player.type === 'full-time' ? 'Member' : 'Substitute', colType, y);
-
-      doc.setTextColor(0, 0, 0);
-      doc.text(`${calc9HoleHandicap(player.handicap)} / ${player.handicap}`, colHcp, y);
-
-      doc.setFontSize(9);
-      doc.setTextColor(60, 60, 60);
-      doc.text(timeLines, colTimes, y);
-      doc.setTextColor(0, 0, 0);
-
-      y += rowH;
-    });
-
-    const filename = `lakes-players-${playerFilter}-${new Date().toISOString().slice(0, 10)}.pdf`;
-    doc.save(filename);
-  };
 
   return (
     <div className="space-y-4">
@@ -271,9 +170,9 @@ export default function PlayersPage() {
         </div>
       ) : (
         <>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between">
             <h2 className="text-3xl font-display font-black text-cream-200 leading-none">League Players ({filteredPlayers.length})</h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               {['all', 'full-time', 'substitute'].map(filter => (
                 <button
                   key={filter}
@@ -287,12 +186,6 @@ export default function PlayersPage() {
                   {filter === 'all' ? 'All' : filter === 'full-time' ? `Members (${players.filter(p => p.type === 'full-time').length})` : `Subs (${players.filter(p => p.type === 'substitute').length})`}
                 </button>
               ))}
-              <button
-                onClick={exportPlayersPdf}
-                className="px-5 py-2.5 rounded-pill text-sm font-medium bg-gold-500 text-forest-950 hover:bg-gold-400 transition-all"
-              >
-                Export PDF
-              </button>
             </div>
           </div>
 

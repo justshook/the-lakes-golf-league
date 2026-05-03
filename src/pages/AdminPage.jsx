@@ -222,6 +222,101 @@ export default function AdminPage() {
     doc.save(`tee-times-${currentWeek.date}.pdf`);
   };
 
+  const exportPlayersPdf = () => {
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    let y = 18;
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('The Lakes Golf League', pageW / 2, y, { align: 'center' });
+    y += 8;
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Player Roster', pageW / 2, y, { align: 'center' });
+    y += 6;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(80, 80, 80);
+    doc.text(
+      `Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} • ${players.length} players`,
+      pageW / 2,
+      y,
+      { align: 'center' }
+    );
+    doc.setTextColor(0, 0, 0);
+    y += 6;
+
+    doc.setDrawColor(100, 120, 100);
+    doc.line(margin, y, pageW - margin, y);
+    y += 6;
+
+    const colName = margin + 2;
+    const colType = margin + 70;
+    const colHcp = margin + 105;
+    const colTimes = margin + 130;
+    const timesWidth = pageW - margin - colTimes - 2;
+
+    const drawHeader = () => {
+      doc.setFillColor(235, 240, 235);
+      doc.rect(margin, y - 5, pageW - margin * 2, 8, 'F');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('Name', colName, y);
+      doc.text('Type', colType, y);
+      doc.text('HCP (9 / 18)', colHcp, y);
+      doc.text('Available Tee Times', colTimes, y);
+      y += 7;
+    };
+
+    drawHeader();
+
+    const sorted = [...players].sort((a, b) =>
+      calc9HoleHandicap(a.handicap) - calc9HoleHandicap(b.handicap)
+    );
+
+    sorted.forEach((player, idx) => {
+      const timesStr = player.availability.length > 0 ? player.availability.join(', ') : '—';
+      const timeLines = doc.splitTextToSize(timesStr, timesWidth);
+      const rowH = Math.max(6, timeLines.length * 4.5) + 2;
+
+      if (y + rowH > pageH - 12) {
+        doc.addPage();
+        y = 18;
+        drawHeader();
+      }
+
+      if (idx % 2 === 1) {
+        doc.setFillColor(248, 248, 244);
+        doc.rect(margin, y - 4, pageW - margin * 2, rowH, 'F');
+      }
+
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text(player.name, colName, y);
+
+      doc.setFontSize(9);
+      doc.setTextColor(80, 80, 80);
+      doc.text(player.type === 'full-time' ? 'Member' : 'Substitute', colType, y);
+
+      doc.setTextColor(0, 0, 0);
+      doc.text(`${calc9HoleHandicap(player.handicap)} / ${player.handicap}`, colHcp, y);
+
+      doc.setFontSize(9);
+      doc.setTextColor(60, 60, 60);
+      doc.text(timeLines, colTimes, y);
+      doc.setTextColor(0, 0, 0);
+
+      y += rowH;
+    });
+
+    doc.save(`lakes-players-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
   if (!isAdminAuthenticated) {
     return (
       <div className="space-y-6">
@@ -2046,6 +2141,12 @@ export default function AdminPage() {
                   className="bg-forest-800 text-cream-200 px-3 py-1 rounded-pill hover:bg-forest-700 text-sm font-medium"
                 >
                   Export CSV
+                </button>
+                <button
+                  onClick={exportPlayersPdf}
+                  className="bg-gold-500 text-forest-950 px-3 py-1 rounded-pill hover:bg-gold-400 text-sm font-medium"
+                >
+                  Export PDF
                 </button>
                 <button
                   onClick={() => setShowAddPlayer(true)}
