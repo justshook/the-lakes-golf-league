@@ -144,25 +144,26 @@ export const teeTimes = [
 ];
 
 // Arlington Lakes Golf Club - All 18 holes (Black Tees - Par 68, 5252 yards)
+// handicapIndex is the 1-18 stroke-allocation rank from the Black Tees scorecard (1 = hardest)
 export const courseHoles = [
-  { number: 1, par: 4, yards: 325 },
-  { number: 2, par: 5, yards: 480 },
-  { number: 3, par: 3, yards: 140 },
-  { number: 4, par: 4, yards: 389 },
-  { number: 5, par: 3, yards: 172 },
-  { number: 6, par: 4, yards: 393 },
-  { number: 7, par: 4, yards: 314 },
-  { number: 8, par: 3, yards: 122 },
-  { number: 9, par: 4, yards: 320 },
-  { number: 10, par: 4, yards: 374 },
-  { number: 11, par: 3, yards: 187 },
-  { number: 12, par: 4, yards: 371 },
-  { number: 13, par: 4, yards: 264 },
-  { number: 14, par: 3, yards: 143 },
-  { number: 15, par: 4, yards: 270 },
-  { number: 16, par: 4, yards: 333 },
-  { number: 17, par: 3, yards: 180 },
-  { number: 18, par: 5, yards: 475 }
+  { number: 1, par: 4, yards: 325, handicapIndex: 7 },
+  { number: 2, par: 5, yards: 480, handicapIndex: 1 },
+  { number: 3, par: 3, yards: 140, handicapIndex: 17 },
+  { number: 4, par: 4, yards: 389, handicapIndex: 5 },
+  { number: 5, par: 3, yards: 172, handicapIndex: 13 },
+  { number: 6, par: 4, yards: 393, handicapIndex: 3 },
+  { number: 7, par: 4, yards: 314, handicapIndex: 9 },
+  { number: 8, par: 3, yards: 122, handicapIndex: 15 },
+  { number: 9, par: 4, yards: 320, handicapIndex: 11 },
+  { number: 10, par: 4, yards: 374, handicapIndex: 4 },
+  { number: 11, par: 3, yards: 187, handicapIndex: 14 },
+  { number: 12, par: 4, yards: 371, handicapIndex: 6 },
+  { number: 13, par: 4, yards: 264, handicapIndex: 10 },
+  { number: 14, par: 3, yards: 143, handicapIndex: 18 },
+  { number: 15, par: 4, yards: 270, handicapIndex: 12 },
+  { number: 16, par: 4, yards: 333, handicapIndex: 8 },
+  { number: 17, par: 3, yards: 180, handicapIndex: 16 },
+  { number: 18, par: 5, yards: 475, handicapIndex: 2 }
 ];
 
 // Money categories

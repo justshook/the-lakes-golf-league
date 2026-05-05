@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useLeague } from '../LeagueContext';
 import { calc9HoleHandicap, calcTeamHandicap, teeTimes, courseHoles, moneyCategories, defaultPayoutTemplates } from '../constants';
 import { jsPDF } from 'jspdf';
+import exportScorecardsPdf from '../utils/exportScorecards';
 
 export default function AdminPage() {
   const {
@@ -220,6 +221,11 @@ export default function AdminPage() {
     });
 
     doc.save(`tee-times-${currentWeek.date}.pdf`);
+  };
+
+  const exportScorecards = () => {
+    if (!currentWeek) return;
+    exportScorecardsPdf({ week: currentWeek, currentGame, getPlayerById });
   };
 
   const exportPlayersPdf = () => {
@@ -631,6 +637,14 @@ export default function AdminPage() {
                       className="bg-gold-500 text-forest-950 px-3 py-1 rounded-pill hover:bg-gold-400 text-sm font-medium"
                     >
                       Export PDF
+                    </button>
+                  )}
+                  {currentWeek?.teeSheet.length > 0 && (
+                    <button
+                      onClick={exportScorecards}
+                      className="bg-gold-500 text-forest-950 px-3 py-1 rounded-pill hover:bg-gold-400 text-sm font-medium"
+                    >
+                      Print Scorecards
                     </button>
                   )}
                   <button
