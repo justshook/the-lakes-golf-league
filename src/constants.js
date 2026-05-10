@@ -52,16 +52,16 @@ export const initialPlayers = [
 ].map(p => ({ ...p, weeksPlayed: 0, totalMoney: 0, weeklyMoney: {} }));
 
 // Calculate 9-hole handicap from 18-hole handicap
-// Formula: roundup((handicap18/2)*(slope/113)+(courseRating-par))
-// Arlington Lakes: Slope=122, Course Rating=66.0, Par=68
+// Formula: round((handicap18/2)*(slope/113)+(courseRating-par))
+// Arlington Lakes Black-Front (9 holes): Slope=123, Course Rating=33.1, Par=34
 // Maximum 9-hole handicap is capped at 13
 export const calc9HoleHandicap = (handicap18) => {
-  const slope = 122;
+  const slope = 123;
   const standardSlope = 113;
-  const courseRating = 66.0;
-  const par = 68;
+  const courseRating = 33.1;
+  const par = 34;
   const MAX_HANDICAP = 13;
-  return Math.min(Math.ceil((handicap18 / 2) * (slope / standardSlope) + (courseRating - par)), MAX_HANDICAP);
+  return Math.min(Math.round((handicap18 / 2) * (slope / standardSlope) + (courseRating - par)), MAX_HANDICAP);
 };
 
 // Calculate team handicap based on USGA format-specific allowances
