@@ -4,6 +4,7 @@ import { useLeague } from '../LeagueContext';
 import { calc9HoleHandicap, calcTeamHandicap, teeTimes, courseHoles, moneyCategories, defaultPayoutTemplates } from '../constants';
 import { jsPDF } from 'jspdf';
 import exportScorecardsPdf from '../utils/exportScorecards';
+import HandicapSyncStatus from '../components/HandicapSyncStatus';
 
 export default function AdminPage() {
   const {
@@ -2131,6 +2132,10 @@ export default function AdminPage() {
 
       {/* ─── PLAYERS TAB ─── */}
       {activeTab === 'players' && (
+        <div className="space-y-6">
+
+        <HandicapSyncStatus />
+
         <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
           <div className="bg-cream-300 px-4 py-3 flex items-center justify-between">
             <h3 className="font-display font-semibold text-charcoal-950">👤 Player Management</h3>
@@ -2478,6 +2483,8 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        </div>
+
         </div>
       )}
       {/* END PLAYERS TAB */}
