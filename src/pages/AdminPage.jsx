@@ -66,7 +66,7 @@ export default function AdminPage() {
     handleAssignTemplateToWeek, getTemplateById, getWeekPlannedPayout,
     getTemplateMoneyEntries, getWeeklyMoneyTotal,
     weeklyGames,
-    toggleWeatherCancelled,
+    toggleWeatherCancelled, setScoreSubmissionEnabled,
   } = useLeague();
 
   const [searchParams] = useSearchParams();
@@ -387,6 +387,7 @@ export default function AdminPage() {
                   {currentWeek.teeSheet.length > 0 && <span className="bg-cream-200/10 text-cream-200/80 px-2.5 py-0.5 rounded-pill text-xs">✓ Scheduled</span>}
                   {currentWeek.moneyEntered && <span className="bg-gold-500/20 text-gold-400 px-2.5 py-0.5 rounded-pill text-xs">✓ Money</span>}
                   {currentWeek.weatherCancelled && <span className="bg-red-500/20 text-red-300 px-2.5 py-0.5 rounded-pill text-xs">⛈ Weather Cancelled</span>}
+                  {currentWeek.scoreSubmissionEnabled === false && <span className="bg-charcoal-800/20 text-cream-200/80 px-2.5 py-0.5 rounded-pill text-xs">📝 Submit Off</span>}
                 </div>
               )}
             </div>
@@ -433,6 +434,45 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+
+          {/* Score Submission Toggle */}
+          {currentWeek && (() => {
+            const enabled = currentWeek.scoreSubmissionEnabled ?? true;
+            return (
+              <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
+                <div className="bg-cream-300 px-4 py-3">
+                  <h3 className="font-display font-semibold text-charcoal-950">📝 Player Score Submission</h3>
+                </div>
+                <div className="p-4 space-y-3">
+                  <p className="text-xs text-charcoal-400">
+                    Controls whether the "Submit My Score" button is shown to players on the home page for Week {currentWeek.id}. Turn off for weeks where you don't want players to submit scores.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer flex-1 border border-charcoal-800/20 rounded-input px-3 py-2 hover:bg-cream-100">
+                      <input
+                        type="radio"
+                        name={`score-submission-${currentWeek.id}`}
+                        checked={enabled === true}
+                        onChange={() => setScoreSubmissionEnabled(currentWeek.id, true)}
+                        className="w-4 h-4 text-forest-900 focus:ring-forest-800"
+                      />
+                      <span className="font-medium text-charcoal-950">On — players can submit scores</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer flex-1 border border-charcoal-800/20 rounded-input px-3 py-2 hover:bg-cream-100">
+                      <input
+                        type="radio"
+                        name={`score-submission-${currentWeek.id}`}
+                        checked={enabled === false}
+                        onChange={() => setScoreSubmissionEnabled(currentWeek.id, false)}
+                        className="w-4 h-4 text-forest-900 focus:ring-forest-800"
+                      />
+                      <span className="font-medium text-charcoal-950">Off — hide submit button</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Weekly Games Editor */}
           <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
