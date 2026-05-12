@@ -713,14 +713,16 @@ export default function HomePage() {
       )}
 
       {/* Fixed Bottom Submit Score Button */}
-      <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
-        <button
-          onClick={() => setShowPlayerScoreEntry(true)}
-          className="pointer-events-auto px-8 py-3.5 font-bold flex items-center gap-2 text-base rounded-pill transition-all shadow-xl bg-cta-500 hover:bg-cta-400 text-forest-950 hover:-translate-y-0.5 hover:shadow-cta-glow"
-        >
-          <span>📝</span> Submit My Score
-        </button>
-      </div>
+      {(currentWeek?.scoreSubmissionEnabled ?? true) && (
+        <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+          <button
+            onClick={() => setShowPlayerScoreEntry(true)}
+            className="pointer-events-auto px-8 py-3.5 font-bold flex items-center gap-2 text-base rounded-pill transition-all shadow-xl bg-cta-500 hover:bg-cta-400 text-forest-950 hover:-translate-y-0.5 hover:shadow-cta-glow"
+          >
+            <span>📝</span> Submit My Score
+          </button>
+        </div>
+      )}
     </div>
   );
 }
