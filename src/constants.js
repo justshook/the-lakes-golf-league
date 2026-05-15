@@ -48,7 +48,13 @@ export const initialPlayers = [
   { id: 43, name: 'Jordan Frey', phone: '312-576-4398', email: 'jordanfreyiu@gmail.com', handicap: 8, cdgaId: '2602249', availability: ['4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM', '5:10 PM', '5:20 PM'], type: 'full-time' },
   { id: 44, name: 'Anthony Catallo', phone: '847-401-2141', email: 'acatallo125@gmail.com', handicap: 18, cdgaId: 'N/A', availability: ['4:00 PM', '4:10 PM', '4:20 PM', '4:30 PM', '4:40 PM', '4:50 PM'], type: 'substitute' },
   { id: 45, name: 'Ryan Shaw', phone: '847-868-6088', email: 'ryanshaw608@gmail.com', handicap: 3, cdgaId: '13299631', availability: ['4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM', '5:10 PM', '5:20 PM'], type: 'full-time' },
-  { id: 46, name: 'David Isaac', phone: '847-804-4952', email: 'disaac19@gmail.com', handicap: 18, cdgaId: 'N/A', availability: ['4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM', '5:10 PM', '5:20 PM'], type: 'full-time' }
+  { id: 46, name: 'David Isaac', phone: '847-804-4952', email: 'disaac19@gmail.com', handicap: 18, cdgaId: 'N/A', availability: ['4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM', '5:10 PM', '5:20 PM'], type: 'full-time' },
+  { id: 47, name: 'Sam Hulka', phone: '', email: '', handicap: 0, cdgaId: 'N/A', availability: ['3:30 PM', '3:40 PM', '3:50 PM', '4:00 PM', '4:10 PM'], type: 'substitute' },
+  { id: 48, name: 'Bo Zweidinger', phone: '', email: '', handicap: 0, cdgaId: 'N/A', availability: ['4:00 PM', '4:10 PM', '4:20 PM', '4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM'], type: 'substitute' },
+  { id: 49, name: 'Mark Sommerville', phone: '', email: '', handicap: 0, cdgaId: 'N/A', availability: ['4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM'], type: 'substitute' },
+  { id: 50, name: 'Christopher Winnie', phone: '', email: '', handicap: 0, cdgaId: 'N/A', availability: ['4:00 PM', '4:10 PM', '4:20 PM', '4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM', '5:10 PM', '5:20 PM'], type: 'substitute' },
+  { id: 51, name: 'Robert Cozzini', phone: '', email: '', handicap: 0, cdgaId: 'N/A', availability: ['4:00 PM', '4:10 PM', '4:20 PM', '4:30 PM', '4:40 PM', '4:50 PM', '5:00 PM', '5:10 PM', '5:20 PM'], type: 'substitute' },
+  { id: 52, name: 'Harry McDonough', phone: '', email: '', handicap: 0, cdgaId: 'N/A', availability: ['4:50 PM', '5:00 PM', '5:10 PM', '5:20 PM'], type: 'substitute' }
 ].map(p => ({ ...p, weeksPlayed: 0, totalMoney: 0, weeklyMoney: {} }));
 
 // Calculate 9-hole handicap from 18-hole handicap
@@ -106,6 +112,25 @@ export const calcTeamHandicap = (playerHandicaps, handicapFormat) => {
   }
 };
 
+// Default tee sheets by week id — used as the initial value before Supabase loads.
+// Week 6 (5/18) — Ryder Cup Singles. Player IDs reference initialPlayers above.
+export const initialTeeSheets = {
+  6: [
+    { time: '3:30 PM', players: [24, 29, 15, 33] },
+    { time: '3:40 PM', players: [16, 35, 13, 39] },
+    { time: '3:50 PM', players: [40, 47, 25] },
+    { time: '4:00 PM', players: [37, 30, 32, 19] },
+    { time: '4:10 PM', players: [42, 2, 48, 21] },
+    { time: '4:20 PM', players: [23, 22, 18, 6] },
+    { time: '4:30 PM', players: [49, 3, 43, 36] },
+    { time: '4:40 PM', players: [41, 28, 20, 38] },
+    { time: '4:50 PM', players: [1, 27, 11, 50] },
+    { time: '5:00 PM', players: [51, 5, 46, 12] },
+    { time: '5:10 PM', players: [4, 7] },
+    { time: '5:20 PM', players: [52, 17, 8] }
+  ]
+};
+
 // Generate season weeks (2nd week of April through last week of August 2026)
 export const generateSeasonWeeks = () => {
   const weeks = [];
@@ -125,7 +150,7 @@ export const generateSeasonWeeks = () => {
       id: weekNum,
       date: dateStr,
       nineHoles: isFrontNine ? 'front' : 'back',
-      teeSheet: [],
+      teeSheet: initialTeeSheets[weekNum] || [],
       scoresEntered: false,
       moneyEntered: false,
       weatherCancelled: false
