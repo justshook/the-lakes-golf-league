@@ -75,6 +75,16 @@ const drawScorecard = (doc, ctx) => {
   doc.line(margin, y, pageW - margin, y);
   y += 4;
 
+  if (currentGame?.gameDescription) {
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    const descLines = doc.splitTextToSize(currentGame.gameDescription, pageW - margin * 2);
+    doc.text(descLines, margin, y);
+    y += descLines.length * 3.6 + 3;
+    doc.setTextColor(0, 0, 0);
+  }
+
   // ---------- Table layout ----------
   const nameColW = 52;
   const totalsCols = ['OUT', 'GROSS', 'NET'];
