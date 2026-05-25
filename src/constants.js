@@ -317,7 +317,7 @@ export const initialWeeklyGames = [
     weekId: 7,
     date: '2026-06-01',
     gameName: 'Special Events Night',
-    gameDescription: 'Each hole has a contest (longest drive, closest to pin, longest putt, etc.). Each contest has a cash prize.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'There will be a game on every hole. $180 is split among all the winners. If there is no Giant Skin winner or no Greenie with a birdie, that money goes back in the pot.\n\nHole 1 – Closest to 100 yards\nHole 2 – Closest in 3\nHole 3 – Greenie (must birdie)\nHole 4 – Closest in 2\nHole 5 – Greenie (must birdie)\nHole 6 – Longest Putt\nHole 7 – Longest Drive\nHole 8 – Greenie (must birdie)\nHole 9 – Giant Skin (gross)',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
