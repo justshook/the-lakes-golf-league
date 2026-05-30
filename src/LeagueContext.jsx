@@ -1314,10 +1314,14 @@ export function LeagueProvider({ children }) {
     const { anchorId, allowedIds } = getFixedPartnerConfig();
 
     // Anchor constraint helpers: the anchor (e.g. Justin) may only ever share a tee time
-    // with allowed partners, and no disallowed player may join the anchor's group.
+    // with allowed partners, and no disallowed player may join the anchor's group. Once the
+    // anchor's group has been built it's locked so nobody else can be added to it.
+    let anchorSlotRef = null;
+    let anchorSlotLocked = false;
     const slotHasAnchor = (slot) => anchorId != null && slot.players.includes(anchorId);
     const canJoin = (playerId, slot) => {
       if (slot.players.length >= 4) return false;
+      if (anchorSlotLocked && slot === anchorSlotRef) return false;
       if (anchorId == null) return true;
       if (playerId === anchorId) {
         // Anchor can only join a slot whose current occupants are all allowed partners.
@@ -1328,32 +1332,52 @@ export function LeagueProvider({ children }) {
       return true;
     };
 
-    // Pre-seat the anchor together with one allowed partner so the anchor is guaranteed
-    // to always be grouped with at least one of the allowed players. We pick the partner
-    // + time that best respects both players' availability, pairing variety, and their
-    // historical preferred times.
+    // Build the anchor's group up front so we fully control who they play with. The anchor
+    // (e.g. Justin) is grouped only with allowed partners, and we greedily pick the partners
+    // they've played with LEAST — and that those partners have played with each other least —
+    // so the lineup rotates week to week instead of repeating the same people. The chosen
+    // tee time still respects the anchor's availability and usual playing times. The group is
+    // then locked so the rest of the scheduler leaves it alone.
     if (anchorId != null) {
       const anchor = eligiblePlayers.find(p => p.id === anchorId);
       if (anchor) {
-        const anchorIdxs = anchor.availability.map(t => teeTimes.indexOf(t)).filter(i => i >= 0);
-        const partners = shuffleArray(eligiblePlayers.filter(p => allowedIds.has(p.id)));
-        let best = null;
-        partners.forEach(partner => {
-          const pIdxs = new Set(partner.availability.map(t => teeTimes.indexOf(t)).filter(i => i >= 0));
-          anchorIdxs.forEach(idx => {
-            if (!pIdxs.has(idx)) return;
-            const time = teeTimes[idx];
-            // Lower score is better: avoid repeat pairings, favor shared preferred times.
-            const pairingPenalty = pairCount(anchorId, partner.id) * 100;
-            const timeBonus = (timeFreq[anchorId]?.[time] || 0) + (timeFreq[partner.id]?.[time] || 0);
-            const score = pairingPenalty - timeBonus * 3 + Math.random();
-            if (!best || score < best.score) best = { partnerId: partner.id, idx, score };
-          });
+        const GROUP_TARGET = 4;
+        const ANCHOR_WEIGHT = 100; // weight avoiding repeats of the anchor's own pairings most
+        const partnerPool = eligiblePlayers.filter(p => allowedIds.has(p.id));
+        const anchorTimes = anchor.availability.filter(t => teeTimes.includes(t));
+
+        // Pick the anchor's tee time: prefer one with enough available partners and that
+        // matches the times the anchor usually plays.
+        let chosenIdx = null, chosenScore = -Infinity;
+        anchorTimes.forEach(time => {
+          const idx = teeTimes.indexOf(time);
+          const availPartners = partnerPool.filter(p => p.availability.includes(time));
+          if (availPartners.length === 0) return;
+          const score = Math.min(availPartners.length, GROUP_TARGET - 1) * 2
+            + (timeFreq[anchorId]?.[time] || 0) * 3
+            + Math.random();
+          if (score > chosenScore) { chosenScore = score; chosenIdx = idx; }
         });
-        if (best) {
-          newTeeSheet[best.idx].players.push(anchorId, best.partnerId);
+
+        if (chosenIdx != null) {
+          const slot = newTeeSheet[chosenIdx];
+          slot.players.push(anchorId);
           assigned.add(anchorId);
-          assigned.add(best.partnerId);
+          // Greedily add the least-paired available partners, also mixing up the trio itself.
+          let pool = partnerPool.filter(p => p.availability.includes(teeTimes[chosenIdx]));
+          while (slot.players.length < GROUP_TARGET && pool.length > 0) {
+            let bestPartner = null, bestCost = Infinity;
+            shuffleArray(pool).forEach(p => {
+              const cost = pairCount(p.id, anchorId) * ANCHOR_WEIGHT
+                + slot.players.reduce((sum, id) => id === anchorId ? sum : sum + pairCount(p.id, id), 0);
+              if (cost < bestCost) { bestCost = cost; bestPartner = p; }
+            });
+            slot.players.push(bestPartner.id);
+            assigned.add(bestPartner.id);
+            pool = pool.filter(p => p.id !== bestPartner.id);
+          }
+          anchorSlotRef = slot;
+          anchorSlotLocked = true;
         }
       }
     }
