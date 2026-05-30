@@ -4,7 +4,8 @@ import { supabase } from './supabaseClient';
 import {
   initialPlayers, calc9HoleHandicap, calcTeamHandicap, generateSeasonWeeks,
   teeTimes, courseHoles, moneyCategories, initialWeeklyGames, ADMIN_PASSWORD,
-  DEFAULT_SEASON_BUY_IN, defaultPayoutTemplates, defaultWeekTemplates
+  DEFAULT_SEASON_BUY_IN, defaultPayoutTemplates, defaultWeekTemplates,
+  SCHEDULE_FIXED_PARTNER
 } from './constants';
 
 const LeagueContext = createContext(null);
@@ -1237,43 +1238,145 @@ export function LeagueProvider({ children }) {
 
   // === Pairing helpers ===
   const getPairingKey = (id1, id2) => [id1, id2].sort((a, b) => a - b).join('-');
-  const getPairingCount = (id1, id2) => pairingHistory[getPairingKey(id1, id2)] || 0;
 
   // === Auto-schedule ===
-  const autoScheduleWeek = () => {
-    // Fisher-Yates shuffle for randomization
-    const shuffle = (array) => {
-      const arr = [...array];
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    };
 
+  // Fisher-Yates shuffle for randomization
+  const shuffleArray = (array) => {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  // Build a pairing-count map from the actual tee sheets already saved this season.
+  // This makes "mix up the pairings" reflect the real season history rather than only
+  // pairings made during the current browser session.
+  const computeSeasonPairingHistory = (excludeWeekIds = new Set()) => {
+    const hist = {};
+    weeks.forEach(w => {
+      if (excludeWeekIds.has(w.id)) return;
+      (w.teeSheet || []).forEach(slot => {
+        const ps = slot.players || [];
+        for (let i = 0; i < ps.length; i++) {
+          for (let j = i + 1; j < ps.length; j++) {
+            const key = getPairingKey(ps[i], ps[j]);
+            hist[key] = (hist[key] || 0) + 1;
+          }
+        }
+      });
+    });
+    return hist;
+  };
+
+  // Build a per-player frequency map of the tee times they've actually been scheduled at
+  // so far this season: { playerId: { '4:30 PM': 3, ... } }. Used to bias each player
+  // toward the times they typically play.
+  const computeTimePreference = (excludeWeekIds = new Set()) => {
+    const freq = {};
+    weeks.forEach(w => {
+      if (excludeWeekIds.has(w.id)) return;
+      (w.teeSheet || []).forEach(slot => {
+        (slot.players || []).forEach(pid => {
+          if (!freq[pid]) freq[pid] = {};
+          freq[pid][slot.time] = (freq[pid][slot.time] || 0) + 1;
+        });
+      });
+    });
+    return freq;
+  };
+
+  // Resolve the fixed-partner rule (e.g. Justin must always be grouped with one of a
+  // specific set of players) against the current player list.
+  const getFixedPartnerConfig = () => {
+    const anchor = players.find(p => p.name === SCHEDULE_FIXED_PARTNER.anchorName);
+    const allowedIds = new Set(
+      SCHEDULE_FIXED_PARTNER.allowedPartnerNames
+        .map(name => players.find(p => p.name === name)?.id)
+        .filter(id => id != null)
+    );
+    return { anchorId: anchor ? anchor.id : null, allowedIds };
+  };
+
+  // Core scheduler: build a tee sheet for a single week. Pure-ish — it does not mutate
+  // React state, it just returns the computed sheet plus any warning to surface.
+  // basePairing: pairing-count map to score against (lets callers chain weeks together
+  // so variety is maintained across a multi-week batch).
+  const buildWeekTeeSheet = (weekId, basePairing, excludeForFreq = new Set([weekId])) => {
     const eligiblePlayers = players.filter(p => p.type === 'full-time');
-    const teamType = getTeamTypeForWeek(selectedWeek);
+    const teamType = getTeamTypeForWeek(weekId);
     const newTeeSheet = teeTimes.map(time => ({ time, players: [] }));
     const assigned = new Set();
+    const pairCount = (a, b) => basePairing[getPairingKey(a, b)] || 0;
+    const timeFreq = computeTimePreference(excludeForFreq);
+    const { anchorId, allowedIds } = getFixedPartnerConfig();
+
+    // Anchor constraint helpers: the anchor (e.g. Justin) may only ever share a tee time
+    // with allowed partners, and no disallowed player may join the anchor's group.
+    const slotHasAnchor = (slot) => anchorId != null && slot.players.includes(anchorId);
+    const canJoin = (playerId, slot) => {
+      if (slot.players.length >= 4) return false;
+      if (anchorId == null) return true;
+      if (playerId === anchorId) {
+        // Anchor can only join a slot whose current occupants are all allowed partners.
+        return slot.players.every(id => allowedIds.has(id));
+      }
+      // A disallowed player can never join the anchor's slot.
+      if (slotHasAnchor(slot) && !allowedIds.has(playerId)) return false;
+      return true;
+    };
+
+    // Pre-seat the anchor together with one allowed partner so the anchor is guaranteed
+    // to always be grouped with at least one of the allowed players. We pick the partner
+    // + time that best respects both players' availability, pairing variety, and their
+    // historical preferred times.
+    if (anchorId != null) {
+      const anchor = eligiblePlayers.find(p => p.id === anchorId);
+      if (anchor) {
+        const anchorIdxs = anchor.availability.map(t => teeTimes.indexOf(t)).filter(i => i >= 0);
+        const partners = shuffleArray(eligiblePlayers.filter(p => allowedIds.has(p.id)));
+        let best = null;
+        partners.forEach(partner => {
+          const pIdxs = new Set(partner.availability.map(t => teeTimes.indexOf(t)).filter(i => i >= 0));
+          anchorIdxs.forEach(idx => {
+            if (!pIdxs.has(idx)) return;
+            const time = teeTimes[idx];
+            // Lower score is better: avoid repeat pairings, favor shared preferred times.
+            const pairingPenalty = pairCount(anchorId, partner.id) * 100;
+            const timeBonus = (timeFreq[anchorId]?.[time] || 0) + (timeFreq[partner.id]?.[time] || 0);
+            const score = pairingPenalty - timeBonus * 3 + Math.random();
+            if (!best || score < best.score) best = { partnerId: partner.id, idx, score };
+          });
+        });
+        if (best) {
+          newTeeSheet[best.idx].players.push(anchorId, best.partnerId);
+          assigned.add(anchorId);
+          assigned.add(best.partnerId);
+        }
+      }
+    }
 
     // Group players by availability count, shuffle within each group, then concatenate.
     // Most-constrained players (fewest available slots) are placed first,
     // but order within each constraint tier is randomized.
     const playersByConstraint = {};
     eligiblePlayers.forEach(player => {
+      if (assigned.has(player.id)) return;
       const key = player.availability.length;
       if (!playersByConstraint[key]) playersByConstraint[key] = [];
       playersByConstraint[key].push(player);
     });
     const sortedPlayers = Object.keys(playersByConstraint)
       .sort((a, b) => Number(a) - Number(b))
-      .flatMap(key => shuffle(playersByConstraint[key]));
+      .flatMap(key => shuffleArray(playersByConstraint[key]));
 
     sortedPlayers.forEach(player => {
       const availableSlots = player.availability
         .map(time => { const idx = teeTimes.indexOf(time); return idx !== -1 ? { idx, slot: newTeeSheet[idx], time } : null; })
         .filter(s => s !== null);
-      const slotsWithRoom = availableSlots.filter(s => s.slot.players.length < 4);
+      const slotsWithRoom = availableSlots.filter(s => canJoin(player.id, s.slot));
 
       if (slotsWithRoom.length > 0) {
         // Score each slot (lower score = better fit)
@@ -1287,9 +1390,11 @@ export function LeagueProvider({ children }) {
           }
           // Pairing history: penalize slots with frequently-paired players
           const pairingScore = s.slot.players.reduce(
-            (sum, id) => sum + getPairingCount(player.id, id), 0
+            (sum, id) => sum + pairCount(player.id, id), 0
           );
           score += pairingScore * 5;
+          // Time preference: reward the times this player usually plays
+          score -= (timeFreq[player.id]?.[s.time] || 0) * 3;
           return { ...s, score };
         });
 
@@ -1307,22 +1412,23 @@ export function LeagueProvider({ children }) {
         scoredSlots[selectedIdx].slot.players.push(player.id);
         assigned.add(player.id);
       } else {
+        // No room at a preferred time — overflow to the nearest open slot that the
+        // anchor constraint still allows.
         const preferredIndices = player.availability.map(t => teeTimes.indexOf(t)).filter(i => i !== -1);
-        if (preferredIndices.length === 0) {
-          const anySlot = newTeeSheet.find(s => s.players.length < 4);
-          if (anySlot) { anySlot.players.push(player.id); assigned.add(player.id); }
-          return;
-        }
-        const latestPreferredIdx = Math.max(...preferredIndices);
-        const earliestPreferredIdx = Math.min(...preferredIndices);
+        const fitsHere = (i) => canJoin(player.id, newTeeSheet[i]);
         let assignedSlot = null;
-        for (let i = latestPreferredIdx + 1; i < teeTimes.length; i++) { if (newTeeSheet[i].players.length < 4) { assignedSlot = newTeeSheet[i]; break; } }
-        if (!assignedSlot) { for (let i = earliestPreferredIdx - 1; i >= 0; i--) { if (newTeeSheet[i].players.length < 4) { assignedSlot = newTeeSheet[i]; break; } } }
-        if (!assignedSlot) assignedSlot = newTeeSheet.find(s => s.players.length < 4);
+        if (preferredIndices.length > 0) {
+          const latestPreferredIdx = Math.max(...preferredIndices);
+          const earliestPreferredIdx = Math.min(...preferredIndices);
+          for (let i = latestPreferredIdx + 1; i < teeTimes.length; i++) { if (fitsHere(i)) { assignedSlot = newTeeSheet[i]; break; } }
+          if (!assignedSlot) { for (let i = earliestPreferredIdx - 1; i >= 0; i--) { if (fitsHere(i)) { assignedSlot = newTeeSheet[i]; break; } } }
+        }
+        if (!assignedSlot) { for (let i = 0; i < teeTimes.length; i++) { if (fitsHere(i)) { assignedSlot = newTeeSheet[i]; break; } } }
         if (assignedSlot) { assignedSlot.players.push(player.id); assigned.add(player.id); }
       }
     });
 
+    let warning = null;
     if (teamType) {
       const filledSlots = newTeeSheet.filter(s => s.players.length > 0);
       const threesomes = filledSlots.filter(s => s.players.length === 3);
@@ -1332,24 +1438,83 @@ export function LeagueProvider({ children }) {
       const reordered = [...foursomes, ...others, ...threesomes].map(s => [...s.players]);
       const filledIndices = newTeeSheet.reduce((acc, s, i) => s.players.length > 0 ? [...acc, i] : acc, []);
       filledIndices.forEach((slotIdx, i) => { if (i < reordered.length) newTeeSheet[slotIdx].players = reordered[i]; });
-      if (threesomes.length > 0) alert(`Warning: ${threesomes.length} threesome(s) were created for this team week. They have been moved to the last tee times. Consider adjusting manually.`);
+      if (threesomes.length > 0) warning = `${threesomes.length} threesome(s) were created for this team week. They have been moved to the last tee times. Consider adjusting manually.`;
     }
 
-    const newPairingHistory = { ...pairingHistory };
-    newTeeSheet.forEach(slot => {
+    return { teeSheet: newTeeSheet, warning };
+  };
+
+  // Count the pairings produced by a tee sheet (used to chain weeks together).
+  const addSheetPairings = (target, teeSheet) => {
+    teeSheet.forEach(slot => {
       for (let i = 0; i < slot.players.length; i++) {
         for (let j = i + 1; j < slot.players.length; j++) {
           const key = getPairingKey(slot.players[i], slot.players[j]);
-          newPairingHistory[key] = (newPairingHistory[key] || 0) + 1;
+          target[key] = (target[key] || 0) + 1;
         }
       }
     });
-    setPairingHistory(newPairingHistory);
+    return target;
+  };
 
-    const playingIds = newTeeSheet.flatMap(s => s.players);
+  const autoScheduleWeek = (weekIdArg) => {
+    const weekId = typeof weekIdArg === 'number' ? weekIdArg : selectedWeek;
+    const targetWeek = weeks.find(w => w.id === weekId);
+    const basePairing = computeSeasonPairingHistory(new Set([weekId]));
+    const { teeSheet, warning } = buildWeekTeeSheet(weekId, basePairing);
+    if (warning) alert(`Warning: ${warning}`);
+
+    setPairingHistory(addSheetPairings({ ...pairingHistory }, teeSheet));
+
+    const playingIds = teeSheet.flatMap(s => s.players);
     setPlayers(players.map(p => playingIds.includes(p.id) ? { ...p, weeksPlayed: p.weeksPlayed + 1 } : p));
-    setWeeks(weeks.map(w => w.id === selectedWeek ? { ...w, teeSheet: newTeeSheet } : w));
-    saveTeeSheetToSupabase(selectedWeek, newTeeSheet, false, false, currentWeek?.weatherCancelled || false, currentWeek?.scoreSubmissionEnabled ?? true);
+    setWeeks(weeks.map(w => w.id === weekId ? { ...w, teeSheet } : w));
+    saveTeeSheetToSupabase(weekId, teeSheet, false, false, targetWeek?.weatherCancelled || false, targetWeek?.scoreSubmissionEnabled ?? true);
+  };
+
+  // Auto-generate every June week that hasn't had scores entered yet, in one pass.
+  // Weeks are chained so pairings stay varied across the whole month.
+  const autoScheduleMonth = (yearMonthPrefix = '2026-06') => {
+    const monthWeeks = weeks
+      .filter(w => w.date && w.date.startsWith(yearMonthPrefix) && !w.scoresEntered)
+      .sort((a, b) => a.id - b.id);
+    if (monthWeeks.length === 0) {
+      alert('No schedulable weeks found for that month (they may already have scores entered).');
+      return;
+    }
+
+    const regenIds = new Set(monthWeeks.map(w => w.id));
+    // Seed variety from every OTHER week's real tee sheet, then chain the month together.
+    const runningPairing = computeSeasonPairingHistory(regenIds);
+    const builtSheets = {};
+    const warnings = [];
+
+    monthWeeks.forEach(w => {
+      const { teeSheet, warning } = buildWeekTeeSheet(w.id, runningPairing, regenIds);
+      builtSheets[w.id] = teeSheet;
+      addSheetPairings(runningPairing, teeSheet);
+      if (warning) warnings.push(`Week ${w.id} (${w.date}): ${warning}`);
+    });
+
+    // Apply pairing history, weeks-played counts, and tee sheets in one batch.
+    const mergedPairing = { ...pairingHistory };
+    Object.values(builtSheets).forEach(sheet => addSheetPairings(mergedPairing, sheet));
+    setPairingHistory(mergedPairing);
+
+    const playedCount = {};
+    Object.values(builtSheets).forEach(sheet => {
+      sheet.flatMap(s => s.players).forEach(id => { playedCount[id] = (playedCount[id] || 0) + 1; });
+    });
+    setPlayers(players.map(p => playedCount[p.id] ? { ...p, weeksPlayed: p.weeksPlayed + playedCount[p.id] } : p));
+
+    setWeeks(weeks.map(w => builtSheets[w.id] ? { ...w, teeSheet: builtSheets[w.id] } : w));
+
+    monthWeeks.forEach(w => {
+      saveTeeSheetToSupabase(w.id, builtSheets[w.id], false, false, w.weatherCancelled || false, w.scoreSubmissionEnabled ?? true);
+    });
+
+    const summary = `Generated tee sheets for ${monthWeeks.length} week(s): ${monthWeeks.map(w => `Week ${w.id}`).join(', ')}.`;
+    alert(warnings.length ? `${summary}\n\n${warnings.join('\n')}` : summary);
   };
 
   // === Compact schedule (push empty slots to the end) ===
@@ -1646,7 +1811,7 @@ export function LeagueProvider({ children }) {
     loadPlayerForEdit, handleSavePlayer, toggleAvailability,
     handleAddPlayer, handleRemovePlayer, toggleNewPlayerAvailability,
     handleAdminLogin,
-    autoScheduleWeek, compactTeeSheet, loadExistingSchedule, handleBuildSchedule,
+    autoScheduleWeek, autoScheduleMonth, compactTeeSheet, loadExistingSchedule, handleBuildSchedule,
     handleEnterMoney, loadMoneyForEdit,
     getPlayerById, getPlayersForWeek, getWeeklyMoneyTotal,
     formatDate, formatShortDate,

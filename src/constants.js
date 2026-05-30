@@ -137,6 +137,22 @@ export const generateSeasonWeeks = () => {
   return weeks;
 };
 
+// Fixed-partner scheduling rule.
+// When auto-generating tee sheets, the anchor player is guaranteed to be grouped
+// with at least one of the allowed partners (and never grouped with anyone outside
+// that list). Names must match the player names in initialPlayers exactly.
+export const SCHEDULE_FIXED_PARTNER = {
+  anchorName: 'Justin Shook',
+  allowedPartnerNames: [
+    'Rob Conley',
+    'Andy DeTolve',
+    'Chris Gronow',
+    'Erik Latkow',
+    'Steve Oleary',
+    'Jack Linden'
+  ]
+};
+
 // 12 Tee times from 3:30 PM to 5:20 PM in 10-minute intervals
 export const teeTimes = [
   '3:30 PM', '3:40 PM', '3:50 PM', '4:00 PM', '4:10 PM', '4:20 PM',
