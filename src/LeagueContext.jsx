@@ -1472,24 +1472,27 @@ export function LeagueProvider({ children }) {
     saveTeeSheetToSupabase(weekId, teeSheet, false, false, targetWeek?.weatherCancelled || false, targetWeek?.scoreSubmissionEnabled ?? true);
   };
 
-  // Auto-generate every June week that hasn't had scores entered yet, in one pass.
-  // Weeks are chained so pairings stay varied across the whole month.
-  const autoScheduleMonth = (yearMonthPrefix = '2026-06') => {
-    const monthWeeks = weeks
-      .filter(w => w.date && w.date.startsWith(yearMonthPrefix) && !w.scoresEntered)
-      .sort((a, b) => a.id - b.id);
-    if (monthWeeks.length === 0) {
-      alert('No schedulable weeks found for that month (they may already have scores entered).');
+  // Auto-generate the next N upcoming weeks that haven't been scheduled yet, in one pass.
+  // "Not scheduled" means the week has no tee sheet yet; weeks are processed in date order
+  // and chained so pairings stay varied across the batch.
+  const autoScheduleNextWeeks = (count = 4) => {
+    const today = new Date().toISOString().split('T')[0];
+    const targetWeeks = weeks
+      .filter(w => w.date && w.date >= today && !w.scoresEntered && (w.teeSheet || []).length === 0)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(0, count);
+    if (targetWeeks.length === 0) {
+      alert('No upcoming unscheduled weeks found — the next weeks already have tee sheets.');
       return;
     }
 
-    const regenIds = new Set(monthWeeks.map(w => w.id));
-    // Seed variety from every OTHER week's real tee sheet, then chain the month together.
+    const regenIds = new Set(targetWeeks.map(w => w.id));
+    // Seed variety from every OTHER week's real tee sheet, then chain the batch together.
     const runningPairing = computeSeasonPairingHistory(regenIds);
     const builtSheets = {};
     const warnings = [];
 
-    monthWeeks.forEach(w => {
+    targetWeeks.forEach(w => {
       const { teeSheet, warning } = buildWeekTeeSheet(w.id, runningPairing, regenIds);
       builtSheets[w.id] = teeSheet;
       addSheetPairings(runningPairing, teeSheet);
@@ -1509,11 +1512,11 @@ export function LeagueProvider({ children }) {
 
     setWeeks(weeks.map(w => builtSheets[w.id] ? { ...w, teeSheet: builtSheets[w.id] } : w));
 
-    monthWeeks.forEach(w => {
+    targetWeeks.forEach(w => {
       saveTeeSheetToSupabase(w.id, builtSheets[w.id], false, false, w.weatherCancelled || false, w.scoreSubmissionEnabled ?? true);
     });
 
-    const summary = `Generated tee sheets for ${monthWeeks.length} week(s): ${monthWeeks.map(w => `Week ${w.id}`).join(', ')}.`;
+    const summary = `Generated tee sheets for ${targetWeeks.length} week(s): ${targetWeeks.map(w => `Week ${w.id}`).join(', ')}.`;
     alert(warnings.length ? `${summary}\n\n${warnings.join('\n')}` : summary);
   };
 
@@ -1811,7 +1814,7 @@ export function LeagueProvider({ children }) {
     loadPlayerForEdit, handleSavePlayer, toggleAvailability,
     handleAddPlayer, handleRemovePlayer, toggleNewPlayerAvailability,
     handleAdminLogin,
-    autoScheduleWeek, autoScheduleMonth, compactTeeSheet, loadExistingSchedule, handleBuildSchedule,
+    autoScheduleWeek, autoScheduleNextWeeks, compactTeeSheet, loadExistingSchedule, handleBuildSchedule,
     handleEnterMoney, loadMoneyForEdit,
     getPlayerById, getPlayersForWeek, getWeeklyMoneyTotal,
     formatDate, formatShortDate,

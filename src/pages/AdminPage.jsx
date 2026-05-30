@@ -17,7 +17,7 @@ export default function AdminPage() {
     scheduleSelections, setScheduleSelections,
     dragPlayer, setDragPlayer, dragOverSlot, setDragOverSlot,
     assignedPlayerIds,
-    autoScheduleWeek, autoScheduleMonth, compactTeeSheet, loadExistingSchedule, handleBuildSchedule,
+    autoScheduleWeek, autoScheduleNextWeeks, compactTeeSheet, loadExistingSchedule, handleBuildSchedule,
     // Money entry
     showMoneyEntry, setShowMoneyEntry,
     moneyEntries, setMoneyEntries,
@@ -695,13 +695,13 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={() => {
-                      if (window.confirm('Generate tee sheets for every June week that does not yet have scores entered? This overwrites any existing June schedules.')) {
-                        autoScheduleMonth('2026-06');
+                      if (window.confirm('Generate tee sheets for the next 4 upcoming weeks that have not been scheduled yet?')) {
+                        autoScheduleNextWeeks(4);
                       }
                     }}
                     className="bg-forest-800 text-cream-200 px-3 py-1 rounded-pill hover:bg-forest-700 text-sm font-medium"
                   >
-                    ✨ Generate All June
+                    ✨ Generate Next 4 Weeks
                   </button>
                   {currentWeek?.teeSheet.length > 0 && (
                     <button
