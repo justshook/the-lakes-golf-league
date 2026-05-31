@@ -116,9 +116,12 @@ export const generateSeasonWeeks = () => {
 
   while (currentDate <= new Date('2026-08-31')) {
     const dateStr = currentDate.toISOString().split('T')[0];
-    // Skip Memorial Day (May 25, 2026) — no league play
+    // Skip Memorial Day (May 25, 2026) — no league play.
+    // Still advance the front/back toggle so the alternation tracks the
+    // calendar rather than the count of played weeks.
     if (dateStr === '2026-05-25') {
       currentDate.setDate(currentDate.getDate() + 7);
+      isFrontNine = !isFrontNine;
       continue;
     }
     weeks.push({
