@@ -1698,11 +1698,33 @@ export function LeagueProvider({ children }) {
   // payout's category so existing (single-category) templates keep their data.
   const payoutEntryKey = (payout) => payout.key || payout.category;
 
+  // Give every payout in a template a unique, dash-free entry key so that rows
+  // sharing a category (e.g. several "1st place" hole prizes) stay independent
+  // instead of all writing to the same slot. Explicit keys are preserved; the
+  // first row of a category keeps that category as its key (backward compatible
+  // with already-entered money) and later duplicates get a numeric suffix. The
+  // result is deterministic for a given payout order, so the entry form, the
+  // displays, and saved money all agree.
+  const assignPayoutKeys = (payouts = []) => {
+    const used = new Set();
+    return payouts.map(p => {
+      let key = (payoutEntryKey(p) || 'payout').replace(/-/g, '');
+      if (used.has(key)) {
+        let n = 2;
+        while (used.has(`${key}${n}`)) n++;
+        key = `${key}${n}`;
+      }
+      used.add(key);
+      return { ...p, key };
+    });
+  };
+
   // The list of main-game payouts to enter/display for a week, taken from the
-  // week's assigned template. Returns [] when no template is assigned.
+  // week's assigned template, each normalized to carry a unique entry key.
+  // Returns [] when no template is assigned.
   const getWeekPayouts = (weekId) => {
     const template = getTemplateMoneyEntries(weekId);
-    return template ? template.payouts : [];
+    return template ? assignPayoutKeys(template.payouts) : [];
   };
 
   // Resolve a human-readable label for a stored money category key on a given

@@ -191,6 +191,7 @@ export const moneyCategories = [
   { id: '2nd', name: '2nd Place', icon: '🥈' },
   { id: '3rd', name: '3rd Place', icon: '🥉' },
   { id: 'gross', name: 'Low Gross', icon: '💪' },
+  { id: 'other', name: 'Other / Hole Prize', icon: '🏆' },
   { id: 'ctp1', name: 'CTP #1', icon: '🎯' },
   { id: 'ctp2', name: 'CTP #2', icon: '🎯' },
   { id: 'ctp3', name: 'CTP #3', icon: '🎯' }
