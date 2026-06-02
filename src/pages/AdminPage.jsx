@@ -64,7 +64,7 @@ export default function AdminPage() {
     seasonBudget, totalPlannedPayouts, totalActualPayouts, remainingBudget, fullTimePlayers,
     handleUpdateBuyIn, handleSavePayoutTemplate, handleDeletePayoutTemplate,
     handleAssignTemplateToWeek, getTemplateById, getWeekPlannedPayout,
-    getTemplateMoneyEntries, getWeeklyMoneyTotal, payoutEntryKey,
+    getTemplateMoneyEntries, getWeeklyMoneyTotal, payoutEntryKey, getWeekPayouts,
     weeklyGames,
     toggleWeatherCancelled, setScoreSubmissionEnabled,
   } = useLeague();
@@ -983,7 +983,8 @@ export default function AdminPage() {
                 { label: '3rd Place', category: '3rd' },
                 { label: 'Low Gross', category: 'gross' }
               ];
-              const payoutsToEnter = weekTemplate?.payouts?.length ? weekTemplate.payouts : fallbackPayouts;
+              const templatePayouts = getWeekPayouts(selectedWeek);
+              const payoutsToEnter = templatePayouts.length ? templatePayouts : fallbackPayouts;
               return (
                 <div className="p-4">
                   {weekTemplate && (
