@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLeague } from '../LeagueContext';
-import { calc9HoleHandicap, moneyCategories } from '../constants';
+import { calc9HoleHandicap } from '../constants';
 
 export default function PlayersPage() {
   const { playerId } = useParams();
@@ -9,7 +9,7 @@ export default function PlayersPage() {
   const {
     players, selectedPlayer, setSelectedPlayer,
     playerFilter, setPlayerFilter, filteredPlayers,
-    playerScores, getPlayerById, getTeamTypeForWeek,
+    playerScores, getPlayerById, getTeamTypeForWeek, getPayoutLabel,
   } = useLeague();
 
   // Sync URL param with selectedPlayer state
@@ -156,7 +156,7 @@ export default function PlayersPage() {
                         <div className="flex items-center gap-2">
                           {Object.entries(categories).map(([cat, amount]) => (
                             <span key={cat} className="text-xs bg-forest-900/[0.08] text-forest-800 px-2 py-1 rounded-pill">
-                              {moneyCategories.find(c => c.id === cat)?.name}: ${amount}
+                              {getPayoutLabel(weekId, cat)}: ${amount}
                             </span>
                           ))}
                         </div>

@@ -64,7 +64,7 @@ export default function AdminPage() {
     seasonBudget, totalPlannedPayouts, totalActualPayouts, remainingBudget, fullTimePlayers,
     handleUpdateBuyIn, handleSavePayoutTemplate, handleDeletePayoutTemplate,
     handleAssignTemplateToWeek, getTemplateById, getWeekPlannedPayout,
-    getTemplateMoneyEntries, getWeeklyMoneyTotal,
+    getTemplateMoneyEntries, getWeeklyMoneyTotal, payoutEntryKey,
     weeklyGames,
     toggleWeatherCancelled, setScoreSubmissionEnabled,
   } = useLeague();
@@ -975,11 +975,15 @@ export default function AdminPage() {
               const weekTemplate = getTemplateMoneyEntries(selectedWeek);
               const currentTotal = Object.values(moneyEntries).reduce((s, v) => s + (parseFloat(v) || 0), 0);
               const plannedTotal = getWeekPlannedPayout(selectedWeek);
-              const getTemplateAmount = (category) => {
-                if (!weekTemplate) return '';
-                const match = weekTemplate.payouts.find(p => p.category === category);
-                return match ? String(match.amount) : '';
-              };
+              // When no template is assigned, fall back to the classic places so
+              // ad-hoc money can still be entered.
+              const fallbackPayouts = [
+                { label: '1st Place', category: '1st' },
+                { label: '2nd Place', category: '2nd' },
+                { label: '3rd Place', category: '3rd' },
+                { label: 'Low Gross', category: 'gross' }
+              ];
+              const payoutsToEnter = weekTemplate?.payouts?.length ? weekTemplate.payouts : fallbackPayouts;
               return (
                 <div className="p-4">
                   {weekTemplate && (
@@ -993,19 +997,40 @@ export default function AdminPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <h4 className="font-semibold text-charcoal-800">🏆 Main Game</h4>
-                      {['1st', '2nd', '3rd', 'gross'].map(place => {
-                        const cat = moneyCategories.find(c => c.id === place);
+                      {payoutsToEnter.map((payout, payoutIdx) => {
+                        const place = payoutEntryKey(payout);
+                        const cat = moneyCategories.find(c => c.id === payout.category);
+                        const icon = cat?.icon || '🏆';
+                        const label = payout.label || cat?.name || 'Payout';
                         const teamType = getTeamTypeForWeek(selectedWeek);
                         const selectedForPlace = Object.keys(moneyEntries).filter(k => k.endsWith(`-${place}`)).map(k => k.split('-')[0]);
-                        const amountForPlace = Object.entries(moneyEntries).find(([k]) => k.endsWith(`-${place}`))?.[1] || '';
+                        // Amount that applies to this payout row: any already-entered
+                        // amount for it, otherwise the template's planned amount.
+                        const rowAmount = Object.entries(moneyEntries).find(([k]) => k.endsWith(`-${place}`))?.[1]
+                          ?? (payout.amount != null ? String(payout.amount) : '');
+                        const setRowAmount = (val) => {
+                          const updated = { ...moneyEntries };
+                          Object.keys(updated).forEach(k => { if (k.endsWith(`-${place}`)) updated[k] = val; });
+                          setMoneyEntries(updated);
+                        };
 
                         if (teamType) {
                           return (
-                            <div key={place} className="border border-charcoal-800/10 rounded-card p-3 bg-cream-100">
+                            <div key={`${place}-${payoutIdx}`} className="border border-charcoal-800/10 rounded-card p-3 bg-cream-100">
                               <div className="flex items-center gap-2 mb-2">
-                                <span className="text-xl">{cat.icon}</span>
-                                <span className="font-medium text-charcoal-800">{cat.name}</span>
-                                <span className="text-charcoal-500 text-sm ml-auto">{getTemplateAmount(place) ? `$${getTemplateAmount(place)} each` : '—'}</span>
+                                <span className="text-xl">{icon}</span>
+                                <span className="font-medium text-charcoal-800">{label}</span>
+                                <div className="flex items-center gap-1 ml-auto">
+                                  <span className="text-charcoal-400 text-sm">$</span>
+                                  <input
+                                    type="number"
+                                    placeholder="0"
+                                    value={rowAmount}
+                                    onChange={(e) => setRowAmount(e.target.value)}
+                                    className="w-16 border border-charcoal-800/20 rounded-input px-2 py-1 bg-cream-100 text-sm"
+                                  />
+                                  <span className="text-charcoal-500 text-xs">each</span>
+                                </div>
                               </div>
                               <div className="max-h-32 overflow-y-auto space-y-1">
                                 {getPlayersForWeek(selectedWeek).map(id => {
@@ -1019,7 +1044,7 @@ export default function AdminPage() {
                                         onChange={(e) => {
                                           const newEntries = { ...moneyEntries };
                                           if (e.target.checked) {
-                                            newEntries[`${id}-${place}`] = getTemplateAmount(place);
+                                            newEntries[`${id}-${place}`] = rowAmount;
                                           } else {
                                             delete newEntries[`${id}-${place}`];
                                           }
@@ -1039,29 +1064,43 @@ export default function AdminPage() {
                           );
                         } else {
                           return (
-                            <div key={place} className="flex items-center gap-3">
-                              <span className="text-xl w-8">{cat.icon}</span>
-                              <select
-                                value={selectedForPlace[0] || ''}
-                                onChange={(e) => {
-                                  const newEntries = { ...moneyEntries };
-                                  Object.keys(newEntries).forEach(k => {
-                                    if (k.endsWith(`-${place}`)) delete newEntries[k];
-                                  });
-                                  if (e.target.value) {
-                                    newEntries[`${e.target.value}-${place}`] = getTemplateAmount(place) || '';
-                                  }
-                                  setMoneyEntries(newEntries);
-                                }}
-                                className="flex-1 border border-charcoal-800/20 rounded-input px-2 py-1 bg-cream-100"
-                              >
-                                <option value="">Select player...</option>
-                                {getPlayersForWeek(selectedWeek).map(id => {
-                                  const p = getPlayerById(id);
-                                  return <option key={id} value={id}>{p?.name}</option>;
-                                })}
-                              </select>
-                              <span className="text-charcoal-500 text-sm whitespace-nowrap">{getTemplateAmount(place) ? `$${getTemplateAmount(place)}` : '—'}</span>
+                            <div key={`${place}-${payoutIdx}`} className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">{icon}</span>
+                                <span className="text-sm font-medium text-charcoal-700">{label}</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <select
+                                  value={selectedForPlace[0] || ''}
+                                  onChange={(e) => {
+                                    const newEntries = { ...moneyEntries };
+                                    Object.keys(newEntries).forEach(k => {
+                                      if (k.endsWith(`-${place}`)) delete newEntries[k];
+                                    });
+                                    if (e.target.value) {
+                                      newEntries[`${e.target.value}-${place}`] = rowAmount;
+                                    }
+                                    setMoneyEntries(newEntries);
+                                  }}
+                                  className="flex-1 border border-charcoal-800/20 rounded-input px-2 py-1 bg-cream-100"
+                                >
+                                  <option value="">Select player...</option>
+                                  {getPlayersForWeek(selectedWeek).map(id => {
+                                    const p = getPlayerById(id);
+                                    return <option key={id} value={id}>{p?.name}</option>;
+                                  })}
+                                </select>
+                                <div className="flex items-center">
+                                  <span className="text-charcoal-400">$</span>
+                                  <input
+                                    type="number"
+                                    placeholder="0"
+                                    value={rowAmount}
+                                    onChange={(e) => setRowAmount(e.target.value)}
+                                    className="w-20 border border-charcoal-800/20 rounded-input px-2 py-1 bg-cream-100"
+                                  />
+                                </div>
+                              </div>
                             </div>
                           );
                         }
@@ -1803,12 +1842,24 @@ export default function AdminPage() {
                     <button
                       onClick={() => {
                         if (!templateForm.name.trim()) { alert('Template name is required.'); return; }
+                        // Give every payout a stable, dash-free entry key. Existing
+                        // keys are preserved; duplicate categories get a numeric
+                        // suffix so their money entries don't overwrite each other.
+                        const usedKeys = new Set();
+                        const payouts = templateForm.payouts.filter(p => p.label && p.amount).map(p => {
+                          let key = (p.key || p.category || '').replace(/-/g, '');
+                          if (usedKeys.has(key)) {
+                            let n = 2;
+                            while (usedKeys.has(`${key}${n}`)) n++;
+                            key = `${key}${n}`;
+                          }
+                          usedKeys.add(key);
+                          return { label: p.label, category: p.category, amount: parseFloat(p.amount) || 0, key };
+                        });
                         const template = {
                           id: templateForm.id || templateForm.name.toLowerCase().replace(/\s+/g, '-'),
                           name: templateForm.name,
-                          payouts: templateForm.payouts.filter(p => p.label && p.amount).map(p => ({
-                            ...p, amount: parseFloat(p.amount) || 0
-                          })),
+                          payouts,
                           sideGameTotal: parseFloat(templateForm.sideGameTotal) || 0,
                           sideGameName: templateForm.sideGameName || '',
                           sideGameDescription: templateForm.sideGameDescription || '',

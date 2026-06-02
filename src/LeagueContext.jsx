@@ -1694,6 +1694,27 @@ export function LeagueProvider({ children }) {
     return template;
   };
 
+  // Stable, dash-free money-entry key for a single payout row. Falls back to the
+  // payout's category so existing (single-category) templates keep their data.
+  const payoutEntryKey = (payout) => payout.key || payout.category;
+
+  // The list of main-game payouts to enter/display for a week, taken from the
+  // week's assigned template. Returns [] when no template is assigned.
+  const getWeekPayouts = (weekId) => {
+    const template = getTemplateMoneyEntries(weekId);
+    return template ? template.payouts : [];
+  };
+
+  // Resolve a human-readable label for a stored money category key on a given
+  // week: prefer the assigned template's payout label, then a known money
+  // category name, then the raw key.
+  const getPayoutLabel = (weekId, categoryKey) => {
+    const match = getWeekPayouts(weekId).find(p => payoutEntryKey(p) === categoryKey);
+    if (match) return match.label;
+    const cat = moneyCategories.find(c => c.id === categoryKey);
+    return cat ? cat.name : categoryKey;
+  };
+
   // === Money entry ===
   const handleEnterMoney = async () => {
     const weekObj = weeks.find(w => w.id === selectedWeek);
@@ -1846,7 +1867,7 @@ export function LeagueProvider({ children }) {
     // Payout tracker functions
     handleUpdateBuyIn, handleSavePayoutTemplate, handleDeletePayoutTemplate,
     handleAssignTemplateToWeek, getTemplateById, getWeekPlannedPayout,
-    getTemplateMoneyEntries,
+    getTemplateMoneyEntries, getWeekPayouts, getPayoutLabel, payoutEntryKey,
   };
 
   return <LeagueContext.Provider value={value}>{children}</LeagueContext.Provider>;
