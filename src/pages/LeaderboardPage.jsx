@@ -8,6 +8,7 @@ export default function LeaderboardPage() {
     leaderboardView, setLeaderboardView,
     sortedByMoney, playerScores, getTeamTypeForWeek, getTeammatesForWeek,
     getWeeklyMoneyTotal, getPlayerById, formatShortDate,
+    getWeekPayouts, payoutEntryKey,
   } = useLeague();
 
   return (
@@ -180,20 +181,31 @@ export default function LeaderboardPage() {
                   <div>
                     <h4 className="font-display font-semibold text-charcoal-950 mb-3 text-base">Main Game</h4>
                     <div className="space-y-2">
-                      {['1st', '2nd', '3rd'].map(place => {
-                        const cat = moneyCategories.find(c => c.id === place);
-                        const winners = players.filter(p => p.weeklyMoney[selectedWeek]?.[place]);
-                        if (winners.length === 0) return null;
-                        return (
-                          <div key={place} className="flex items-center justify-between p-3 bg-cream-300 rounded-card border border-charcoal-800/10">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xl">{cat.icon}</span>
-                              <span className="font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">{winners.map(w => w.name).join(' & ')}</span>
+                      {(() => {
+                        const templatePayouts = getWeekPayouts(selectedWeek);
+                        // Drive the display from the week's payout template when
+                        // there is one; otherwise fall back to the classic places.
+                        const rows = templatePayouts.length
+                          ? templatePayouts.map(p => ({ place: payoutEntryKey(p), label: p.label, category: p.category }))
+                          : ['1st', '2nd', '3rd', 'gross'].map(id => {
+                              const c = moneyCategories.find(mc => mc.id === id);
+                              return { place: id, label: c?.name || id, category: id };
+                            });
+                        return rows.map(({ place, label, category }, idx) => {
+                          const cat = moneyCategories.find(c => c.id === category);
+                          const winners = players.filter(p => p.weeklyMoney[selectedWeek]?.[place]);
+                          if (winners.length === 0) return null;
+                          return (
+                            <div key={`${place}-${idx}`} className="flex items-center justify-between p-3 bg-cream-300 rounded-card border border-charcoal-800/10">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl">{cat?.icon || '🏆'}</span>
+                                <span className="font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">{label}: {winners.map(w => w.name).join(' & ')}</span>
+                              </div>
+                              <span className="bg-gold-500/20 text-gold-600 px-2 sm:px-4 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">${winners[0].weeklyMoney[selectedWeek][place]}{winners.length > 1 ? ' ea' : ''}</span>
                             </div>
-                            <span className="bg-gold-500/20 text-gold-600 px-2 sm:px-4 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">${winners[0].weeklyMoney[selectedWeek][place]}{winners.length > 1 ? ' ea' : ''}</span>
-                          </div>
-                        );
-                      })}
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
 

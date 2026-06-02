@@ -200,6 +200,10 @@ export const moneyCategories = [
 export const DEFAULT_SEASON_BUY_IN = 150;
 
 // Default payout templates
+// Each payout's `category` drives its medal/icon and is used as the money-entry
+// storage key. When a template lists more than one payout sharing the same
+// category (e.g. the Championship pays multiple groups a "1st"), give each of
+// those payouts a unique, dash-free `key` so their entries don't collide.
 export const defaultPayoutTemplates = [
   {
     id: 'standard',
@@ -243,12 +247,12 @@ export const defaultPayoutTemplates = [
     id: 'championship',
     name: 'Championship Final',
     payouts: [
-      { label: 'Group A 1st', category: '1st', amount: 300 },
-      { label: 'Group A 2nd', category: '2nd', amount: 150 },
-      { label: 'Group B 1st', category: '1st', amount: 120 },
-      { label: 'Group B 2nd', category: '2nd', amount: 60 },
-      { label: 'Group C 1st', category: '1st', amount: 50 },
-      { label: 'Group C 2nd', category: '2nd', amount: 20 }
+      { label: 'Group A 1st', category: '1st', amount: 300, key: 'a1' },
+      { label: 'Group A 2nd', category: '2nd', amount: 150, key: 'a2' },
+      { label: 'Group B 1st', category: '1st', amount: 120, key: 'b1' },
+      { label: 'Group B 2nd', category: '2nd', amount: 60, key: 'b2' },
+      { label: 'Group C 1st', category: '1st', amount: 50, key: 'c1' },
+      { label: 'Group C 2nd', category: '2nd', amount: 20, key: 'c2' }
     ],
     sideGameTotal: 30,
     sideGameName: 'Greenies',
