@@ -490,12 +490,11 @@ export function LeagueProvider({ children }) {
   };
 
   const saveMoneyToSupabase = async (playerId, weekId, category, amount) => {
-    try {
-      const { error } = await supabase.from('player_money').upsert({
-        player_id: playerId, week_id: weekId, category, amount
-      }, { onConflict: 'player_id,week_id,category' });
-      if (error) throw error;
-    } catch (error) { console.error('Error saving money:', error); }
+    const { error } = await supabase.from('player_money').upsert({
+      player_id: playerId, week_id: weekId, category, amount
+    }, { onConflict: 'player_id,week_id,category' });
+    if (error) console.error('Error saving money:', error);
+    return error;
   };
 
   const saveGiantSkinToSupabase = async (holeNumber, lowScore, players) => {
@@ -1754,7 +1753,10 @@ export function LeagueProvider({ children }) {
       return newPlayer;
     });
 
+    const saveErrors = [];
     for (const [key, amount] of Object.entries(moneyEntries)) {
+      // Key is `${playerId}-${categoryKey}`; both parts are dash-free, so the
+      // split yields exactly the player id and the payout's category key.
       const [playerId, category] = key.split('-');
       const playerIdx = updatedPlayers.findIndex(p => p.id === parseInt(playerId));
       if (playerIdx !== -1 && amount) {
@@ -1767,11 +1769,24 @@ export function LeagueProvider({ children }) {
             [selectedWeek]: { ...(updatedPlayers[playerIdx].weeklyMoney[selectedWeek] || {}), [category]: amountNum }
           }
         };
-        await saveMoneyToSupabase(parseInt(playerId), selectedWeek, category, amountNum);
+        const err = await saveMoneyToSupabase(parseInt(playerId), selectedWeek, category, amountNum);
+        if (err) saveErrors.push(err);
       }
     }
 
     setPlayers(updatedPlayers);
+
+    if (saveErrors.length > 0) {
+      const first = saveErrors[0];
+      alert(
+        `${saveErrors.length} payout entr${saveErrors.length === 1 ? 'y' : 'ies'} could not be saved to the database, so this week was not marked complete.\n\n` +
+        `Error: ${first.message || JSON.stringify(first)}\n\n` +
+        `If this mentions the "category" column or a check/enum constraint, the player_money table's category column needs to allow custom values. ` +
+        `Your entries are still on screen so you can retry after fixing it.`
+      );
+      return;
+    }
+
     setWeeks(weeks.map(w => w.id === selectedWeek ? { ...w, moneyEntered: true } : w));
     saveTeeSheetToSupabase(selectedWeek, weekObj?.teeSheet || [], weekObj?.scoresEntered || false, true, weekObj?.weatherCancelled || false, weekObj?.scoreSubmissionEnabled ?? true);
     setShowMoneyEntry(false);
