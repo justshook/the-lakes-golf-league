@@ -276,7 +276,7 @@ export const defaultWeekTemplates = {
   1: 'standard', 2: 'standard', 3: 'standard', 4: 'standard',
   5: 'no-payout', 6: 'ryder-cup', 7: 'standard', 8: 'standard',
   9: 'standard', 10: 'standard', 11: 'standard', 12: 'standard',
-  13: 'standard', 14: 'stableford', 15: 'standard', 16: 'standard',
+  13: 'standard', 14: 'standard', 15: 'standard', 16: 'standard',
   17: 'standard', 18: 'no-payout', 19: 'championship', 20: 'standard'
 };
 
@@ -403,11 +403,11 @@ export const initialWeeklyGames = [
   {
     weekId: 14,
     date: '2026-07-20',
-    gameName: 'Stableford Points',
-    gameDescription: 'Individual scoring system. Earn points based on net score: Eagle +5, Birdie +3, Par +1, Bogey -1, Double Bogey -2. Goal is to score the most points.',
-    sideGame: 'Greenies',
-    sideGameDescription: '$10 per greenie (3 holes = $30 total)',
-    teamType: null
+    gameName: 'Best Ball / Scramble / Worst Ball',
+    gameDescription: 'Each tee time will rotate between taking their best individual net score, playing a 4-man scramble, and taking their worst individual net score. The total of the 9 hole scores will be added up.\n\nTie breaker is lowest score starting on hole 1, then 2, 3, etc.',
+    sideGame: 'Low Worst Score Total',
+    sideGameDescription: '$30 split between team with lowest "worst ball" total',
+    teamType: '4-person'
   },
   {
     weekId: 15,
