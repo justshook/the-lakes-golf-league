@@ -404,7 +404,7 @@ export const initialWeeklyGames = [
     weekId: 14,
     date: '2026-07-20',
     gameName: 'Best Ball / Scramble / Worst Ball',
-    gameDescription: 'Each tee time will rotate between taking their best individual net score, playing a 4-man scramble, and taking their worst individual net score. The total of the 9 hole scores will be added up.\n\nTie breaker is lowest score starting on hole 1, then 2, 3, etc.',
+    gameDescription: 'Each tee time will rotate between taking their best individual net score, playing a 4-man scramble, and taking their worst individual net score. The total of the 9 hole scores will be added up.',
     sideGame: 'Low Worst Score Total',
     sideGameDescription: '$30 split between team with lowest "worst ball" total',
     teamType: '4-person'
