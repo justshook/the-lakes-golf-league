@@ -277,7 +277,7 @@ export const defaultWeekTemplates = {
   5: 'no-payout', 6: 'ryder-cup', 7: 'standard', 8: 'standard',
   9: 'standard', 10: 'standard', 11: 'standard', 12: 'standard',
   13: 'standard', 14: 'standard', 15: 'standard', 16: 'standard',
-  17: 'standard', 18: 'no-payout', 19: 'championship', 20: 'standard'
+  17: 'standard', 18: 'no-payout', 19: 'no-payout', 20: 'championship'
 };
 
 // Weekly games data with payouts
@@ -439,8 +439,8 @@ export const initialWeeklyGames = [
   {
     weekId: 18,
     date: '2026-08-17',
-    gameName: 'Championship Seeding',
-    gameDescription: 'Low Net Singles Tournament. Your net score will determine which group you qualify for in the final.',
+    gameName: 'Championship Round One',
+    gameDescription: 'Championship rounds are your best two rounds out of three weeks. You can play two of any of the three weeks, but you must declare before the round starts that the score will count towards the championship.\n\nLow Net Singles Final. A, B and C group champions to be crowned.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -448,8 +448,8 @@ export const initialWeeklyGames = [
   {
     weekId: 19,
     date: '2026-08-24',
-    gameName: 'Championship Final',
-    gameDescription: 'Low Net Singles Final. A, B and C group champions to be crowned.',
+    gameName: 'Championship Round Two',
+    gameDescription: 'Championship rounds are your best two rounds out of three weeks. You can play two of any of the three weeks, but you must declare before the round starts that the score will count towards the championship.\n\nLow Net Singles Final. A, B and C group champions to be crowned.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
     teamType: null
@@ -457,10 +457,10 @@ export const initialWeeklyGames = [
   {
     weekId: 20,
     date: '2026-08-31',
-    gameName: '2-Man Scramble',
-    gameDescription: 'Teams of 2. Both players hit, pick the best shot, and both play from that spot until the ball is holed. Team handicap is adjusted.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
+    gameName: 'Championship Round Three',
+    gameDescription: 'Championship rounds are your best two rounds out of three weeks. You can play two of any of the three weeks, but you must declare before the round starts that the score will count towards the championship.\n\nLow Net Singles Final. A, B and C group champions to be crowned.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
-    teamType: '2-person'
+    teamType: null
   }
 ];
