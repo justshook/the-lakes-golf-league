@@ -66,7 +66,7 @@ export default function AdminPage() {
     handleAssignTemplateToWeek, getTemplateById, getWeekPlannedPayout,
     getTemplateMoneyEntries, getWeeklyMoneyTotal, payoutEntryKey, getWeekPayouts,
     weeklyGames,
-    toggleWeatherCancelled, setScoreSubmissionEnabled,
+    toggleWeatherCancelled, setScoreSubmissionEnabled, setTeeSignupEnabled,
   } = useLeague();
 
   const [searchParams] = useSearchParams();
@@ -388,6 +388,7 @@ export default function AdminPage() {
                   {currentWeek.moneyEntered && <span className="bg-gold-500/20 text-gold-400 px-2.5 py-0.5 rounded-pill text-xs">✓ Money</span>}
                   {currentWeek.weatherCancelled && <span className="bg-red-500/20 text-red-300 px-2.5 py-0.5 rounded-pill text-xs">⛈ Weather Cancelled</span>}
                   {currentWeek.scoreSubmissionEnabled === false && <span className="bg-charcoal-800/20 text-cream-200/80 px-2.5 py-0.5 rounded-pill text-xs">📝 Submit Off</span>}
+                  {currentWeek.teeSignupEnabled === false && <span className="bg-charcoal-800/20 text-cream-200/80 px-2.5 py-0.5 rounded-pill text-xs">🔒 Tee Sheet Locked</span>}
                 </div>
               )}
             </div>
@@ -467,6 +468,45 @@ export default function AdminPage() {
                         className="w-4 h-4 text-forest-900 focus:ring-forest-800"
                       />
                       <span className="font-medium text-charcoal-950">Off — hide submit button</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Tee Time Signup Lock Toggle */}
+          {currentWeek && (() => {
+            const enabled = currentWeek.teeSignupEnabled ?? true;
+            return (
+              <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
+                <div className="bg-cream-300 px-4 py-3">
+                  <h3 className="font-display font-semibold text-charcoal-950">🔒 Tee Time Signup</h3>
+                </div>
+                <div className="p-4 space-y-3">
+                  <p className="text-xs text-charcoal-400">
+                    Controls whether players can sign up for or move between tee times on the home page for Week {currentWeek.id}. When locked, the tee sheet is fixed — players can't add themselves to open slots or remove themselves to switch times.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer flex-1 border border-charcoal-800/20 rounded-input px-3 py-2 hover:bg-cream-100">
+                      <input
+                        type="radio"
+                        name={`tee-signup-${currentWeek.id}`}
+                        checked={enabled === true}
+                        onChange={() => setTeeSignupEnabled(currentWeek.id, true)}
+                        className="w-4 h-4 text-forest-900 focus:ring-forest-800"
+                      />
+                      <span className="font-medium text-charcoal-950">Open — players can pick their tee time</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer flex-1 border border-charcoal-800/20 rounded-input px-3 py-2 hover:bg-cream-100">
+                      <input
+                        type="radio"
+                        name={`tee-signup-${currentWeek.id}`}
+                        checked={enabled === false}
+                        onChange={() => setTeeSignupEnabled(currentWeek.id, false)}
+                        className="w-4 h-4 text-forest-900 focus:ring-forest-800"
+                      />
+                      <span className="font-medium text-charcoal-950">Locked — tee sheet is fixed</span>
                     </label>
                   </div>
                 </div>

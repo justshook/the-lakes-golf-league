@@ -192,7 +192,7 @@ export function LeagueProvider({ children }) {
           setWeeks(prevWeeks => prevWeeks.map(week => {
             const savedSheet = teeSheetData.find(ts => ts.week_id === week.id);
             if (savedSheet) {
-              return { ...week, teeSheet: (savedSheet.tee_sheet || []), scoresEntered: savedSheet.scores_entered || false, moneyEntered: savedSheet.money_entered || false, weatherCancelled: savedSheet.weather_cancelled || false, scoreSubmissionEnabled: savedSheet.score_submission_enabled ?? true };
+              return { ...week, teeSheet: (savedSheet.tee_sheet || []), scoresEntered: savedSheet.scores_entered || false, moneyEntered: savedSheet.money_entered || false, weatherCancelled: savedSheet.weather_cancelled || false, scoreSubmissionEnabled: savedSheet.score_submission_enabled ?? true, teeSignupEnabled: savedSheet.tee_signup_enabled ?? true };
             }
             return week;
           }));
@@ -356,7 +356,7 @@ export function LeagueProvider({ children }) {
         setWeeks(prevWeeks => prevWeeks.map(week => {
           const savedSheet = teeSheetData.find(ts => ts.week_id === week.id);
           if (savedSheet) {
-            return { ...week, teeSheet: (savedSheet.tee_sheet || []), scoresEntered: savedSheet.scores_entered || false, moneyEntered: savedSheet.money_entered || false, weatherCancelled: savedSheet.weather_cancelled || false, scoreSubmissionEnabled: savedSheet.score_submission_enabled ?? true };
+            return { ...week, teeSheet: (savedSheet.tee_sheet || []), scoresEntered: savedSheet.scores_entered || false, moneyEntered: savedSheet.money_entered || false, weatherCancelled: savedSheet.weather_cancelled || false, scoreSubmissionEnabled: savedSheet.score_submission_enabled ?? true, teeSignupEnabled: savedSheet.tee_signup_enabled ?? true };
           }
           return week;
         }));
@@ -443,10 +443,10 @@ export function LeagueProvider({ children }) {
     }
   };
 
-  const saveTeeSheetToSupabase = async (weekId, teeSheet, scoresEntered = false, moneyEntered = false, weatherCancelled = false, scoreSubmissionEnabled = true) => {
+  const saveTeeSheetToSupabase = async (weekId, teeSheet, scoresEntered = false, moneyEntered = false, weatherCancelled = false, scoreSubmissionEnabled = true, teeSignupEnabled = true) => {
     try {
       const { error } = await supabase.from('tee_sheets').upsert({
-        week_id: weekId, tee_sheet: teeSheet, scores_entered: scoresEntered, money_entered: moneyEntered, weather_cancelled: weatherCancelled, score_submission_enabled: scoreSubmissionEnabled
+        week_id: weekId, tee_sheet: teeSheet, scores_entered: scoresEntered, money_entered: moneyEntered, weather_cancelled: weatherCancelled, score_submission_enabled: scoreSubmissionEnabled, tee_signup_enabled: teeSignupEnabled
       }, { onConflict: 'week_id' });
       if (error) throw error;
     } catch (error) {
@@ -456,6 +456,9 @@ export function LeagueProvider({ children }) {
       }
       if (error?.message?.includes('score_submission_enabled')) {
         console.error('IMPORTANT: Add a "score_submission_enabled boolean DEFAULT true" column to the "tee_sheets" table in Supabase for the submit-score toggle to persist.');
+      }
+      if (error?.message?.includes('tee_signup_enabled')) {
+        console.error('IMPORTANT: Add a "tee_signup_enabled boolean DEFAULT true" column to the "tee_sheets" table in Supabase for the tee time signup lock toggle to persist.');
       }
     }
   };
@@ -485,6 +488,22 @@ export function LeagueProvider({ children }) {
       week.scoresEntered || false,
       week.moneyEntered || false,
       week.weatherCancelled || false,
+      enabled,
+      week.teeSignupEnabled ?? true
+    );
+  };
+
+  const setTeeSignupEnabled = async (weekId, enabled) => {
+    const week = weeks.find(w => w.id === weekId);
+    if (!week) return;
+    setWeeks(weeks.map(w => w.id === weekId ? { ...w, teeSignupEnabled: enabled } : w));
+    await saveTeeSheetToSupabase(
+      weekId,
+      week.teeSheet || [],
+      week.scoresEntered || false,
+      week.moneyEntered || false,
+      week.weatherCancelled || false,
+      week.scoreSubmissionEnabled ?? true,
       enabled
     );
   };
@@ -572,6 +591,12 @@ export function LeagueProvider({ children }) {
     const { weekId, slotIndex } = subSignupSlot;
     const subId = parseInt(selectedSubId);
 
+    const signupWeek = weeks.find(w => w.id === weekId);
+    if (signupWeek && signupWeek.teeSignupEnabled === false) {
+      alert('The tee sheet is locked for this week. Please contact the league admin to change tee times.');
+      return;
+    }
+
     // Phone verification
     const player = players.find(p => p.id === subId);
     if (player) {
@@ -597,7 +622,7 @@ export function LeagueProvider({ children }) {
     });
 
     setWeeks(weeks.map(w => w.id === weekId ? { ...w, teeSheet: updatedTeeSheet } : w));
-    await saveTeeSheetToSupabase(weekId, updatedTeeSheet, week.scoresEntered || false, week.moneyEntered || false, week.weatherCancelled || false, week.scoreSubmissionEnabled ?? true);
+    await saveTeeSheetToSupabase(weekId, updatedTeeSheet, week.scoresEntered || false, week.moneyEntered || false, week.weatherCancelled || false, week.scoreSubmissionEnabled ?? true, week.teeSignupEnabled ?? true);
     setShowSubSignup(false);
     setSubSignupSlot(null);
     setSelectedSubId('');
@@ -608,6 +633,12 @@ export function LeagueProvider({ children }) {
   const handleRemoveFromTeeTime = async () => {
     if (!removeFromTeeTimeInfo) return;
     const { weekId, slotIndex, playerId } = removeFromTeeTimeInfo;
+
+    const removeWeek = weeks.find(w => w.id === weekId);
+    if (removeWeek && removeWeek.teeSignupEnabled === false) {
+      alert('The tee sheet is locked for this week. Please contact the league admin to change tee times.');
+      return;
+    }
 
     // Phone verification
     const player = players.find(p => p.id === playerId);
@@ -630,7 +661,7 @@ export function LeagueProvider({ children }) {
     });
 
     setWeeks(weeks.map(w => w.id === weekId ? { ...w, teeSheet: updatedTeeSheet } : w));
-    await saveTeeSheetToSupabase(weekId, updatedTeeSheet, week.scoresEntered || false, week.moneyEntered || false, week.weatherCancelled || false, week.scoreSubmissionEnabled ?? true);
+    await saveTeeSheetToSupabase(weekId, updatedTeeSheet, week.scoresEntered || false, week.moneyEntered || false, week.weatherCancelled || false, week.scoreSubmissionEnabled ?? true, week.teeSignupEnabled ?? true);
     setShowRemoveFromTeeTime(false);
     setRemoveFromTeeTimeInfo(null);
     setRemovePhoneInput('');
@@ -1492,7 +1523,7 @@ export function LeagueProvider({ children }) {
     const playingIds = teeSheet.flatMap(s => s.players);
     setPlayers(players.map(p => playingIds.includes(p.id) ? { ...p, weeksPlayed: p.weeksPlayed + 1 } : p));
     setWeeks(weeks.map(w => w.id === weekId ? { ...w, teeSheet } : w));
-    saveTeeSheetToSupabase(weekId, teeSheet, false, false, targetWeek?.weatherCancelled || false, targetWeek?.scoreSubmissionEnabled ?? true);
+    saveTeeSheetToSupabase(weekId, teeSheet, false, false, targetWeek?.weatherCancelled || false, targetWeek?.scoreSubmissionEnabled ?? true, targetWeek?.teeSignupEnabled ?? true);
   };
 
   // Auto-generate the next N upcoming weeks that haven't been scheduled yet, in one pass.
@@ -1536,7 +1567,7 @@ export function LeagueProvider({ children }) {
     setWeeks(weeks.map(w => builtSheets[w.id] ? { ...w, teeSheet: builtSheets[w.id] } : w));
 
     targetWeeks.forEach(w => {
-      saveTeeSheetToSupabase(w.id, builtSheets[w.id], false, false, w.weatherCancelled || false, w.scoreSubmissionEnabled ?? true);
+      saveTeeSheetToSupabase(w.id, builtSheets[w.id], false, false, w.weatherCancelled || false, w.scoreSubmissionEnabled ?? true, w.teeSignupEnabled ?? true);
     });
 
     const summary = `Generated tee sheets for ${targetWeeks.length} week(s): ${targetWeeks.map(w => `Week ${w.id}`).join(', ')}.`;
@@ -1571,7 +1602,7 @@ export function LeagueProvider({ children }) {
     ];
 
     setWeeks(weeks.map(w => w.id === selectedWeek ? { ...w, teeSheet: newTeeSheet } : w));
-    saveTeeSheetToSupabase(selectedWeek, newTeeSheet, currentWeekData.scoresEntered || false, currentWeekData.moneyEntered || false, currentWeekData.weatherCancelled || false, currentWeekData.scoreSubmissionEnabled ?? true);
+    saveTeeSheetToSupabase(selectedWeek, newTeeSheet, currentWeekData.scoresEntered || false, currentWeekData.moneyEntered || false, currentWeekData.weatherCancelled || false, currentWeekData.scoreSubmissionEnabled ?? true, currentWeekData.teeSignupEnabled ?? true);
     alert(`Done! ${filledSlots.length} teams now fill ${teeTimes[0]}–${teeTimes[filledSlots.length - 1]}. Open slots are at the end.`);
   };
 
@@ -1620,7 +1651,7 @@ export function LeagueProvider({ children }) {
     setPairingHistory(newPairingHistory);
 
     setWeeks(weeks.map(w => w.id === selectedWeek ? { ...w, teeSheet } : w));
-    saveTeeSheetToSupabase(selectedWeek, teeSheet, currentWeek?.scoresEntered || false, currentWeek?.moneyEntered || false, currentWeek?.weatherCancelled || false, currentWeek?.scoreSubmissionEnabled ?? true);
+    saveTeeSheetToSupabase(selectedWeek, teeSheet, currentWeek?.scoresEntered || false, currentWeek?.moneyEntered || false, currentWeek?.weatherCancelled || false, currentWeek?.scoreSubmissionEnabled ?? true, currentWeek?.teeSignupEnabled ?? true);
 
     setPlayers(players.map(p => {
       if (addedPlayers.includes(p.id)) return { ...p, weeksPlayed: p.weeksPlayed + 1 };
@@ -1788,7 +1819,7 @@ export function LeagueProvider({ children }) {
     }
 
     setWeeks(weeks.map(w => w.id === selectedWeek ? { ...w, moneyEntered: true } : w));
-    saveTeeSheetToSupabase(selectedWeek, weekObj?.teeSheet || [], weekObj?.scoresEntered || false, true, weekObj?.weatherCancelled || false, weekObj?.scoreSubmissionEnabled ?? true);
+    saveTeeSheetToSupabase(selectedWeek, weekObj?.teeSheet || [], weekObj?.scoresEntered || false, true, weekObj?.weatherCancelled || false, weekObj?.scoreSubmissionEnabled ?? true, weekObj?.teeSignupEnabled ?? true);
     setShowMoneyEntry(false);
     setMoneyEntries({});
   };
@@ -1886,7 +1917,7 @@ export function LeagueProvider({ children }) {
 
     // Functions
     refreshData, saveTeeSheetToSupabase, saveMoneyToSupabase, saveGiantSkinToSupabase, savePlayerScoreToSupabase,
-    toggleWeatherCancelled, setScoreSubmissionEnabled,
+    toggleWeatherCancelled, setScoreSubmissionEnabled, setTeeSignupEnabled,
     handleSubSignup, handleRemoveFromTeeTime, recalculateGiantSkins, updatePlayerScore, deletePlayerScore,
     addPlayerToGiantSkin, removePlayerFromGiantSkin, editGiantSkinType,
     resetSingleWeek, resetMoneyData, resetTeeSheets, resetGiantSkins, resetPlayerScores, resetAllData,
