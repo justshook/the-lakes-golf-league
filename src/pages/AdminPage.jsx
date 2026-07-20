@@ -30,7 +30,7 @@ export default function AdminPage() {
     adminAddScore, setAdminAddScore,
     playerScores, setPlayerScores,
     savePlayerScoreToSupabase, recalculateGiantSkins,
-    updatePlayerScore, deletePlayerScore,
+    updatePlayerScore, deletePlayerScore, recountWeekAsGross,
     getTeammatesForWeek, getHandicapForWeek, getGameForWeek,
     // Weekly games
     showWeeklyGameEditor, setShowWeeklyGameEditor,
@@ -1373,6 +1373,29 @@ export default function AdminPage() {
                     Add Score
                   </button>
                 </div>
+
+                {(() => {
+                  const game = getGameForWeek(scoreManagerWeek);
+                  const weekScores = playerScores.filter(s => s.week_id === scoreManagerWeek);
+                  const hasHandicaps = weekScores.some(s => s.handicap_used !== 0 || s.net_score !== s.gross_score);
+                  if (!game?.noHandicap || !hasHandicaps) return null;
+                  return (
+                    <div className="mb-3 flex items-center gap-2 bg-gold-100 border border-gold-300 rounded-card p-2">
+                      <span className="text-xs text-charcoal-800">
+                        Straight-up (no handicap) week — some saved scores still have handicaps applied.
+                      </span>
+                      <button
+                        onClick={async () => {
+                          const n = await recountWeekAsGross(scoreManagerWeek);
+                          if (n > 0) alert(`Updated ${n} score${n === 1 ? '' : 's'} to count gross only.`);
+                        }}
+                        className="ml-auto whitespace-nowrap bg-forest-900 text-cream-200 px-3 py-1.5 rounded-pill text-xs font-medium hover:bg-forest-800"
+                      >
+                        Remove handicaps
+                      </button>
+                    </div>
+                  );
+                })()}
 
                 {(() => {
                   const weekScores = playerScores.filter(s => s.week_id === scoreManagerWeek);

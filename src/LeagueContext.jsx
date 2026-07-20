@@ -837,6 +837,33 @@ export function LeagueProvider({ children }) {
     } catch (error) { console.error('Error updating player score:', error); }
   };
 
+  // Recompute every entered score for a week as straight-up gross (no handicap).
+  // Used for no-handicap weeks to fix scores that were saved before the week was
+  // switched to straight-up. Returns the number of rows updated.
+  const recountWeekAsGross = async (weekId) => {
+    const affected = playerScores.filter(
+      s => s.week_id === weekId && (s.handicap_used !== 0 || s.net_score !== s.gross_score)
+    );
+    if (affected.length === 0) return 0;
+    try {
+      for (const s of affected) {
+        const { error } = await supabase.from('player_scores')
+          .update({ net_score: s.gross_score, handicap_used: 0 })
+          .eq('player_id', s.player_id).eq('week_id', weekId);
+        if (error) throw error;
+      }
+      setPlayerScores(prev => prev.map(s =>
+        s.week_id === weekId ? { ...s, net_score: s.gross_score, handicap_used: 0 } : s
+      ));
+      await recalculateGiantSkins();
+      return affected.length;
+    } catch (error) {
+      console.error('Error recounting week as gross:', error);
+      alert(`Failed to update scores: ${error?.message || JSON.stringify(error)}`);
+      return 0;
+    }
+  };
+
   const deletePlayerScore = async (playerId, weekId) => {
     try {
       const { error } = await supabase.from('player_scores').delete().eq('player_id', playerId).eq('week_id', weekId);
@@ -1889,7 +1916,7 @@ export function LeagueProvider({ children }) {
     // Functions
     refreshData, saveTeeSheetToSupabase, saveMoneyToSupabase, saveGiantSkinToSupabase, savePlayerScoreToSupabase,
     toggleWeatherCancelled, setScoreSubmissionEnabled,
-    handleSubSignup, handleRemoveFromTeeTime, recalculateGiantSkins, updatePlayerScore, deletePlayerScore,
+    handleSubSignup, handleRemoveFromTeeTime, recalculateGiantSkins, updatePlayerScore, deletePlayerScore, recountWeekAsGross,
     addPlayerToGiantSkin, removePlayerFromGiantSkin, editGiantSkinType,
     resetSingleWeek, resetMoneyData, resetTeeSheets, resetGiantSkins, resetPlayerScores, resetAllData,
     handlePlayerScoreSubmit, handleConfirmedScoreOverwrite, toggleHoleSelection,
