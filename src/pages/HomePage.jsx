@@ -26,6 +26,8 @@ export default function HomePage() {
   const today = new Date().toLocaleDateString('en-CA');
   const isGameDay = weeks.some(w => w.date === today && w.teeSheet.length > 0);
 
+  const teeSheetLocked = currentWeek?.teeSignupEnabled === false;
+
   const currentDate = currentWeek ? new Date(currentWeek.date + 'T00:00:00') : null;
   const currentMonth = currentDate ? currentDate.toLocaleDateString('en-US', { month: 'long' }) : '';
   const currentDay = currentDate ? currentDate.getDate() : '';
@@ -129,6 +131,13 @@ export default function HomePage() {
                   )}
                 </div>
 
+                {teeSheetLocked && (
+                  <div className="mb-4 mx-1 flex items-center gap-2 bg-charcoal-800/5 border border-charcoal-800/15 rounded-card px-3 py-2 text-sm text-charcoal-600">
+                    <span>🔒</span>
+                    <span>The tee sheet is locked for this week. Contact the league admin to change tee times.</span>
+                  </div>
+                )}
+
                 <div className="mb-4 px-1">
                   <span className={`inline-block px-4 py-1.5 rounded-pill font-bold text-xs tracking-wide ${
                     currentWeek.nineHoles === 'front'
@@ -154,36 +163,43 @@ export default function HomePage() {
                               <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
                               <div className="flex items-center gap-1">
                                 <div className="text-sm text-charcoal-600 whitespace-nowrap">HCP {calc9HoleHandicap(player?.handicap)}</div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setRemoveFromTeeTimeInfo({ weekId: selectedWeek, slotIndex: idx, playerId, playerName: player?.name, time: slot.time });
-                                    setRemovePhoneInput('');
-                                    setShowRemoveFromTeeTime(true);
-                                  }}
-                                  className="w-6 h-6 flex items-center justify-center rounded-full text-charcoal-400 hover:bg-red-100 hover:text-red-600 transition-colors text-lg leading-none"
-                                  title="Remove from tee time"
-                                >
-                                  −
-                                </button>
+                                {!teeSheetLocked && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setRemoveFromTeeTimeInfo({ weekId: selectedWeek, slotIndex: idx, playerId, playerName: player?.name, time: slot.time });
+                                      setRemovePhoneInput('');
+                                      setShowRemoveFromTeeTime(true);
+                                    }}
+                                    className="w-6 h-6 flex items-center justify-center rounded-full text-charcoal-400 hover:bg-red-100 hover:text-red-600 transition-colors text-lg leading-none"
+                                    title="Remove from tee time"
+                                  >
+                                    −
+                                  </button>
+                                )}
                               </div>
                             </div>
                           );
                         };
 
-                        const renderEmptySlot = () => (
-                          <div
-                            onClick={() => {
-                              setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
-                              setSelectedSubId('');
-                              setSignupPhoneInput('');
-                              setShowSubSignup(true);
-                            }}
-                            className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
-                          >
-                            + Sign Up
-                          </div>
-                        );
+                        const renderEmptySlot = () =>
+                          teeSheetLocked ? (
+                            <div className="bg-charcoal-800/5 px-2 sm:px-3 py-2 rounded-card border border-dashed border-charcoal-800/20 text-charcoal-400 text-sm sm:text-[0.9375rem] text-center">
+                              Open
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => {
+                                setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
+                                setSelectedSubId('');
+                                setSignupPhoneInput('');
+                                setShowSubSignup(true);
+                              }}
+                              className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
+                            >
+                              + Sign Up
+                            </div>
+                          );
 
                         const renderTeamSlot = (playerId) =>
                           playerId !== null ? renderPlayerCard(playerId) : renderEmptySlot();
@@ -230,36 +246,47 @@ export default function HomePage() {
                                 <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
                                 <div className="flex items-center gap-1">
                                   <div className="text-sm text-charcoal-600 whitespace-nowrap">HCP {calc9HoleHandicap(player?.handicap)}</div>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setRemoveFromTeeTimeInfo({ weekId: selectedWeek, slotIndex: idx, playerId, playerName: player?.name, time: slot.time });
-                                      setRemovePhoneInput('');
-                                      setShowRemoveFromTeeTime(true);
-                                    }}
-                                    className="w-6 h-6 flex items-center justify-center rounded-full text-charcoal-400 hover:bg-red-100 hover:text-red-600 transition-colors text-lg leading-none"
-                                    title="Remove from tee time"
-                                  >
-                                    −
-                                  </button>
+                                  {!teeSheetLocked && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setRemoveFromTeeTimeInfo({ weekId: selectedWeek, slotIndex: idx, playerId, playerName: player?.name, time: slot.time });
+                                        setRemovePhoneInput('');
+                                        setShowRemoveFromTeeTime(true);
+                                      }}
+                                      className="w-6 h-6 flex items-center justify-center rounded-full text-charcoal-400 hover:bg-red-100 hover:text-red-600 transition-colors text-lg leading-none"
+                                      title="Remove from tee time"
+                                    >
+                                      −
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             );
                           })}
-                          {[...Array(4 - slot.players.length)].map((_, i) => (
-                            <div
-                              key={`empty-${i}`}
-                              onClick={() => {
-                                setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
-                                setSelectedSubId('');
-                                setSignupPhoneInput('');
-                                setShowSubSignup(true);
-                              }}
-                              className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
-                            >
-                              + Sign Up
-                            </div>
-                          ))}
+                          {[...Array(4 - slot.players.length)].map((_, i) =>
+                            teeSheetLocked ? (
+                              <div
+                                key={`empty-${i}`}
+                                className="bg-charcoal-800/5 px-2 sm:px-3 py-2 rounded-card border border-dashed border-charcoal-800/20 text-charcoal-400 text-sm sm:text-[0.9375rem] text-center"
+                              >
+                                Open
+                              </div>
+                            ) : (
+                              <div
+                                key={`empty-${i}`}
+                                onClick={() => {
+                                  setSubSignupSlot({ weekId: selectedWeek, slotIndex: idx, time: slot.time });
+                                  setSelectedSubId('');
+                                  setSignupPhoneInput('');
+                                  setShowSubSignup(true);
+                                }}
+                                className="bg-forest-800/10 px-2 sm:px-3 py-2 rounded-card border border-dashed border-forest-700 text-forest-700 text-sm sm:text-[0.9375rem] text-center cursor-pointer hover:bg-forest-800/20 hover:border-forest-600 transition-colors"
+                              >
+                                + Sign Up
+                              </div>
+                            )
+                          )}
                         </div>
                         {currentGame?.showTeamHandicap && currentGame?.teamType === '4-person' && slot.players.length > 0 && (
                           <div className="mt-2 text-center bg-forest-900/10 rounded-card py-1 px-2">
