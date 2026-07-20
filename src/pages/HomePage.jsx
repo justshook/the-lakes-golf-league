@@ -295,6 +295,25 @@ export default function HomePage() {
               </p>
             </div>
             <div className="p-6 space-y-4">
+              {/* Team game guidance note (shown when today's / selected round is a team game) */}
+              {(() => {
+                const today = new Date().toLocaleDateString('en-CA');
+                const yesterdayDate = new Date();
+                yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+                const yesterday = yesterdayDate.toLocaleDateString('en-CA');
+                const selectedWeekId = playerScoreForm.weekId ? parseInt(playerScoreForm.weekId) : null;
+                const noteWeek = selectedWeekId
+                  ? weeks.find(w => w.id === selectedWeekId)
+                  : weeks.find(w => w.date === today || w.date === yesterday);
+                if (!noteWeek || !getTeamTypeForWeek(noteWeek.id)) return null;
+                return (
+                  <div className="bg-forest-900/5 border border-forest-900/20 rounded-lg p-3 text-sm text-forest-900">
+                    <p className="font-semibold mb-1">👥 Team game today</p>
+                    <p>Enter one score for your team. Pick any player on your team and enter your team's score for 9 holes. No handicap this week — scores are straight up (gross).</p>
+                  </div>
+                );
+              })()}
+
               {/* Player Selection */}
               <div>
                 <label className="block text-sm font-medium text-charcoal-950 mb-1">Your Name</label>

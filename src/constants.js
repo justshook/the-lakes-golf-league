@@ -404,10 +404,12 @@ export const initialWeeklyGames = [
     weekId: 14,
     date: '2026-07-20',
     gameName: 'Best Ball / Scramble / Worst Ball',
-    gameDescription: 'Each tee time will rotate between taking their best individual net score, playing a 4-man scramble, and taking their worst individual net score. The total of the 9 hole scores will be added up.',
+    gameDescription: 'Each tee time will rotate between taking their best individual gross score, playing a 4-man scramble, and taking their worst individual gross score. The total of the 9 hole scores will be added up.',
     sideGame: 'Low Worst Score Total',
     sideGameDescription: '$30 split between team with lowest "worst ball" total',
-    teamType: '4-person'
+    teamType: '4-person',
+    // Straight-up gross game — no handicap strokes applied. Net equals gross.
+    noHandicap: true
   },
   {
     weekId: 15,
