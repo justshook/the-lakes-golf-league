@@ -1102,6 +1102,8 @@ export function LeagueProvider({ children }) {
     const player = players.find(p => p.id === playerId);
     if (!player) return { handicap: 0, isTeamHcp: false };
     const game = weeklyGames.find(g => g.weekId === weekId);
+    // Straight-up gross weeks apply no handicap strokes at all — net equals gross.
+    if (game?.noHandicap) return { handicap: 0, isTeamHcp: false };
     const applyAllowance = (h) => game?.reducedHandicap ? Math.round(h * 0.8) : h;
     const individual = applyAllowance(calc9HoleHandicap(player.handicap));
 

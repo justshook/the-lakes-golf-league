@@ -309,7 +309,7 @@ export default function HomePage() {
                 return (
                   <div className="bg-forest-900/5 border border-forest-900/20 rounded-lg p-3 text-sm text-forest-900">
                     <p className="font-semibold mb-1">👥 Team game today</p>
-                    <p>Enter one score for your team. Pick any player on your team and enter your net score for 9 holes.</p>
+                    <p>Enter one score for your team. Pick any player on your team and enter your team's score for 9 holes. No handicap this week — scores are straight up (gross).</p>
                   </div>
                 );
               })()}
