@@ -436,7 +436,11 @@ export const initialWeeklyGames = [
     gameDescription: 'Teams of 4. On each hole, take the two lowest net scores from the group as the team score.\n\nTie breaker is lowest net score starting on hole 1, then 2, 3, etc.',
     sideGame: 'Greenies',
     sideGameDescription: '$10 per greenie (3 holes = $30 total)',
-    teamType: '4-person'
+    teamType: '4-person',
+    // Teams enter their low net team score, so it is already net — no handicap
+    // strokes are applied on top of the entered score.
+    manualNetEntry: true,
+    noHandicap: true
   },
   {
     weekId: 18,
