@@ -306,10 +306,14 @@ export default function HomePage() {
                   ? weeks.find(w => w.id === selectedWeekId)
                   : weeks.find(w => w.date === today || w.date === yesterday);
                 if (!noteWeek || !getTeamTypeForWeek(noteWeek.id)) return null;
+                const noteGame = getGameForWeek(noteWeek.id);
                 return (
                   <div className="bg-forest-900/5 border border-forest-900/20 rounded-lg p-3 text-sm text-forest-900">
                     <p className="font-semibold mb-1">👥 Team game today</p>
-                    <p>Enter one score for your team. Pick any player on your team and enter your team's score for 9 holes. No handicap this week — scores are straight up (gross).</p>
+                    <p>
+                      Enter one score for your team. Pick any player on your team and enter your
+                      team's {noteGame?.manualNetEntry ? 'low net score' : 'score'} for 9 holes.
+                    </p>
                   </div>
                 );
               })()}
@@ -436,10 +440,11 @@ export default function HomePage() {
                 <label className="block text-sm font-medium text-charcoal-950 mb-1">
                   {(() => {
                     const weekIdNum = parseInt(playerScoreForm.weekId);
+                    const isTeamWeek = playerScoreForm.weekId && getTeamTypeForWeek(weekIdNum);
                     if (playerScoreForm.weekId && getGameForWeek(weekIdNum)?.manualNetEntry) {
-                      return 'Net Score';
+                      return isTeamWeek ? 'Team Low Net Score (9 holes)' : 'Net Score';
                     }
-                    return playerScoreForm.weekId && getTeamTypeForWeek(weekIdNum)
+                    return isTeamWeek
                       ? 'Team Score (9 holes)'
                       : 'Total Score (9 holes)';
                   })()}

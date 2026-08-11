@@ -966,7 +966,11 @@ export function LeagueProvider({ children }) {
       const { teammates, isSolo } = getTeammatesForWeek(playerIdNum, weekIdNum);
       const allMembers = isSolo ? [playerIdNum] : [playerIdNum, ...teammates];
       const grossScore = parseInt(totalScore);
-      const { handicap: teamHcp } = getHandicapForWeek(playerIdNum, weekIdNum);
+      const teamGame = weeklyGames.find(g => g.weekId === weekIdNum);
+      // Weeks where teams enter an already-net team score take no further strokes.
+      const manualNetEntry = !!teamGame?.manualNetEntry;
+      const { handicap: rawTeamHcp } = getHandicapForWeek(playerIdNum, weekIdNum);
+      const teamHcp = manualNetEntry ? 0 : rawTeamHcp;
 
       try {
         for (const memberId of allMembers) {

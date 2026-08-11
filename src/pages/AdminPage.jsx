@@ -1319,7 +1319,10 @@ export default function AdminPage() {
                       if (isTeamScore) {
                         const { teammates, isSolo } = getTeammatesForWeek(playerId, scoreManagerWeek);
                         const allMembers = isSolo ? [playerId] : [playerId, ...teammates];
-                        const { handicap: teamHcp } = getHandicapForWeek(playerId, scoreManagerWeek);
+                        // Weeks where teams enter an already-net team score take no further strokes.
+                        const teamManualNetEntry = !!getGameForWeek(scoreManagerWeek)?.manualNetEntry;
+                        const { handicap: rawTeamHcp } = getHandicapForWeek(playerId, scoreManagerWeek);
+                        const teamHcp = teamManualNetEntry ? 0 : rawTeamHcp;
 
                         for (const memberId of allMembers) {
                           const member = players.find(p => p.id === memberId);
@@ -1382,7 +1385,7 @@ export default function AdminPage() {
                   return (
                     <div className="mb-3 flex items-center gap-2 bg-gold-100 border border-gold-300 rounded-card p-2">
                       <span className="text-xs text-charcoal-800">
-                        Straight-up (no handicap) week — some saved scores still have handicaps applied.
+                        No-handicap week — some saved scores still have handicaps applied.
                       </span>
                       <button
                         onClick={async () => {
