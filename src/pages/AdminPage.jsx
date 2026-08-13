@@ -67,6 +67,8 @@ export default function AdminPage() {
     getTemplateMoneyEntries, getWeeklyMoneyTotal, payoutEntryKey, getWeekPayouts,
     weeklyGames,
     toggleWeatherCancelled, setScoreSubmissionEnabled,
+    // Championship flights
+    flightStandings,
   } = useLeague();
 
   const [searchParams] = useSearchParams();
@@ -79,6 +81,39 @@ export default function AdminPage() {
   const [editBuyIn, setEditBuyIn] = useState(false);
   const [buyInInput, setBuyInInput] = useState('');
   const [templateForm, setTemplateForm] = useState(null);
+
+  // Championship flight roster
+  const [copiedFlights, setCopiedFlights] = useState(false);
+
+  const flightListText = () => flightStandings.map(flight => {
+    const lines = flight.players.length
+      ? flight.players.map(p => `${p.tied ? 'T' : ''}${p.rank}. ${p.name} — $${p.money.toLocaleString()}`)
+      : ['(no players yet)'];
+    return [`${flight.name.toUpperCase()} — ${flight.description}`, ...lines].join('\n');
+  }).join('\n\n');
+
+  const copyFlightList = async () => {
+    const text = flightListText();
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for browsers without the async clipboard API
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedFlights(true);
+      setTimeout(() => setCopiedFlights(false), 2000);
+    } catch (err) {
+      console.error('Could not copy flight list:', err);
+    }
+  };
 
   useEffect(() => {
     if (!activeSelectSlot) return;
@@ -1589,6 +1624,52 @@ export default function AdminPage() {
       {/* ─── SEASON TAB ─── */}
       {activeTab === 'season' && (
         <div className="space-y-6">
+
+          {/* Championship Flights */}
+          <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
+            <div className="bg-cream-300 px-4 py-3 flex items-center justify-between gap-3">
+              <h3 className="font-display font-semibold text-charcoal-950">🏁 Championship Flights</h3>
+              <button
+                onClick={copyFlightList}
+                className="bg-forest-900 text-cream-200 px-3 py-1.5 rounded-pill text-sm hover:bg-forest-800 whitespace-nowrap"
+              >
+                {copiedFlights ? 'Copied!' : 'Copy list'}
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-charcoal-600">
+                Seeded off season money won outside the Championship weeks, so flights stay put as the final
+                payouts are entered. Ties on money break on weeks played; players level on both share a rank
+                and stay in the same flight.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {flightStandings.map(flight => (
+                  <div key={flight.id} className="bg-cream-100 rounded-card border border-charcoal-800/10 overflow-hidden">
+                    <div className="px-3 py-2 border-b border-charcoal-800/10">
+                      <div className="font-display font-bold text-charcoal-950">
+                        {flight.name} <span className="text-charcoal-400 font-sans font-normal text-sm">({flight.players.length})</span>
+                      </div>
+                      <div className="text-xs text-charcoal-400">{flight.description}</div>
+                    </div>
+                    <div className="divide-y divide-charcoal-800/5">
+                      {flight.players.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-charcoal-400">No players yet</div>
+                      ) : flight.players.map(p => (
+                        <div key={p.id} className="px-3 py-1.5 flex items-center justify-between gap-2 text-sm">
+                          <span className="text-charcoal-800 truncate">
+                            <span className="text-charcoal-400 mr-1.5">{p.tied ? 'T' : ''}{p.rank}.</span>
+                            {p.name}
+                          </span>
+                          <span className="text-charcoal-600 whitespace-nowrap">${p.money.toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          {/* END Championship Flights */}
 
           {/* Season Budget & Payouts */}
           <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">

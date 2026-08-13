@@ -197,6 +197,76 @@ export const moneyCategories = [
   { id: 'ctp3', name: 'CTP #3', icon: '🎯' }
 ];
 
+// ─── League Championship flights ───
+// The Championship rounds. Money won in these weeks is left out of the flight
+// seeding so the flights lock in before Round One and don't reshuffle as the
+// final payouts get entered.
+export const CHAMPIONSHIP_WEEK_IDS = [18, 19, 20];
+
+// Only league members are flighted — substitutes don't play the Championship.
+export const FLIGHT_ELIGIBLE_TYPES = ['full-time'];
+
+// A / B / C flights, seeded off the season money list.
+export const leagueFlights = [
+  { id: 'A', name: 'A Flight', startRank: 1, endRank: 12, description: 'Top 12 money leaders' },
+  { id: 'B', name: 'B Flight', startRank: 13, endRank: 28, description: '13th – 28th on the money list' },
+  { id: 'C', name: 'C Flight', startRank: 29, endRank: null, description: '29th and back on the money list' }
+];
+
+export const getFlightForRank = (rank) =>
+  leagueFlights.find(f => rank >= f.startRank && (f.endRank === null || rank <= f.endRank)) || null;
+
+// Season money that counts toward a player's flight seeding.
+export const getFlightSeedMoney = (player, championshipWeekIds = CHAMPIONSHIP_WEEK_IDS) => {
+  const excluded = new Set(championshipWeekIds.map(String));
+  return Object.entries(player.weeklyMoney || {}).reduce((total, [weekId, categories]) => {
+    if (excluded.has(String(weekId))) return total;
+    return total + Object.values(categories || {}).reduce((sum, amount) => sum + (amount || 0), 0);
+  }, 0);
+};
+
+// Rank every eligible player on season money and hand each one a flight.
+// Ties on money are broken by weeks played; players level on both share a rank,
+// so a genuine tie is never split across two flights (which can push a flight
+// one or two players past its nominal size — that's intended).
+export const calculateFlights = (players, championshipWeekIds = CHAMPIONSHIP_WEEK_IDS) => {
+  const ranked = players
+    .filter(p => FLIGHT_ELIGIBLE_TYPES.includes(p.type))
+    .map(p => ({
+      id: p.id,
+      name: p.name,
+      money: getFlightSeedMoney(p, championshipWeekIds),
+      weeksPlayed: p.weeksPlayed || 0
+    }))
+    .sort((a, b) => b.money - a.money || b.weeksPlayed - a.weeksPlayed || a.name.localeCompare(b.name));
+
+  // Nothing on the money board yet — there's no money list to flight anyone off.
+  if (ranked.every(entry => entry.money === 0)) return {};
+
+  const assignments = {};
+  const rankCounts = {};
+  let tieKey = null;
+  let tieRank = 0;
+
+  ranked.forEach((entry, index) => {
+    const key = `${entry.money}|${entry.weeksPlayed}`;
+    const rank = key === tieKey ? tieRank : index + 1;
+    tieKey = key;
+    tieRank = rank;
+    rankCounts[rank] = (rankCounts[rank] || 0) + 1;
+    assignments[entry.id] = {
+      rank,
+      flight: getFlightForRank(rank),
+      money: entry.money,
+      weeksPlayed: entry.weeksPlayed
+    };
+  });
+
+  Object.values(assignments).forEach(a => { a.tied = rankCounts[a.rank] > 1; });
+
+  return assignments;
+};
+
 // Default season buy-in per player
 export const DEFAULT_SEASON_BUY_IN = 150;
 

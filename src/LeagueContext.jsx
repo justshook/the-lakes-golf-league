@@ -5,7 +5,7 @@ import {
   initialPlayers, calc9HoleHandicap, calcTeamHandicap, generateSeasonWeeks,
   teeTimes, courseHoles, moneyCategories, initialWeeklyGames, ADMIN_PASSWORD,
   DEFAULT_SEASON_BUY_IN, defaultPayoutTemplates, defaultWeekTemplates,
-  SCHEDULE_FIXED_PARTNER
+  SCHEDULE_FIXED_PARTNER, calculateFlights, leagueFlights
 } from './constants';
 
 const LeagueContext = createContext(null);
@@ -1867,6 +1867,19 @@ export function LeagueProvider({ children }) {
 
   const sortedByMoney = [...players].sort((a, b) => b.totalMoney - a.totalMoney);
 
+  // Championship flights, keyed by player id: { rank, flight, money, weeksPlayed, tied }
+  const flightAssignments = calculateFlights(players);
+  const getPlayerFlight = (playerId) => flightAssignments[playerId] || null;
+
+  // The same assignments grouped into A / B / C, each in money-list order.
+  const flightStandings = leagueFlights.map(flight => ({
+    ...flight,
+    players: players
+      .filter(p => flightAssignments[p.id]?.flight?.id === flight.id)
+      .map(p => ({ ...p, ...flightAssignments[p.id] }))
+      .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name))
+  }));
+
   const filteredPlayers = players.filter(p => {
     if (playerFilter === 'all') return true;
     return p.type === playerFilter;
@@ -1914,6 +1927,8 @@ export function LeagueProvider({ children }) {
 
     // Derived
     currentWeek, currentGame, sortedByMoney, filteredPlayers, filteredPlayersForAdmin, assignedPlayerIds,
+    // Championship flights
+    flightAssignments, getPlayerFlight, flightStandings,
     // Payout tracker derived
     seasonBudget, totalPlannedPayouts, totalActualPayouts, remainingBudget, fullTimePlayers,
 
