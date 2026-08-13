@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLeague } from '../LeagueContext';
-import { calc9HoleHandicap, calcTeamHandicap, courseHoles } from '../constants';
+import { calc9HoleHandicap, calcTeamHandicap, courseHoles, CHAMPIONSHIP_WEEK_IDS } from '../constants';
+import FlightBadge from '../components/FlightBadge';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -20,8 +21,12 @@ export default function HomePage() {
     handleRemoveFromTeeTime,
     players, isSubmitting,
     scoreOverwriteConfirm, setScoreOverwriteConfirm,
-    formatShortDate,
+    formatShortDate, getPlayerFlight,
   } = useLeague();
+
+  // Flights only matter for the Championship rounds, so the tee sheet stays
+  // uncluttered the rest of the season.
+  const showFlights = CHAMPIONSHIP_WEEK_IDS.includes(selectedWeek);
 
   const today = new Date().toLocaleDateString('en-CA');
   const isGameDay = weeks.some(w => w.date === today && w.teeSheet.length > 0);
@@ -227,7 +232,12 @@ export default function HomePage() {
                                 key={pIdx}
                                 className="bg-cream-100 px-2 sm:px-3 py-2 rounded-card border border-charcoal-800/10 flex items-center justify-between"
                               >
-                                <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate min-w-0">{player?.name}</div>
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <div className="font-medium text-charcoal-950 text-[0.9375rem] truncate">{player?.name}</div>
+                                  {showFlights && (
+                                    <FlightBadge flight={getPlayerFlight(playerId)?.flight} className="shrink-0" />
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-1">
                                   <div className="text-sm text-charcoal-600 whitespace-nowrap">HCP {calc9HoleHandicap(player?.handicap)}</div>
                                   <button

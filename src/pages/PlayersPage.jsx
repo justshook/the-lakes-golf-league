@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLeague } from '../LeagueContext';
 import { calc9HoleHandicap } from '../constants';
+import FlightBadge from '../components/FlightBadge';
 
 export default function PlayersPage() {
   const { playerId } = useParams();
@@ -10,7 +11,10 @@ export default function PlayersPage() {
     players, selectedPlayer, setSelectedPlayer,
     playerFilter, setPlayerFilter, filteredPlayers,
     playerScores, getPlayerById, getTeamTypeForWeek, getPayoutLabel,
+    getPlayerFlight,
   } = useLeague();
+
+  const selectedFlight = selectedPlayer ? getPlayerFlight(selectedPlayer.id) : null;
 
   // Sync URL param with selectedPlayer state
   useEffect(() => {
@@ -48,25 +52,51 @@ export default function PlayersPage() {
                     )}
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-pill text-xs font-medium shrink-0 ${
-                  selectedPlayer.type === 'full-time' ? 'bg-forest-700' : 'bg-gold-600'
-                } text-cream-200`}>
-                  {selectedPlayer.type === 'full-time' ? 'Member' : 'Substitute'}
-                </span>
+                <div className="flex flex-col items-end gap-1.5 shrink-0">
+                  <span className={`px-3 py-1 rounded-pill text-xs font-medium ${
+                    selectedPlayer.type === 'full-time' ? 'bg-forest-700' : 'bg-gold-600'
+                  } text-cream-200`}>
+                    {selectedPlayer.type === 'full-time' ? 'Member' : 'Substitute'}
+                  </span>
+                  {selectedFlight?.flight && (
+                    <FlightBadge flight={selectedFlight.flight} variant="dark" full />
+                  )}
+                </div>
               </div>
             </div>
 
             <div className="p-4 sm:p-6">
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className={`grid gap-4 mb-4 ${selectedFlight ? 'grid-cols-3' : 'grid-cols-2'}`}>
                 <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
-                  <div className="font-display text-3xl font-bold text-cream-200">{selectedPlayer.weeksPlayed}</div>
+                  <div className="font-display text-2xl sm:text-3xl font-bold text-cream-200">{selectedPlayer.weeksPlayed}</div>
                   <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Weeks Played</div>
                 </div>
                 <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
-                  <div className="font-display text-3xl font-bold text-gold-500">${selectedPlayer.totalMoney}</div>
+                  <div className="font-display text-2xl sm:text-3xl font-bold text-gold-500">${selectedPlayer.totalMoney}</div>
                   <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Total Won</div>
                 </div>
+                {selectedFlight && (
+                  <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
+                    <div className="font-display text-2xl sm:text-3xl font-bold text-cream-200">
+                      {selectedFlight.tied ? 'T' : ''}#{selectedFlight.rank}
+                    </div>
+                    <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Money Rank</div>
+                  </div>
+                )}
               </div>
+
+              {selectedFlight?.flight && (
+                <div className="mb-6 flex flex-wrap items-center gap-2 bg-cream-300 rounded-card p-3">
+                  <span className="text-lg">🏁</span>
+                  <span className="font-display font-semibold text-charcoal-950 text-[0.9375rem]">
+                    Championship {selectedFlight.flight.name}
+                  </span>
+                  <span className="text-sm text-charcoal-600">
+                    {selectedFlight.flight.description} — seeded {selectedFlight.tied ? 'T' : ''}#{selectedFlight.rank}
+                    {' '}with ${selectedFlight.money.toLocaleString()} won this season.
+                  </span>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="border-t pt-4">
@@ -198,7 +228,10 @@ export default function PlayersPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="font-display font-semibold text-charcoal-950 text-[0.9375rem] truncate">{player.name}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="font-display font-semibold text-charcoal-950 text-[0.9375rem] truncate">{player.name}</div>
+                      <FlightBadge flight={getPlayerFlight(player.id)?.flight} className="shrink-0" />
+                    </div>
                     <div className="text-sm text-charcoal-600">HCP {calc9HoleHandicap(player.handicap)} • {player.availability.length} times</div>
                   </div>
                   <div className="text-right">

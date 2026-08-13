@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLeague } from '../LeagueContext';
 import { moneyCategories } from '../constants';
+import FlightBadge from '../components/FlightBadge';
 
 export default function LeaderboardPage() {
   const {
@@ -8,7 +9,7 @@ export default function LeaderboardPage() {
     leaderboardView, setLeaderboardView,
     sortedByMoney, playerScores, getTeamTypeForWeek, getTeammatesForWeek,
     getWeeklyMoneyTotal, getPlayerById, formatShortDate,
-    getWeekPayouts, payoutEntryKey,
+    getWeekPayouts, payoutEntryKey, getPlayerFlight,
   } = useLeague();
 
   return (
@@ -47,6 +48,10 @@ export default function LeaderboardPage() {
                 Total Pot: ${sortedByMoney.reduce((sum, p) => sum + p.totalMoney, 0).toLocaleString()}
               </div>
             </div>
+            <p className="text-xs text-charcoal-600 mt-1">
+              Championship flights: <span className="font-semibold">A</span> = top 12 on the money list,{' '}
+              <span className="font-semibold">B</span> = 13–28, <span className="font-semibold">C</span> = 29 and back.
+            </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -54,6 +59,7 @@ export default function LeaderboardPage() {
                 <tr>
                   <th className="th-label text-left w-16 sticky left-0 z-10 bg-cream-300/60">Rank</th>
                   <th className="th-label text-left sticky left-16 z-10 bg-cream-300/60">Player</th>
+                  <th className="th-label text-center">Flight</th>
                   <th className="th-label text-right">Total Won</th>
                 </tr>
               </thead>
@@ -93,7 +99,7 @@ export default function LeaderboardPage() {
                   if (unified.length === 0) {
                     return (
                       <tr>
-                        <td colSpan={3} className="px-4 py-12 text-center text-charcoal-500">
+                        <td colSpan={4} className="px-4 py-12 text-center text-charcoal-500">
                           No data yet. Scores and winnings will appear here as the season progresses.
                         </td>
                       </tr>
@@ -121,6 +127,11 @@ export default function LeaderboardPage() {
                         player.rank === 1 ? 'bg-gold-500/10 group-hover:bg-gold-500/20' : 'bg-cream-200 group-hover:bg-cream-300/40'
                       }`}>
                         {player.name}
+                      </td>
+                      <td className="px-2 sm:px-4 py-4 text-center">
+                        {getPlayerFlight(player.id)?.flight
+                          ? <FlightBadge flight={getPlayerFlight(player.id).flight} />
+                          : <span className="text-charcoal-400">—</span>}
                       </td>
                       <td className="px-2 sm:px-4 py-4 text-right">
                         {player.totalMoney > 0 ? (
