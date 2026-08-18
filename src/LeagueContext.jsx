@@ -5,7 +5,7 @@ import {
   initialPlayers, calc9HoleHandicap, calcTeamHandicap, generateSeasonWeeks,
   teeTimes, courseHoles, moneyCategories, initialWeeklyGames, ADMIN_PASSWORD,
   DEFAULT_SEASON_BUY_IN, defaultPayoutTemplates, defaultWeekTemplates,
-  SCHEDULE_FIXED_PARTNER, calculateFlights, leagueFlights
+  SCHEDULE_FIXED_PARTNER, calculateFlights, leagueFlights, calculateChampionshipStandings
 } from './constants';
 
 const LeagueContext = createContext(null);
@@ -1871,6 +1871,10 @@ export function LeagueProvider({ children }) {
   const flightAssignments = calculateFlights(players);
   const getPlayerFlight = (playerId) => flightAssignments[playerId] || null;
 
+  // League Championship: A / B / C, each ranked on the 18-hole net total of a
+  // player's first two rounds across the final three weeks.
+  const championshipStandings = calculateChampionshipStandings(players, playerScores, flightAssignments);
+
   // The same assignments grouped into A / B / C, each in money-list order.
   const flightStandings = leagueFlights.map(flight => ({
     ...flight,
@@ -1928,7 +1932,7 @@ export function LeagueProvider({ children }) {
     // Derived
     currentWeek, currentGame, sortedByMoney, filteredPlayers, filteredPlayersForAdmin, assignedPlayerIds,
     // Championship flights
-    flightAssignments, getPlayerFlight, flightStandings,
+    flightAssignments, getPlayerFlight, flightStandings, championshipStandings,
     // Payout tracker derived
     seasonBudget, totalPlannedPayouts, totalActualPayouts, remainingBudget, fullTimePlayers,
 

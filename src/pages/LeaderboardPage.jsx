@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLeague } from '../LeagueContext';
-import { moneyCategories } from '../constants';
+import { moneyCategories, CHAMPIONSHIP_WEEK_IDS, CHAMPIONSHIP_ROUNDS_COUNTED } from '../constants';
 import FlightBadge from '../components/FlightBadge';
 
 export default function LeaderboardPage() {
@@ -9,13 +9,13 @@ export default function LeaderboardPage() {
     leaderboardView, setLeaderboardView,
     sortedByMoney, playerScores, getTeamTypeForWeek, getTeammatesForWeek,
     getWeeklyMoneyTotal, getPlayerById, formatShortDate,
-    getWeekPayouts, payoutEntryKey, getPlayerFlight,
+    getWeekPayouts, payoutEntryKey, getPlayerFlight, championshipStandings,
   } = useLeague();
 
   return (
     <div className="space-y-4">
       {/* Toggle tabs — no page title */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setLeaderboardView('season')}
           className={`px-5 py-2.5 rounded-pill font-medium text-sm transition-all ${
@@ -35,6 +35,16 @@ export default function LeaderboardPage() {
           }`}
         >
           By Week
+        </button>
+        <button
+          onClick={() => setLeaderboardView('championship')}
+          className={`px-5 py-2.5 rounded-pill font-medium text-sm transition-all ${
+            leaderboardView === 'championship'
+              ? 'bg-cta-500 text-forest-950'
+              : 'bg-forest-800 text-cream-200 hover:bg-forest-700'
+          }`}
+        >
+          League Championship
         </button>
       </div>
 
@@ -148,6 +158,119 @@ export default function LeaderboardPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      ) : leaderboardView === 'championship' ? (
+        <div className="space-y-4">
+          {/* How the Championship is scored */}
+          <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
+            <div className="bg-cream-300 px-4 sm:px-6 py-4">
+              <h3 className="text-base font-display font-bold text-charcoal-950">League Championship</h3>
+              <p className="text-xs text-charcoal-600 mt-1">
+                Played over the final three weeks. Only the first {CHAMPIONSHIP_ROUNDS_COUNTED} rounds you post count, and
+                those two nines add together for an 18-hole net total. Each flight crowns its own champion — low net wins.
+                Level totals share a position (shown as <span className="font-semibold">T</span>).
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                {CHAMPIONSHIP_WEEK_IDS.map((weekId, index) => {
+                  const week = weeks.find(w => w.id === weekId);
+                  return (
+                    <span
+                      key={weekId}
+                      className="inline-flex items-center gap-1.5 bg-forest-900/10 text-forest-800 border border-forest-800/20 rounded-pill px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap"
+                    >
+                      R{index + 1}
+                      <span className="font-normal text-charcoal-600">
+                        Week {weekId}{week ? ` · ${formatShortDate(week.date)}` : ''}
+                      </span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* One table per flight */}
+          {championshipStandings.map(flight => (
+            <div key={flight.id} className="bg-cream-200 rounded-card shadow-card overflow-hidden">
+              <div className="bg-cream-300 px-4 sm:px-6 py-4 border-b border-charcoal-800/10">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <FlightBadge flight={flight} />
+                    <h3 className="text-base font-display font-bold text-charcoal-950">{flight.name} Championship</h3>
+                  </div>
+                  <span className="text-xs text-charcoal-500 whitespace-nowrap">
+                    {flight.players.length} {flight.players.length === 1 ? 'player' : 'players'}
+                  </span>
+                </div>
+                <p className="text-xs text-charcoal-600 mt-1">{flight.description}</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-cream-300/60">
+                    <tr>
+                      <th className="th-label text-left w-16">Rank</th>
+                      <th className="th-label text-left">Player</th>
+                      <th className="th-label text-center">Rounds</th>
+                      <th className="th-label text-right">18-Hole Net</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {flight.players.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-10 text-center text-charcoal-500">
+                          No players in this flight yet. Flights are seeded off the season money list.
+                        </td>
+                      </tr>
+                    ) : flight.players.map(entry => (
+                      <tr
+                        key={entry.id}
+                        className={`border-b border-charcoal-800/10 ${entry.rank === 1 ? 'bg-gold-500/10' : ''}`}
+                      >
+                        <td className="px-2 sm:px-4 py-3 w-16">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            {!entry.tied && entry.rank === 1 && <span>🥇</span>}
+                            {!entry.tied && entry.rank === 2 && <span>🥈</span>}
+                            {!entry.tied && entry.rank === 3 && <span>🥉</span>}
+                            <span className="font-bold text-charcoal-600">
+                              {entry.rank ? `${entry.tied ? 'T' : ''}${entry.rank}` : '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-4 py-3 font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">
+                          {entry.name}
+                        </td>
+                        <td className="px-2 sm:px-4 py-3">
+                          <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                            {entry.rounds.length === 0 ? (
+                              <span className="text-charcoal-400">—</span>
+                            ) : entry.rounds.map(round => (
+                              <span
+                                key={round.weekId}
+                                className="bg-charcoal-800/10 text-charcoal-600 rounded-pill px-2 py-0.5 text-xs font-semibold whitespace-nowrap"
+                              >
+                                R{round.roundNumber} <span className="text-charcoal-950 font-bold">{round.net}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-2 sm:px-4 py-3 text-right">
+                          {entry.complete ? (
+                            <span className="bg-forest-800/10 text-forest-900 px-3 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">
+                              {entry.netTotal}
+                            </span>
+                          ) : (
+                            <span className="text-charcoal-400 text-sm whitespace-nowrap">
+                              {entry.roundsPlayed} of {CHAMPIONSHIP_ROUNDS_COUNTED}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="space-y-4">
