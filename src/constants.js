@@ -291,9 +291,11 @@ export const getChampionshipRounds = (playerId, playerScores = [], championshipW
 };
 
 // Build the Championship standings: every flighted player grouped into A / B / C
-// and ranked on the 18-hole net total of their counting rounds. Players who
-// haven't finished both rounds are listed after the ranked field, unranked, so
-// the flight rosters are visible before the Championship is played out.
+// and ranked on the net total of the counting rounds they have posted so far,
+// low to high. The standings are live — a player is ranked from the moment they
+// post a round rather than only once both are in. Players further through the
+// Championship rank ahead of those with fewer rounds, since a partial total is
+// still going to climb. Players yet to post a round sit at the back, unranked.
 export const calculateChampionshipStandings = (
   players,
   playerScores = [],
@@ -316,27 +318,29 @@ export const calculateChampionshipStandings = (
       };
     })
     .sort((a, b) => {
-      // Finished players first, low net wins. Everyone else trails in seed order.
-      if (a.complete !== b.complete) return a.complete ? -1 : 1;
-      if (a.complete) return a.netTotal - b.netTotal || a.name.localeCompare(b.name);
+      // Rank on what's in the book: more rounds posted comes first, and inside
+      // each tier the low net leads.
       if (a.roundsPlayed !== b.roundsPlayed) return b.roundsPlayed - a.roundsPlayed;
-      return a.seedRank - b.seedRank || a.name.localeCompare(b.name);
+      if (a.roundsPlayed === 0) return a.seedRank - b.seedRank || a.name.localeCompare(b.name);
+      return a.netTotal - b.netTotal || a.name.localeCompare(b.name);
     });
 
-  // Rank only the players with both rounds in. There are no hole-by-hole scores
-  // to run the scorecard playoff on, so a genuine tie shares the position.
+  // Everyone with a round on the board gets a rank. Only players level on both
+  // rounds played and net total share one — there are no hole-by-hole scores
+  // stored to run the scorecard playoff on.
   const rankCounts = {};
-  let tieNet = null;
+  let tieKey = null;
   let tieRank = 0;
 
   entries.forEach((entry, index) => {
-    if (!entry.complete) {
+    if (entry.roundsPlayed === 0) {
       entry.rank = null;
       entry.tied = false;
       return;
     }
-    const rank = entry.netTotal === tieNet ? tieRank : index + 1;
-    tieNet = entry.netTotal;
+    const key = `${entry.roundsPlayed}|${entry.netTotal}`;
+    const rank = key === tieKey ? tieRank : index + 1;
+    tieKey = key;
     tieRank = rank;
     rankCounts[rank] = (rankCounts[rank] || 0) + 1;
     entry.rank = rank;

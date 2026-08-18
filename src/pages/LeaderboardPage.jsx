@@ -168,7 +168,9 @@ export default function LeaderboardPage() {
               <p className="text-xs text-charcoal-600 mt-1">
                 Played over the final three weeks. Only the first {CHAMPIONSHIP_ROUNDS_COUNTED} rounds you post count, and
                 those two nines add together for an 18-hole net total. Each flight crowns its own champion — low net wins.
-                Level totals share a position (shown as <span className="font-semibold">T</span>).
+                Standings are live: they rank the rounds posted so far, low net to high, with players still owing a round
+                shown <span className="font-semibold">thru</span> what they've played. Level totals share a position
+                (shown as <span className="font-semibold">T</span>).
               </p>
               <div className="flex flex-wrap gap-2 mt-3">
                 {CHAMPIONSHIP_WEEK_IDS.map((weekId, index) => {
@@ -254,14 +256,23 @@ export default function LeaderboardPage() {
                           </div>
                         </td>
                         <td className="px-2 sm:px-4 py-3 text-right">
-                          {entry.complete ? (
-                            <span className="bg-forest-800/10 text-forest-900 px-3 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">
-                              {entry.netTotal}
-                            </span>
+                          {entry.roundsPlayed === 0 ? (
+                            <span className="text-charcoal-400">—</span>
                           ) : (
-                            <span className="text-charcoal-400 text-sm whitespace-nowrap">
-                              {entry.roundsPlayed} of {CHAMPIONSHIP_ROUNDS_COUNTED}
-                            </span>
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className={`px-3 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base ${
+                                entry.complete
+                                  ? 'bg-forest-800/10 text-forest-900'
+                                  : 'bg-charcoal-800/10 text-charcoal-600'
+                              }`}>
+                                {entry.netTotal}
+                              </span>
+                              {!entry.complete && (
+                                <span className="text-[0.6875rem] text-charcoal-400 whitespace-nowrap">
+                                  thru {entry.roundsPlayed} of {CHAMPIONSHIP_ROUNDS_COUNTED}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
