@@ -267,6 +267,86 @@ export const calculateFlights = (players, championshipWeekIds = CHAMPIONSHIP_WEE
   return assignments;
 };
 
+// ─── League Championship leaderboard ───
+// The Championship is decided over the final three weeks, but only the first
+// two rounds a player posts count. Those two 9-hole net scores add together
+// into one 18-hole net total, and players are ranked inside their own flight.
+export const CHAMPIONSHIP_ROUNDS_COUNTED = 2;
+
+// A player's counting rounds — the first two Championship weeks they posted a
+// score in, taken in schedule order.
+export const getChampionshipRounds = (playerId, playerScores = [], championshipWeekIds = CHAMPIONSHIP_WEEK_IDS) => {
+  const weekOrder = new Map(championshipWeekIds.map((weekId, index) => [String(weekId), index]));
+  return playerScores
+    .filter(s => s.player_id === playerId && weekOrder.has(String(s.week_id)))
+    .sort((a, b) => weekOrder.get(String(a.week_id)) - weekOrder.get(String(b.week_id)))
+    .slice(0, CHAMPIONSHIP_ROUNDS_COUNTED)
+    .map(s => ({
+      weekId: s.week_id,
+      // Which of the three Championship rounds this was — 1, 2 or 3.
+      roundNumber: weekOrder.get(String(s.week_id)) + 1,
+      gross: s.gross_score,
+      net: s.net_score
+    }));
+};
+
+// Build the Championship standings: every flighted player grouped into A / B / C
+// and ranked on the 18-hole net total of their counting rounds. Players who
+// haven't finished both rounds are listed after the ranked field, unranked, so
+// the flight rosters are visible before the Championship is played out.
+export const calculateChampionshipStandings = (
+  players,
+  playerScores = [],
+  flightAssignments = {},
+  championshipWeekIds = CHAMPIONSHIP_WEEK_IDS
+) => leagueFlights.map(flight => {
+  const entries = players
+    .filter(p => flightAssignments[p.id]?.flight?.id === flight.id)
+    .map(p => {
+      const rounds = getChampionshipRounds(p.id, playerScores, championshipWeekIds);
+      return {
+        id: p.id,
+        name: p.name,
+        seedRank: flightAssignments[p.id].rank,
+        rounds,
+        roundsPlayed: rounds.length,
+        complete: rounds.length === CHAMPIONSHIP_ROUNDS_COUNTED,
+        netTotal: rounds.reduce((sum, r) => sum + (r.net || 0), 0),
+        grossTotal: rounds.reduce((sum, r) => sum + (r.gross || 0), 0)
+      };
+    })
+    .sort((a, b) => {
+      // Finished players first, low net wins. Everyone else trails in seed order.
+      if (a.complete !== b.complete) return a.complete ? -1 : 1;
+      if (a.complete) return a.netTotal - b.netTotal || a.name.localeCompare(b.name);
+      if (a.roundsPlayed !== b.roundsPlayed) return b.roundsPlayed - a.roundsPlayed;
+      return a.seedRank - b.seedRank || a.name.localeCompare(b.name);
+    });
+
+  // Rank only the players with both rounds in. There are no hole-by-hole scores
+  // to run the scorecard playoff on, so a genuine tie shares the position.
+  const rankCounts = {};
+  let tieNet = null;
+  let tieRank = 0;
+
+  entries.forEach((entry, index) => {
+    if (!entry.complete) {
+      entry.rank = null;
+      entry.tied = false;
+      return;
+    }
+    const rank = entry.netTotal === tieNet ? tieRank : index + 1;
+    tieNet = entry.netTotal;
+    tieRank = rank;
+    rankCounts[rank] = (rankCounts[rank] || 0) + 1;
+    entry.rank = rank;
+  });
+
+  entries.forEach(entry => { if (entry.rank) entry.tied = rankCounts[entry.rank] > 1; });
+
+  return { ...flight, players: entries };
+});
+
 // Default season buy-in per player
 export const DEFAULT_SEASON_BUY_IN = 150;
 
