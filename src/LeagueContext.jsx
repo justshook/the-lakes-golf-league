@@ -266,7 +266,10 @@ export function LeagueProvider({ children }) {
                 gameDescription: stripPayoutText(saved.game_description ?? game.gameDescription),
                 sideGame: saved.side_game ?? game.sideGame,
                 sideGameDescription: saved.side_game_description ?? game.sideGameDescription,
-                teamType: saved.team_type ?? game.teamType,
+                // null is a valid saved choice here ("Individual / no teams"), so we can't
+                // use ?? — that would treat null as "missing" and revert to the default
+                // team type. Only fall back when the column itself is absent.
+                teamType: 'team_type' in saved ? saved.team_type : game.teamType,
                 showTeamHandicap: saved.show_team_handicap ?? false,
                 handicapFormat: saved.handicap_format ?? 'scramble',
                 reducedHandicap: saved.reduced_handicap ?? false
@@ -374,7 +377,10 @@ export function LeagueProvider({ children }) {
               gameDescription: stripPayoutText(saved.game_description ?? game.gameDescription),
               sideGame: saved.side_game ?? game.sideGame,
               sideGameDescription: saved.side_game_description ?? game.sideGameDescription,
-              teamType: saved.team_type ?? game.teamType,
+              // null is a valid saved choice here ("Individual / no teams"), so we can't
+              // use ?? — that would treat null as "missing" and revert to the default
+              // team type. Only fall back when the column itself is absent.
+              teamType: 'team_type' in saved ? saved.team_type : game.teamType,
               showTeamHandicap: saved.show_team_handicap ?? false,
               handicapFormat: saved.handicap_format ?? 'scramble',
               reducedHandicap: saved.reduced_handicap ?? false
