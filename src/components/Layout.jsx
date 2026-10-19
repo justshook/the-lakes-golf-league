@@ -24,6 +24,7 @@ export default function Layout() {
   const [accountOpen, setAccountOpen] = React.useState(false);
   const legacyPage = ['/rules', '/admin/manage'].some(path => location.pathname === path || location.pathname.startsWith(`${path}/`));
   const activeTab = searchParams.get('tab') || 'week';
+  const accountPage = ['/login', '/account/password', '/account/setup'].includes(location.pathname);
   const name = profile?.name || profile?.display_name || user?.email?.split('@')[0] || 'Player';
   const initials = name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   const handleSignOut = async () => {
@@ -53,7 +54,7 @@ export default function Layout() {
           </div>
         </div>
       </header>
-      <Dialog open={accountOpen} onOpenChange={setAccountOpen}><DialogContent><DialogHeader className="pr-6 text-left"><DialogTitle>Your account</DialogTitle><DialogDescription className="break-words pt-2 leading-6">{name}<br />{user?.email}</DialogDescription></DialogHeader><Button onClick={handleSignOut} variant="outline" className="w-full"><LogOut className="size-4" />Sign out</Button>{signOutError && <p role="alert" className="text-sm text-destructive">{signOutError}</p>}</DialogContent></Dialog>
+      <Dialog open={accountOpen} onOpenChange={setAccountOpen}><DialogContent><DialogHeader className="pr-6 text-left"><DialogTitle>Your account</DialogTitle><DialogDescription className="break-words pt-2 leading-6">{name}<br />{user?.email}</DialogDescription></DialogHeader><Button asChild onClick={() => setAccountOpen(false)}><Link to="/profile">My profile &amp; history</Link></Button><Button asChild variant="outline" onClick={() => setAccountOpen(false)}><Link to="/account/password">Set or change password</Link></Button><Button onClick={handleSignOut} variant="outline" className="w-full"><LogOut className="size-4" />Sign out</Button>{signOutError && <p role="alert" className="text-sm text-destructive">{signOutError}</p>}</DialogContent></Dialog>
       {signOutError && <p role="alert" className="bg-red-50 px-5 py-3 text-center text-sm text-red-800">{signOutError}</p>}
       {location.pathname === '/admin/manage' && isAdmin && <nav aria-label="Administration sections" className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-5 py-3">
         {[['week', 'Week'], ['season', 'Season'], ['players', 'Players']].map(([tab, label]) => <Button key={tab} variant={activeTab === tab ? 'secondary' : 'ghost'} className={cn('rounded-full', activeTab !== tab && 'text-cream-200')} onClick={() => setSearchParams({ tab })}>{label}</Button>)}
@@ -61,7 +62,7 @@ export default function Layout() {
       </nav>}
       {dataError && <div role="alert" className="mx-auto mt-4 flex max-w-5xl flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"><div><p className="font-semibold">Some league information couldn’t load.</p><p className="mt-1 text-xs leading-5">Schedules and totals may be incomplete. Please reload before making changes.</p></div><Button variant="outline" size="sm" onClick={() => refreshData?.()} disabled={isLoading}>Try again</Button></div>}
       <main id="main-content" className="mx-auto min-h-[65vh] max-w-6xl px-4 py-6 sm:px-6 md:py-9">
-        {isLoading ? <div role="status" className={cn('flex min-h-[45vh] flex-col items-center justify-center gap-3 text-sm', legacyPage ? 'text-cream-200' : 'text-charcoal-600')}><LoaderCircle className="size-7 animate-spin" aria-hidden="true" />Loading your league…</div> : <React.Suspense fallback={<div role="status" className="flex min-h-[40vh] items-center justify-center gap-3 text-sm text-charcoal-600"><LoaderCircle className="size-5 animate-spin" aria-hidden="true" />Loading page…</div>}><Outlet /></React.Suspense>}
+        {isLoading && !accountPage ? <div role="status" className={cn('flex min-h-[45vh] flex-col items-center justify-center gap-3 text-sm', legacyPage ? 'text-cream-200' : 'text-charcoal-600')}><LoaderCircle className="size-7 animate-spin" aria-hidden="true" />Loading your league…</div> : <React.Suspense fallback={<div role="status" className="flex min-h-[40vh] items-center justify-center gap-3 text-sm text-charcoal-600"><LoaderCircle className="size-5 animate-spin" aria-hidden="true" />Loading page…</div>}><Outlet /></React.Suspense>}
       </main>
       <footer className={cn('mx-auto hidden max-w-6xl items-center justify-between border-t px-6 py-6 text-xs md:flex', legacyPage ? 'border-white/10 text-cream-200/60' : 'text-charcoal-600')}>
         <p>Arlington Lakes · A better Monday.</p>

@@ -5,6 +5,7 @@ import { demoPlayers, demoWeeks, demoGames, demoScores, demoLedger } from './dem
 import { generateWeekSchedule, validateTeeSheet } from './lib/scheduler';
 import { recordLedgerEntry as persistLedgerEntry, ledgerEntryFromRow } from './services/ledger-service';
 import { normalizeLedgerEntry, reconcileLedger } from './lib/ledger';
+import { readAllRows } from './lib/pagination';
 import { getPlayerTeam, getTeamsForWeek } from './lib/teams';
 import { publishLeagueRound, submitPlayerScore, readableServiceError } from './lib/player-service';
 import { calc9HoleHandicap, calcTeamHandicap, generateSeasonWeeks, teeTimes, courseHoles, initialWeeklyGames, moneyCategories, SCHEDULE_FIXED_PARTNER, calculateFlights, calculateChampionshipStandings } from './constants';
@@ -41,12 +42,16 @@ export function LeagueProvider({ children }) {
     setLoading(true);
     const tables = ['league_public_players', 'tee_sheets', 'player_money', 'player_scores', 'weekly_games', 'giant_skins', 'league_rounds'];
     if (session.isAdmin) tables.push('league_attendance', 'league_player_preferences');
-    if (session.user) tables.push('league_ledger_entries');
+    if (session.user && (session.playerId != null || session.isAdmin)) tables.push('league_ledger_entries');
     try {
-      const results = await Promise.all(tables.map(table => supabase.from(table).select('*')));
+      const results = await Promise.all(tables.map(table => readAllRows(supabase, table, { isCurrent: () => generation.current === request })));
       if (generation.current !== request) return;
-      const rows = Object.fromEntries(tables.map((table, i) => [table, results[i].data || []]));
       const errors = results.filter(result => result.error);
+      setLedgerError(results[tables.indexOf('league_ledger_entries')]?.error ? 'Payment tracking could not load completely.' : null);
+      // A failed later page must not turn missing history into lower scores,
+      // winnings or balances. Publish a complete refresh or fail closed.
+      if (errors.length) throw errors[0].error;
+      const rows = Object.fromEntries(tables.map((table, i) => [table, results[i].data]));
       const next = blank();
       next.playerScores = rows.player_scores;
       next.players = rows.league_public_players.map(row => {
@@ -57,7 +62,7 @@ export function LeagueProvider({ children }) {
           weeklyMoney[award.week_id][award.category] = Number(award.amount);
         }
         const preference = rows.league_player_preferences?.find(p => same(p.player_id, row.id));
-        return { id: row.id, name: row.name, handicap: Number(row.handicap || 0), availability: preference?.availability ?? row.availability ?? [], type: row.type || 'full-time', cdgaId: '', weeklyMoney, totalMoney: awards.reduce((sum, award) => sum + Number(award.amount), 0), weeksPlayed: new Set(next.playerScores.filter(s => same(s.player_id, row.id)).map(s => String(s.week_id))).size };
+        return { id: row.id, name: row.name, handicap: row.handicap == null || row.handicap === '' || !Number.isFinite(Number(row.handicap)) ? null : Number(row.handicap), availability: preference?.availability ?? row.availability ?? [], type: row.type || 'full-time', cdgaId: '', weeklyMoney, totalMoney: awards.reduce((sum, award) => sum + Number(award.amount), 0), weeksPlayed: new Set(next.playerScores.filter(s => same(s.player_id, row.id)).map(s => String(s.week_id))).size };
       });
       // Preserve historical week IDs and dates. Never seed or write during reads.
       next.weeks = generateSeasonWeeks().filter(week => rows.tee_sheets.some(s => same(s.week_id, week.id)) || rows.player_scores.some(s => same(s.week_id, week.id)) || rows.player_money.some(m => same(m.week_id, week.id))).map(week => {
@@ -75,20 +80,19 @@ export function LeagueProvider({ children }) {
       next.weeks.sort((a, b) => a.date.localeCompare(b.date));
       next.attendanceRows = rows.league_attendance || [];
       next.ledgerEntries = (rows.league_ledger_entries || []).map(ledgerEntryFromRow);
-      setLedgerError(results[tables.indexOf('league_ledger_entries')]?.error ? 'Payment tracking needs database setup.' : null);
       next.giantSkins = courseHoles.map(hole => {
         const row = rows.giant_skins.find(s => s.hole_number === hole.number);
         const players = row?.players?.length ? row.players : row?.player_id != null ? [{ playerId: row.player_id, weekId: row.week_id }] : [];
         return { ...hole, lowScore: row?.low_score || null, players };
       });
       setState(next);
-      setDataError(errors.length ? 'Some league data could not load. The account migration may still need to be activated. Refresh or contact the commissioner.' : null);
+      setDataError(null);
       const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Chicago' });
       setSelectedWeek(current => next.weeks.some(w => same(w.id, current)) ? current : next.weeks.find(w => w.date >= today)?.id ?? next.weeks.at(-1)?.id ?? null);
     } catch (error) {
       if (generation.current === request) { setState(blank()); setDataError(readableServiceError(error)); }
     } finally { if (generation.current === request) setLoading(false); }
-  }, [session.user?.id, session.isAdmin]);
+  }, [session.user?.id, session.playerId, session.isAdmin]);
 
   useEffect(() => {
     // Clear snapshots on identity changes, including failed or signed-out sessions.
@@ -122,6 +126,8 @@ export function LeagueProvider({ children }) {
     if (draft.unscheduled?.length) throw new Error('Resolve unscheduled players before publishing.');
     const teams = getTeamsForWeek({ weekId, teeSheet: draft.teeSheet, game });
     if (teams.some(team => team.status !== 'complete')) throw new Error('Resolve incomplete teams before publishing.');
+    const missingHandicap = draft.teeSheet.some(slot => slot.players.some(id => getPlayerById(id)?.handicap == null));
+    if (missingHandicap) throw new Error('Record a handicap for every scheduled player before publishing.');
     const participants = draft.teeSheet.flatMap(slot => slot.players.map(id => {
       const team = teams.find(t => t.memberIds.some(member => same(member, id)));
       const handicap = team ? calcTeamHandicap(team.memberIds.map(member => calc9HoleHandicap(getPlayerById(member).handicap)), 'scramble') : calc9HoleHandicap(getPlayerById(id).handicap);

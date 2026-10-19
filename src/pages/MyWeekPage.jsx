@@ -45,7 +45,7 @@ function MyWeekContent() {
   const openRound = () => { if (week && setSelectedWeek) setSelectedWeek(week.id); };
 
   return <div className="mx-auto max-w-5xl space-y-6 sm:space-y-7">
-    <header className="flex items-end justify-between gap-3"><div className="space-y-1.5"><p className="page-eyebrow">Your league at a glance</p><h1 className="page-heading">Hey, {name.split(' ')[0]}.</h1><p className="text-sm text-charcoal-600">{week ? 'Here’s what’s coming up on the course.' : 'Your next chapter starts next season.'}</p></div><span aria-hidden="true" className="hidden size-12 items-center justify-center rounded-full border border-border text-forest-900 sm:flex"><Flag className="size-5" strokeWidth={1.5} /></span></header>
+    <header className="flex items-start justify-between gap-3"><div className="space-y-1.5"><p className="page-eyebrow">Your league at a glance</p><h1 className="page-heading">Hey, {name.split(' ')[0]}.</h1><p className="text-sm text-charcoal-600">{week ? 'Here’s what’s coming up on the course.' : 'Your next chapter starts next season.'}</p></div><Button asChild variant="outline" className="h-11 shrink-0 rounded-full px-3 text-xs"><Link to="/profile">My profile<ChevronRight className="ml-1 size-3.5" aria-hidden="true" /></Link></Button></header>
     <div className="grid gap-5 lg:grid-cols-[1.45fr_1fr]">
       <div className="space-y-5">
         <Card className="overflow-hidden rounded-[20px] border-0 bg-forest-950 text-cream-100 shadow-none"><CardContent className="p-0">

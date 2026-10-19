@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeLedgerEntry, reconcileLedger, formatMoney } from '../src/lib/ledger.js';
-import { summarizePlayerAwards, summarizePlayerResults } from '../src/lib/player-summary.js';
+import { summarizePlayerAwards, summarizePlayerResults, historyPeriods, historyPeriod, normalizeHistoryPeriod } from '../src/lib/player-summary.js';
 
 const record = (id, type, amountCents, extra = {}) => ({
   id, idempotencyKey: `request:${id}`, playerId: '42', type, amountCents,
@@ -129,4 +129,41 @@ test('currency formatting preserves cents and unknown amounts', () => {
   assert.equal(formatMoney(12345), '$123.45');
   assert.equal(formatMoney(12000), '$120');
   assert.equal(formatMoney(null), '—');
+});
+
+test('personal history separates available years and retains records without a matched date', () => {
+  const weeks = [{ id: 1, date: '2026-04-13' }, { id: '20270412', date: '2027-04-12' }];
+  const scores = [
+    { player_id: 42, week_id: 1, gross_score: 43, net_score: 37, handicap_used: 6 },
+    { player_id: 42, week_id: '20270412', gross_score: 39, net_score: 35, handicap_used: 4 },
+    { player_id: 42, week_id: 99, gross_score: 45, net_score: 38, handicap_used: 7 },
+    { player_id: 43, week_id: 1, gross_score: 50, net_score: 40 },
+  ];
+  const all = summarizePlayerResults({ playerId: 42, scores, weeks });
+  assert.deepEqual(historyPeriods(all.rounds), ['2027', '2026', 'undated']);
+  assert.equal(all.roundCount, 3);
+  const oldSeason = summarizePlayerResults({ playerId: 42, scores, weeks, period: '2026' });
+  assert.equal(oldSeason.roundCount, 1);
+  assert.equal(oldSeason.averageGross, 43);
+  assert.equal(oldSeason.rounds[0].handicapUsed, 6);
+  assert.equal(summarizePlayerResults({ playerId: 42, scores, weeks, period: 'undated' }).roundCount, 1);
+  assert.equal(summarizePlayerResults({ playerId: 42, scores, weeks, period: '2025' }).roundCount, 0);
+});
+
+test('historical winnings filter by round dates rather than inferring a season from IDs or transfer dates', () => {
+  const player = { id: 42, weeklyMoney: { 1: { prize: 50 }, 20270412: { prize: 75 }, 99: { prize: 10 } } };
+  const weeks = [{ id: 1, date: '2026-04-13' }, { id: '20270412', date: '2027-04-12' }];
+  assert.equal(summarizePlayerAwards(player, weeks, undefined, { period: '2026' }).totalCents, 5000);
+  assert.equal(summarizePlayerAwards(player, weeks, undefined, { period: '2027' }).totalCents, 7500);
+  assert.equal(summarizePlayerAwards(player, weeks, undefined, { period: 'undated' }).totalCents, 1000);
+  assert.equal(summarizePlayerAwards(player, weeks, undefined, { period: '2025' }).awards.length, 0);
+  assert.equal(summarizePlayerAwards(player, weeks).totalCents, 13500);
+});
+
+test('invalid dates remain undated and an explicit earlier year never silently selects all history', () => {
+  for (const date of [null, undefined, '2025-02-30', '2026', '2026-13-01', '2026-01-01T00:00:00Z']) assert.equal(historyPeriod(date), 'undated');
+  assert.equal(historyPeriod('2026-04-13'), '2026');
+  assert.equal(normalizeHistoryPeriod('2025'), '2025');
+  assert.equal(normalizeHistoryPeriod('undated'), 'undated');
+  assert.equal(normalizeHistoryPeriod('not-a-year'), 'all');
 });

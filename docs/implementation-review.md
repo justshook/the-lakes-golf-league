@@ -31,7 +31,7 @@ available through read-only league pages.
 
 ## Review and verification
 
-- `npm test`: 32 passing service, scheduling, team identity, and ledger tests.
+- `npm test`: 63 passing authentication, history/pagination, scheduling, team identity, and ledger tests.
 - Disposable Postgres: 40 actual permission and transaction checks across both SQL migrations.
   Includes ownership, duplicate emails, role checks, withdrawal/score locks, visible/frozen
   team matching, duplicate ledger events, receipt reuse, and refund/payout limits.
@@ -39,7 +39,7 @@ available through read-only league pages.
 - Browser workflows: absence/return, availability save, generate/publish, create round, and
   confirmed ledger entry. These use fictional demo data, not a live Supabase project.
 - Production build passes. Route splitting reduces initial payload; the shared bundle still
-  includes the Supabase SDK and generates a Vite size advisory (~156KB gzip).
+  includes the Supabase SDK and generates a Vite size advisory (~160KB gzip).
 - Separate independent source review completed; identified issues were fixed before this PR.
 
 The browser review discovered a case where 12 flexible players were spread into incomplete
@@ -54,7 +54,9 @@ Fictional sample players only. Full-page screenshots include the fixed mobile na
 [My Schedule](review/screenshots/schedule-mobile.png) ·
 [My Money](review/screenshots/money-mobile.png) ·
 [Commissioner](review/screenshots/admin-mobile.png) ·
-[Desktop](review/screenshots/my-week-desktop.png)
+[Desktop](review/screenshots/my-week-desktop.png) ·
+[Sign in on mobile](review/screenshots/sign-in-mobile.png) ·
+[Player profile](review/screenshots/profile-mobile.png)
 
 ## Activation and next work
 
@@ -94,3 +96,24 @@ For the database checks, use an external disposable dependency installation, as 
 at the top of `scripts/verify-auth-migration.mjs`. For browser checks, install Playwright
 outside the project and set `PLAYWRIGHT_MODULE` to its module path; `CHROMIUM_BIN` optionally
 selects an installed Chromium executable, then run `node scripts/check-mobile.cjs`.
+
+## Account and history follow-up
+
+- Added Google OAuth handoff (provider activation remains required), email/password
+  login, verified first-time password setup, password reset and account password changes.
+- Added an explicit callback for implicit tokens, PKCE codes and custom token-hash
+  email templates. Legacy callback locations are intercepted before route redirects;
+  errors show recovery actions and credentials are removed from the URL.
+- Roster/database errors preserve the verified Auth user; password setup can complete
+  while profile linking awaits database setup. No phone-derived passwords or bulk
+  invitation emails were introduced.
+- Added a personal profile with current recorded handicap and available-season score
+  and award views. Undated records remain visible; missing years are not fabricated.
+- Browser authentication checks use a mocked Supabase endpoint and synthetic player
+  data. They cover new-user setup, password reset/login, one-use token handling under
+  StrictMode, Google handoff, legacy redirects, refresh during setup, expired links,
+  profile linking, and missing migration errors. They do not validate live delivery or OAuth.
+
+The production bundle identifies Supabase project `lmmlmyxfadcyugmmvpwa`, still absent
+from the connected account. Activate the app, provider, redirects and reviewed database
+migrations together after staging verification. See `auth-setup.md` and `player-history.md`.
