@@ -1,0 +1,96 @@
+# Lakes League mobile migration
+
+This branch replaces the shared-password league interface with a player portal and
+commissioner workflow. It keeps the forest, cream, and gold identity and uses actual
+shadcn/Radix components, a mobile bottom navigation bar, 44px controls, and lazy-loaded
+routes. The old unsafe Home/Admin components are removed; historical records remain
+available through read-only league pages.
+
+## Implemented
+
+- Email-link accounts linked to a uniquely matching verified roster email. Server-side
+  commissioner roles and private contact records replace client passwords/phone checks.
+- My Week: next published assignment, teammates, attendance, recorded winnings, and
+  a separate pending-score card for previously played rounds.
+- My Schedule: future absences and recurring tee-time availability. Cutoffs are enforced
+  in the database. A withdrawal updates attendance; the commissioner reviews and republishes
+  the affected tee sheet. There are no automatic notifications yet.
+- Scheduling: hard availability and capacity constraints, rotation history, explicit
+  teams independent of display order, completion-first repair, and a review/publish step.
+  Unschedulable players and incomplete teams block publication instead of being silently moved.
+- Commissioner: create dated rounds, inspect absences/missing scores, generate and publish,
+  refresh current roster preferences, and cancel unscored rounds.
+- Results: recorded gross/net scores, with team scores excluded from individual averages.
+  Publication freezes team identity and handicap; score submission is transactional.
+- Money: immutable charges, awards, received payments, payouts, and refunds with references,
+  idempotency, and server-enforced accounting limits. Players see only their own ledger.
+  Recording a payment does not initiate a transfer.
+- Historical public roster, tee sheets, standings, skins, and 2026 championship archive.
+  Reading data never seeds players or rewrites availability. Real roster contacts are removed
+  from the client source. New dated round IDs cannot overwrite 2026 week IDs.
+
+## Review and verification
+
+- `npm test`: 32 passing service, scheduling, team identity, and ledger tests.
+- Disposable Postgres: 40 actual permission and transaction checks across both SQL migrations.
+  Includes ownership, duplicate emails, role checks, withdrawal/score locks, visible/frozen
+  team matching, duplicate ledger events, receipt reuse, and refund/payout limits.
+- Browser: 11 routes at 320px, 390px, and 1280px, with no page overflow or JavaScript errors.
+- Browser workflows: absence/return, availability save, generate/publish, create round, and
+  confirmed ledger entry. These use fictional demo data, not a live Supabase project.
+- Production build passes. Route splitting reduces initial payload; the shared bundle still
+  includes the Supabase SDK and generates a Vite size advisory (~156KB gzip).
+- Separate independent source review completed; identified issues were fixed before this PR.
+
+The browser review discovered a case where 12 flexible players were spread into incomplete
+teams. The scheduler now prioritizes complete teams before social preferences, and regressions
+cover both two- and four-person games without relaxing availability.
+
+### Screenshots
+
+Fictional sample players only. Full-page screenshots include the fixed mobile navigation.
+
+[My Week on mobile](review/screenshots/my-week-mobile.png) ·
+[My Schedule](review/screenshots/schedule-mobile.png) ·
+[My Money](review/screenshots/money-mobile.png) ·
+[Commissioner](review/screenshots/admin-mobile.png) ·
+[Desktop](review/screenshots/my-week-desktop.png)
+
+## Activation and next work
+
+The connected Supabase and Vercel accounts did not expose the Lakes League projects. No
+production migration, authentication setup, deployment, or real payment was performed.
+The branch must remain a draft until the actual database schema is checked in staging.
+See [account setup](auth-setup.md) and [ledger setup](ledger-setup.md).
+
+Current automated scoring supports the verified front-nine course settings for individual
+stroke play and two-/four-person scramble. Back-nine settings and other game formats need
+verified course/rule configuration. Legacy formats remain readable as recorded history.
+
+Further delivery needed before operating the entire league solely in this app:
+
+- Live project access, migration rehearsal, email delivery, and sign-in redirect verification.
+- Automated payment collection/payout integration with provider confirmation/webhooks.
+- Reconciled historical balances, season-owned ledger coverage, and accounting corrections.
+- Commissioner roster/contact maintenance, score correction/finalization, prize allocation,
+  and richer game templates; the old direct-write admin panel is intentionally not mounted.
+- Substitute waitlist/assignment, targeted late-withdrawal repair UI, reminders, and automatic
+  weekly scheduling jobs. The scheduling engine already supports locked groups and repair,
+  but these operations are not all exposed as user controls yet.
+
+## Reproduce
+
+```sh
+npm ci
+npm test
+npm run build
+npm run dev:demo -- --host 127.0.0.1
+```
+
+`VITE_DEMO_MODE=true` is required for fictional demo mode; missing live configuration does
+not silently show sample data. All demo changes reset when the page reloads.
+
+For the database checks, use an external disposable dependency installation, as documented
+at the top of `scripts/verify-auth-migration.mjs`. For browser checks, install Playwright
+outside the project and set `PLAYWRIGHT_MODULE` to its module path; `CHROMIUM_BIN` optionally
+selects an installed Chromium executable, then run `node scripts/check-mobile.cjs`.

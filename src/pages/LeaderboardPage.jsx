@@ -1,464 +1,76 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Trophy } from 'lucide-react';
 import { useLeague } from '../LeagueContext';
-import { moneyCategories, CHAMPIONSHIP_WEEK_IDS, CHAMPIONSHIP_ROUNDS_COUNTED } from '../constants';
-import FlightBadge from '../components/FlightBadge';
+import { CHAMPIONSHIP_ROUNDS_COUNTED } from '../constants';
+import { Card, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
+import { getPlayerTeam } from '../lib/teams';
+import { formatRoundDate } from '../lib/player-summary';
 
+const sameId = (a, b) => String(a) === String(b);
+const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(Number(value) || 0);
+const scoreValue = value => value == null || !Number.isFinite(Number(value)) ? null : Number(value);
+
+function EmptyState({ children }) {
+  return <Card className="content-card border-dashed"><CardContent className="p-8 text-center text-sm leading-6 text-charcoal-600">{children}</CardContent></Card>;
+}
+
+/** Recorded sporting results only; this page never calculates or initiates payouts. */
 export default function LeaderboardPage() {
   const {
-    players, weeks, selectedWeek, setSelectedWeek,
-    leaderboardView, setLeaderboardView,
-    sortedByMoney, playerScores, getTeamTypeForWeek, getTeammatesForWeek,
-    getWeeklyMoneyTotal, getPlayerById, formatShortDate,
-    getWeekPayouts, payoutEntryKey, getPlayerFlight, championshipStandings,
+    players = [], weeks = [], weeklyGames = [], playerScores = [], selectedWeek, setSelectedWeek,
+    leaderboardView = 'season', setLeaderboardView, championshipStandings = [], getPlayerFlight, getPayoutLabel,
   } = useLeague();
+  const orderedWeeks = [...weeks].sort((a, b) => (a.date || '').localeCompare(b.date || '') || Number(a.id) - Number(b.id));
+  const week = orderedWeeks.find(item => sameId(item.id, selectedWeek)) || orderedWeeks[0];
+  const game = weeklyGames.find(item => sameId(item.weekId, week?.id));
+  const sortedPlayers = [...players].sort((a, b) => Number(b.totalMoney || 0) - Number(a.totalMoney || 0) || a.name.localeCompare(b.name));
+  const totalAwards = sortedPlayers.reduce((sum, item) => sum + Number(item.totalMoney || 0), 0);
+  const weeklyAwards = players.flatMap(player => Object.entries(player.weeklyMoney?.[week?.id] || {}).filter(([, amount]) => Number.isFinite(Number(amount)) && Number(amount) > 0).map(([category, amount]) => ({ player, category, amount: Number(amount) })));
+  const weeklyScores = playerScores.filter(score => sameId(score.week_id, week?.id));
+  const scoreGroups = new Map();
+  for (const score of weeklyScores) {
+    const player = players.find(item => sameId(item.id, score.player_id));
+    if (!player) continue;
+    const assignment = game?.teamType ? getPlayerTeam({ playerId: player.id, weekId: week.id, teeSheet: week.teeSheet || [], game }) : null;
+    const memberIds = assignment?.team?.memberIds || [player.id];
+    const key = assignment?.teamId || `player:${player.id}`;
+    const gross = scoreValue(score.gross_score), net = scoreValue(score.net_score);
+    const existing = scoreGroups.get(key);
+    if (existing) {
+      if (existing.gross !== gross || existing.net !== net) existing.conflicting = true;
+    } else scoreGroups.set(key, { key, names: memberIds.map(id => players.find(item => sameId(item.id, id))?.name).filter(Boolean), gross, net, conflicting: false });
+  }
+  const rows = [...scoreGroups.values()].sort((a, b) => (a.net ?? Infinity) - (b.net ?? Infinity));
+  let lastAward = null, lastRank = 0;
 
-  return (
-    <div className="space-y-4">
-      {/* Toggle tabs — no page title */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setLeaderboardView('season')}
-          className={`px-5 py-2.5 rounded-pill font-medium text-sm transition-all ${
-            leaderboardView === 'season'
-              ? 'bg-cta-500 text-forest-950'
-              : 'bg-forest-800 text-cream-200 hover:bg-forest-700'
-          }`}
-        >
-          Season Total
-        </button>
-        <button
-          onClick={() => setLeaderboardView('weekly')}
-          className={`px-5 py-2.5 rounded-pill font-medium text-sm transition-all ${
-            leaderboardView === 'weekly'
-              ? 'bg-cta-500 text-forest-950'
-              : 'bg-forest-800 text-cream-200 hover:bg-forest-700'
-          }`}
-        >
-          By Week
-        </button>
-        <button
-          onClick={() => setLeaderboardView('championship')}
-          className={`px-5 py-2.5 rounded-pill font-medium text-sm transition-all ${
-            leaderboardView === 'championship'
-              ? 'bg-cta-500 text-forest-950'
-              : 'bg-forest-800 text-cream-200 hover:bg-forest-700'
-          }`}
-        >
-          League Championship
-        </button>
-      </div>
-
-      {leaderboardView === 'season' ? (
-        /* Unified season table — money + score columns merged */
-        <div className="bg-cream-200 rounded-card shadow-card">
-          <div className="bg-cream-300 px-4 sm:px-6 py-4 border-b border-charcoal-800/10">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-display font-bold text-charcoal-950">Season Leaderboard</h3>
-              <div className="font-display text-gold-600 font-bold text-sm">
-                Total Pot: ${sortedByMoney.reduce((sum, p) => sum + p.totalMoney, 0).toLocaleString()}
-              </div>
-            </div>
-            <p className="text-xs text-charcoal-600 mt-1">
-              Championship flights: <span className="font-semibold">A</span> = top 12 on the money list,{' '}
-              <span className="font-semibold">B</span> = 13–28, <span className="font-semibold">C</span> = 29 and back.
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-cream-300/60">
-                <tr>
-                  <th className="th-label text-left w-16 sticky left-0 z-10 bg-cream-300/60">Rank</th>
-                  <th className="th-label text-left sticky left-16 z-10 bg-cream-300/60">Player</th>
-                  <th className="th-label text-center">Flight</th>
-                  <th className="th-label text-right">Total Won</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const scoreMap = {};
-                  players.forEach(player => {
-                    const scores = playerScores.filter(
-                      s => s.player_id === player.id && !getTeamTypeForWeek(s.week_id)
-                    );
-                    scoreMap[player.id] = {
-                      rounds: scores.length,
-                      avgNet: scores.length > 0
-                        ? (scores.reduce((sum, s) => sum + s.net_score, 0) / scores.length).toFixed(1)
-                        : null,
-                    };
-                  });
-
-                  const sorted = players
-                    .map(p => ({ ...p, ...scoreMap[p.id] }))
-                    .sort((a, b) => {
-                      if (b.totalMoney !== a.totalMoney) return b.totalMoney - a.totalMoney;
-                      if (a.avgNet === null) return 1;
-                      if (b.avgNet === null) return -1;
-                      return parseFloat(a.avgNet) - parseFloat(b.avgNet);
-                    });
-
-                  let lastMoney = null;
-                  let lastRank = 0;
-                  const unified = sorted.map((p, i) => {
-                    const rank = p.totalMoney === lastMoney ? lastRank : i + 1;
-                    lastMoney = p.totalMoney;
-                    lastRank = rank;
-                    return { ...p, rank };
-                  });
-
-                  if (unified.length === 0) {
-                    return (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-12 text-center text-charcoal-500">
-                          No data yet. Scores and winnings will appear here as the season progresses.
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  return unified.map((player) => (
-                    <tr
-                      key={player.id}
-                      className={`group border-b border-charcoal-800/10 transition-colors ${
-                        player.rank === 1 ? 'bg-gold-500/10' : ''
-                      }`}
-                    >
-                      <td className={`px-2 sm:px-4 py-4 w-16 sticky left-0 z-10 transition-colors ${
-                        player.rank === 1 ? 'bg-gold-500/10 group-hover:bg-gold-500/20' : 'bg-cream-200 group-hover:bg-cream-300/40'
-                      }`}>
-                        <div className="flex items-center gap-1 sm:gap-2">
-                          {player.rank === 1 && <span>🥇</span>}
-                          {player.rank === 2 && <span>🥈</span>}
-                          {player.rank === 3 && <span>🥉</span>}
-                          <span className="font-bold text-charcoal-600">{player.rank}</span>
-                        </div>
-                      </td>
-                      <td className={`px-2 sm:px-4 py-4 sticky left-16 z-10 font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base transition-colors ${
-                        player.rank === 1 ? 'bg-gold-500/10 group-hover:bg-gold-500/20' : 'bg-cream-200 group-hover:bg-cream-300/40'
-                      }`}>
-                        {player.name}
-                      </td>
-                      <td className="px-2 sm:px-4 py-4 text-center">
-                        {getPlayerFlight(player.id)?.flight
-                          ? <FlightBadge flight={getPlayerFlight(player.id).flight} />
-                          : <span className="text-charcoal-400">—</span>}
-                      </td>
-                      <td className="px-2 sm:px-4 py-4 text-right">
-                        {player.totalMoney > 0 ? (
-                          <span className="bg-gold-500/20 text-gold-600 px-2 sm:px-4 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">
-                            ${player.totalMoney.toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-charcoal-400">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : leaderboardView === 'championship' ? (
-        <div className="space-y-4">
-          {/* How the Championship is scored */}
-          <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
-            <div className="bg-cream-300 px-4 sm:px-6 py-4">
-              <h3 className="text-base font-display font-bold text-charcoal-950">League Championship</h3>
-              <p className="text-xs text-charcoal-600 mt-1">
-                Played over the final three weeks. Only the first {CHAMPIONSHIP_ROUNDS_COUNTED} rounds you post count, and
-                those two nines add together for an 18-hole net total. Each flight crowns its own champion — low net wins.
-                Standings are live: they rank the rounds posted so far, low net to high, with players still owing a round
-                shown <span className="font-semibold">thru</span> what they've played. Level totals share a position
-                (shown as <span className="font-semibold">T</span>).
-              </p>
-              <div className="flex flex-wrap gap-2 mt-3">
-                {CHAMPIONSHIP_WEEK_IDS.map((weekId, index) => {
-                  const week = weeks.find(w => w.id === weekId);
-                  return (
-                    <span
-                      key={weekId}
-                      className="inline-flex items-center gap-1.5 bg-forest-900/10 text-forest-800 border border-forest-800/20 rounded-pill px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap"
-                    >
-                      R{index + 1}
-                      <span className="font-normal text-charcoal-600">
-                        Week {weekId}{week ? ` · ${formatShortDate(week.date)}` : ''}
-                      </span>
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* One table per flight */}
-          {championshipStandings.map(flight => (
-            <div key={flight.id} className="bg-cream-200 rounded-card shadow-card overflow-hidden">
-              <div className="bg-cream-300 px-4 sm:px-6 py-4 border-b border-charcoal-800/10">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <FlightBadge flight={flight} />
-                    <h3 className="text-base font-display font-bold text-charcoal-950">{flight.name} Championship</h3>
-                  </div>
-                  <span className="text-xs text-charcoal-500 whitespace-nowrap">
-                    {flight.players.length} {flight.players.length === 1 ? 'player' : 'players'}
-                  </span>
-                </div>
-                <p className="text-xs text-charcoal-600 mt-1">{flight.description}</p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-cream-300/60">
-                    <tr>
-                      <th className="th-label text-left w-16">Rank</th>
-                      <th className="th-label text-left">Player</th>
-                      <th className="th-label text-center">Rounds</th>
-                      <th className="th-label text-right">18-Hole Net</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {flight.players.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-10 text-center text-charcoal-500">
-                          No players in this flight yet. Flights are seeded off the season money list.
-                        </td>
-                      </tr>
-                    ) : flight.players.map(entry => (
-                      <tr
-                        key={entry.id}
-                        className={`border-b border-charcoal-800/10 ${entry.rank === 1 ? 'bg-gold-500/10' : ''}`}
-                      >
-                        <td className="px-2 sm:px-4 py-3 w-16">
-                          <div className="flex items-center gap-1 sm:gap-2">
-                            {!entry.tied && entry.rank === 1 && <span>🥇</span>}
-                            {!entry.tied && entry.rank === 2 && <span>🥈</span>}
-                            {!entry.tied && entry.rank === 3 && <span>🥉</span>}
-                            <span className="font-bold text-charcoal-600">
-                              {entry.rank ? `${entry.tied ? 'T' : ''}${entry.rank}` : '—'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-2 sm:px-4 py-3 font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">
-                          {entry.name}
-                        </td>
-                        <td className="px-2 sm:px-4 py-3">
-                          <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                            {entry.rounds.length === 0 ? (
-                              <span className="text-charcoal-400">—</span>
-                            ) : entry.rounds.map(round => (
-                              <span
-                                key={round.weekId}
-                                className="bg-charcoal-800/10 text-charcoal-600 rounded-pill px-2 py-0.5 text-xs font-semibold whitespace-nowrap"
-                              >
-                                R{round.roundNumber} <span className="text-charcoal-950 font-bold">{round.net}</span>
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-2 sm:px-4 py-3 text-right">
-                          {entry.roundsPlayed === 0 ? (
-                            <span className="text-charcoal-400">—</span>
-                          ) : (
-                            <div className="flex flex-col items-end gap-0.5">
-                              <span className={`px-3 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base ${
-                                entry.complete
-                                  ? 'bg-forest-800/10 text-forest-900'
-                                  : 'bg-charcoal-800/10 text-charcoal-600'
-                              }`}>
-                                {entry.netTotal}
-                              </span>
-                              {!entry.complete && (
-                                <span className="text-[0.6875rem] text-charcoal-400 whitespace-nowrap">
-                                  thru {entry.roundsPlayed} of {CHAMPIONSHIP_ROUNDS_COUNTED}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Prev/Next week navigator */}
-          <div className="flex items-center gap-4 justify-center sm:justify-start">
-            <button
-              onClick={() => setSelectedWeek(Math.max(1, selectedWeek - 1))}
-              disabled={selectedWeek === 1}
-              className="px-5 py-2.5 bg-forest-800 text-cream-200 rounded-pill disabled:opacity-50 hover:bg-forest-700 text-[0.9375rem] transition-colors"
-            >
-              ← Prev
-            </button>
-            <span className="font-medium text-cream-200 text-[0.9375rem]">
-              Week {selectedWeek}{weeks.find(w => w.id === selectedWeek) ? ` – ${formatShortDate(weeks.find(w => w.id === selectedWeek).date)}` : ''}
-            </span>
-            <button
-              onClick={() => setSelectedWeek(Math.min(weeks.length, selectedWeek + 1))}
-              disabled={selectedWeek === weeks.length}
-              className="px-5 py-2.5 bg-forest-800 text-cream-200 rounded-pill disabled:opacity-50 hover:bg-forest-700 text-[0.9375rem] transition-colors"
-            >
-              Next →
-            </button>
-          </div>
-
-          <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
-            <div className="bg-cream-300 px-4 sm:px-6 py-4 border-b border-charcoal-800/10">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-display font-bold text-charcoal-950">Week {selectedWeek} Winnings</h3>
-                <div className="font-display text-gold-600 font-bold text-sm">
-                  Week Total: ${getWeeklyMoneyTotal(selectedWeek).toLocaleString()}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-6">
-              {getWeeklyMoneyTotal(selectedWeek) === 0 ? (
-                <div className="text-center py-8 text-charcoal-500">
-                  No money entered for this week yet
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-display font-semibold text-charcoal-950 mb-3 text-base">Main Game</h4>
-                    <div className="space-y-2">
-                      {(() => {
-                        const templatePayouts = getWeekPayouts(selectedWeek);
-                        // Drive the display from the week's payout template when
-                        // there is one; otherwise fall back to the classic places.
-                        const rows = templatePayouts.length
-                          ? templatePayouts.map(p => ({ place: payoutEntryKey(p), label: p.label, category: p.category }))
-                          : ['1st', '2nd', '3rd', 'gross'].map(id => {
-                              const c = moneyCategories.find(mc => mc.id === id);
-                              return { place: id, label: c?.name || id, category: id };
-                            });
-                        return rows.map(({ place, label, category }, idx) => {
-                          const cat = moneyCategories.find(c => c.id === category);
-                          const winners = players.filter(p => p.weeklyMoney[selectedWeek]?.[place]);
-                          if (winners.length === 0) return null;
-                          return (
-                            <div key={`${place}-${idx}`} className="flex items-center justify-between p-3 bg-cream-300 rounded-card border border-charcoal-800/10">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xl">{cat?.icon || '🏆'}</span>
-                                <span className="font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">{label}: {winners.map(w => w.name).join(' & ')}</span>
-                              </div>
-                              <span className="bg-gold-500/20 text-gold-600 px-2 sm:px-4 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">${winners[0].weeklyMoney[selectedWeek][place]}{winners.length > 1 ? ' ea' : ''}</span>
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="font-display font-semibold text-charcoal-950 mb-3 text-base">🎯 Closest to Pin</h4>
-                    <div className="space-y-2">
-                      {['ctp1', 'ctp2', 'ctp3'].map((ctp, idx) => {
-                        const winners = players.filter(p => p.weeklyMoney[selectedWeek]?.[ctp]);
-                        if (winners.length === 0) return null;
-                        return (
-                          <div key={ctp} className="flex items-center justify-between p-3 bg-cream-300 rounded-card border border-charcoal-800/10">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-charcoal-500">CTP #{idx + 1}</span>
-                              <span className="font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">{winners.map(w => w.name).join(' & ')}</span>
-                            </div>
-                            <span className="bg-gold-500/20 text-gold-600 px-2 sm:px-4 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">${winners[0].weeklyMoney[selectedWeek][ctp]}{winners.length > 1 ? ' ea' : ''}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Weekly scores table */}
-          {(() => {
-            const weekScores = playerScores.filter(s => s.week_id === selectedWeek);
-            if (weekScores.length === 0) return null;
-
-            const teamType = getTeamTypeForWeek(selectedWeek);
-            let rows;
-
-            if (teamType) {
-              // Team week: deduplicate by team, show one row per team
-              const seen = new Set();
-              rows = [];
-              weekScores.forEach(score => {
-                const { teammates, isSolo } = getTeammatesForWeek(score.player_id, selectedWeek);
-                const teamIds = isSolo
-                  ? [score.player_id]
-                  : [score.player_id, ...teammates].sort((a, b) => a - b);
-                const key = teamIds.join('-');
-                if (!seen.has(key)) {
-                  seen.add(key);
-                  rows.push({
-                    key,
-                    players: teamIds.map(id => getPlayerById(id)).filter(Boolean),
-                    gross_score: score.gross_score,
-                    net_score: score.net_score,
-                  });
-                }
-              });
-              rows.sort((a, b) => a.net_score - b.net_score);
-            } else {
-              // Individual week: one row per player
-              rows = weekScores
-                .map(score => ({
-                  key: String(score.player_id),
-                  players: [getPlayerById(score.player_id)].filter(Boolean),
-                  gross_score: score.gross_score,
-                  net_score: score.net_score,
-                }))
-                .filter(row => row.players.length > 0)
-                .sort((a, b) => a.net_score - b.net_score);
-            }
-
-            if (rows.length === 0) return null;
-
-            return (
-              <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
-                <div className="bg-cream-300 px-4 sm:px-6 py-4 border-b border-charcoal-800/10">
-                  <h3 className="text-base font-display font-bold text-charcoal-950">Week {selectedWeek} Scores</h3>
-                </div>
-                <table className="w-full">
-                  <thead className="bg-cream-300/60">
-                    <tr>
-                      <th className="th-label text-left">{teamType ? 'Team' : 'Player'}</th>
-                      <th className="th-label text-center">Gross</th>
-                      <th className="th-label text-center">Net</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map(row => (
-                      <tr key={row.key} className="border-b border-charcoal-800/10">
-                        <td className="px-2 sm:px-4 py-4 font-display font-semibold text-charcoal-950 text-[0.9375rem] sm:text-base">
-                          {row.players.map(p => p.name).join(' & ')}
-                        </td>
-                        <td className="px-2 sm:px-4 py-4 text-center">
-                          <span className="bg-charcoal-800/10 text-charcoal-600 px-3 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">
-                            {row.gross_score}
-                          </span>
-                        </td>
-                        <td className="px-2 sm:px-4 py-4 text-center">
-                          <span className="bg-forest-800/10 text-forest-900 px-3 py-1 rounded-pill font-bold text-[0.9375rem] sm:text-base">
-                            {row.net_score}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            );
-          })()}
-        </div>
-      )}
-    </div>
-  );
+  return <div className="mx-auto max-w-5xl space-y-5">
+    <header><p className="page-eyebrow">Recorded league history</p><h1 className="page-heading mt-1">Standings</h1><p className="mt-2 text-sm text-charcoal-600">Recorded scores, winnings, and the 2026 championship archive.</p></header>
+    <Tabs value={leaderboardView} onValueChange={setLeaderboardView} className="space-y-5">
+      <TabsList className="grid h-auto w-full grid-cols-3 rounded-full bg-cream-200 p-1"><TabsTrigger value="season" className="min-h-11 rounded-full px-1 text-xs sm:text-sm">Winnings</TabsTrigger><TabsTrigger value="weekly" className="min-h-11 rounded-full px-1 text-xs sm:text-sm">By week</TabsTrigger><TabsTrigger value="championship" className="min-h-11 rounded-full px-1 text-xs sm:text-sm">Championship</TabsTrigger></TabsList>
+      <TabsContent value="season" className="space-y-4">
+        <Card className="overflow-hidden rounded-2xl border-0 bg-forest-950 text-cream-100 shadow-none"><CardContent className="flex items-center gap-4 p-5"><span className="flex size-12 shrink-0 items-center justify-center rounded-full bg-white/10"><Trophy className="size-5 text-gold-300" aria-hidden="true" /></span><div><p className="text-xs text-cream-200/80">Recorded winnings awarded</p><p className="mt-1 font-display text-3xl font-semibold tabular-nums">{money(totalAwards)}</p></div></CardContent></Card>
+        <p className="text-xs leading-5 text-charcoal-600">Awards earned, independent of whether a payout has been completed. Equal winnings share a rank.</p>
+        {sortedPlayers.length === 0 ? <EmptyState>Players and standings will appear once the roster is available.</EmptyState> : <Card className="content-card overflow-hidden"><CardContent className="divide-y p-0">{sortedPlayers.map((player, index) => {
+          const total = Number(player.totalMoney || 0);
+          const rank = total === lastAward ? lastRank : index + 1;
+          lastAward = total; lastRank = rank;
+          const flight = getPlayerFlight?.(player.id)?.flight;
+          return <Link key={player.id} to={`/players/${encodeURIComponent(player.id)}`} className="flex min-h-[76px] items-center gap-3 px-4 py-3 hover:bg-secondary sm:px-5"><span className={`flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${rank === 1 && total > 0 ? 'bg-gold-300 text-forest-950' : 'bg-secondary text-charcoal-600'}`}>{rank}</span><div className="min-w-0 flex-1"><h2 className="break-words text-sm font-semibold text-forest-950">{player.name}</h2>{flight && <p className="mt-1 text-[11px] text-charcoal-600">2026 {flight.name}</p>}</div><span className="shrink-0 text-sm font-semibold tabular-nums text-forest-950">{money(total)}</span><ArrowRight className="hidden size-4 shrink-0 text-charcoal-400 sm:block" aria-hidden="true" /></Link>;
+        })}</CardContent></Card>}
+      </TabsContent>
+      <TabsContent value="weekly" className="space-y-5">
+        <div className="space-y-2"><label htmlFor="standings-week" className="text-sm font-semibold">Round</label><select id="standings-week" className="min-h-12 w-full rounded-xl border bg-card px-3 text-base" value={week?.id ?? ''} disabled={!weeks.length} onChange={event => { const target = weeks.find(item => sameId(item.id, event.target.value)); if (target) setSelectedWeek(target.id); }}>{orderedWeeks.map(item => <option key={item.id} value={item.id}>{item.label || (String(item.id).length > 4 ? 'Round' : `Week ${item.id}`)}{item.date ? ` · ${formatRoundDate(item.date)}` : ''}</option>)}</select></div>
+        <div><p className="page-eyebrow">{week?.label || (String(week?.id || '').length > 4 ? formatRoundDate(week?.date) : `Week ${week?.id ?? '—'}`)}</p><h2 className="mt-1 font-display text-xl font-semibold text-forest-950">{game?.gameName || 'Round results'}</h2></div>
+        <section aria-labelledby="weekly-scores-heading" className="space-y-3"><h3 id="weekly-scores-heading" className="text-sm font-semibold">Recorded scores</h3>{rows.length === 0 ? <EmptyState>No scores have been recorded for this round.</EmptyState> : rows.map(row => <Card key={row.key} className="content-card"><CardContent className="p-4"><div className="flex items-start justify-between gap-3"><h4 className="min-w-0 break-words text-sm font-semibold text-forest-950">{row.names.join(' & ')}</h4><Badge variant="secondary" className="shrink-0 rounded-full text-[10px]">{game?.teamType ? 'Team' : 'Individual'}</Badge></div>{row.conflicting ? <p className="mt-3 rounded-lg bg-amber-50 p-3 text-xs leading-5 text-amber-900">Team score records differ. The commissioner needs to review this result.</p> : <dl className="mt-3 grid grid-cols-2 divide-x rounded-xl bg-secondary/50 py-3">{[{ label: 'Gross', value: row.gross }, { label: 'Net', value: row.net }].map(metric => <div key={metric.label} className="text-center"><dt className="text-xs text-charcoal-600">{metric.label}</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{metric.value ?? '—'}</dd></div>)}</dl>}</CardContent></Card>)}</section>
+        <section aria-labelledby="weekly-awards-heading" className="space-y-3"><div className="flex items-center justify-between gap-2"><h3 id="weekly-awards-heading" className="text-sm font-semibold">Winnings awarded</h3><span className="text-sm font-semibold tabular-nums text-forest-950">{money(weeklyAwards.reduce((sum, item) => sum + item.amount, 0))}</span></div>{weeklyAwards.length === 0 ? <EmptyState>No awards have been recorded for this round.</EmptyState> : <Card className="content-card"><CardContent className="divide-y p-0">{weeklyAwards.map(item => <div key={`${item.player.id}:${item.category}`} className="flex items-center justify-between gap-3 p-4"><div className="min-w-0"><p className="break-words text-sm font-semibold">{item.player.name}</p><p className="mt-1 break-words text-xs text-charcoal-600">{getPayoutLabel?.(week.id, item.category) || item.category}</p></div><span className="shrink-0 text-sm font-semibold tabular-nums">{money(item.amount)}</span></div>)}</CardContent></Card>}</section>
+      </TabsContent>
+      <TabsContent value="championship" className="space-y-4">
+        <Card className="content-card bg-secondary/50"><CardContent className="p-5"><h2 className="font-display text-xl font-semibold text-forest-950">2026 league championship</h2><p className="mt-2 text-sm leading-6 text-charcoal-600">The first {CHAMPIONSHIP_ROUNDS_COUNTED} recorded rounds from the 2026 championship weeks count toward an 18-hole net total. Each flight has its own standings. A partial total stays marked until both rounds are recorded.</p></CardContent></Card>
+        {championshipStandings.length === 0 ? <EmptyState>No archived championship results are available.</EmptyState> : championshipStandings.map(flight => <section key={flight.id} className="space-y-3"><div><h3 className="font-display text-xl font-semibold text-forest-950">{flight.name}</h3><p className="mt-1 text-xs text-charcoal-600">{flight.description}</p></div>{!flight.players?.length ? <EmptyState>No players in this flight yet.</EmptyState> : <Card className="content-card overflow-hidden"><CardContent className="divide-y p-0">{flight.players.map(entry => <div key={entry.id} className="flex items-center gap-3 p-4"><span className="w-7 shrink-0 text-center text-xs font-semibold text-charcoal-600">{entry.rank ? `${entry.tied ? 'T' : ''}${entry.rank}` : '—'}</span><div className="min-w-0 flex-1"><h4 className="break-words text-sm font-semibold text-forest-950">{entry.name}</h4><p className="mt-1 text-[11px] text-charcoal-600">{entry.rounds?.length ? entry.rounds.map(round => `R${round.roundNumber}: ${round.net}`).join(' · ') : 'No rounds recorded'}</p></div><div className="shrink-0 text-right"><p className="text-lg font-semibold tabular-nums">{entry.roundsPlayed ? entry.netTotal : '—'}</p><p className="text-[10px] text-charcoal-600">{entry.complete ? '18-hole net' : `${entry.roundsPlayed || 0}/${CHAMPIONSHIP_ROUNDS_COUNTED} rounds`}</p></div></div>)}</CardContent></Card>}</section>)}
+      </TabsContent>
+    </Tabs>
+  </div>;
 }
