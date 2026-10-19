@@ -32,7 +32,8 @@ available through read-only league pages.
 ## Review and verification
 
 - `npm test`: 63 passing authentication, history/pagination, scheduling, team identity, and ledger tests.
-- Disposable Postgres: 40 actual permission and transaction checks across both SQL migrations.
+- Disposable Postgres: 89 actual permission and transaction checks across all three SQL migrations
+  (55 account/ledger and 34 object-privilege checks), using the audited live column types and constraints.
   Includes ownership, duplicate emails, role checks, withdrawal/score locks, visible/frozen
   team matching, duplicate ledger events, receipt reuse, and refund/payout limits.
 - Browser: 11 routes at 320px, 390px, and 1280px, with no page overflow or JavaScript errors.
@@ -60,10 +61,15 @@ Fictional sample players only. Full-page screenshots include the fixed mobile na
 
 ## Activation and next work
 
-The connected Supabase and Vercel accounts did not expose the Lakes League projects. No
-production migration, authentication setup, deployment, or real payment was performed.
-The branch must remain a draft until the actual database schema is checked in staging.
-See [account setup](auth-setup.md) and [ledger setup](ledger-setup.md).
+The Supabase connection now exposes the Lakes League project. The reviewed hardening
+migrations are prepared, but two apply attempts failed with `Invalid or expired requestState`.
+Follow-up reads confirmed no migration installed and unchanged historical data. The
+protections are not active. Detailed live audit metadata is excluded from this repository.
+Vercel configuration access is still unavailable, and no production deployment, Auth
+configuration, or real payment was performed. Keep this branch a draft until cutover
+and live verification.
+See [account setup](auth-setup.md), [object permissions](object-privileges.md),
+[ledger setup](ledger-setup.md), and [Stripe security](stripe-security.md).
 
 Current automated scoring supports the verified front-nine course settings for individual
 stroke play and two-/four-person scramble. Back-nine settings and other game formats need
@@ -71,7 +77,7 @@ verified course/rule configuration. Legacy formats remain readable as recorded h
 
 Further delivery needed before operating the entire league solely in this app:
 
-- Live project access, migration rehearsal, email delivery, and sign-in redirect verification.
+- A working migration write path, staging rehearsal/cutover, email delivery, and sign-in redirect verification.
 - Automated payment collection/payout integration with provider confirmation/webhooks.
 - Reconciled historical balances, season-owned ledger coverage, and accounting corrections.
 - Commissioner roster/contact maintenance, score correction/finalization, prize allocation,
@@ -114,6 +120,7 @@ selects an installed Chromium executable, then run `node scripts/check-mobile.cj
   StrictMode, Google handoff, legacy redirects, refresh during setup, expired links,
   profile linking, and missing migration errors. They do not validate live delivery or OAuth.
 
-The production bundle identifies Supabase project `lmmlmyxfadcyugmmvpwa`, still absent
-from the connected account. Activate the app, provider, redirects and reviewed database
-migrations together after staging verification. See `auth-setup.md` and `player-history.md`.
+The production bundle and connected project both identify Supabase project
+`lmmlmyxfadcyugmmvpwa`. Activate the app, provider, redirects, commissioner role, and
+reviewed database migrations together after staging verification.
+See `auth-setup.md` and `player-history.md`.

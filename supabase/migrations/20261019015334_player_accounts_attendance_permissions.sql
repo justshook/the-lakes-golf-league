@@ -20,8 +20,18 @@ begin
   if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='player_scores' and column_name='week_id' and data_type in ('integer','bigint')) then
     raise exception 'Lakes League preflight: integer player_scores.week_id required';
   end if;
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='players' and column_name='availability' and data_type='jsonb') then
+    raise exception 'Lakes League preflight: players.availability must retain its existing jsonb format';
+  end if;
   foreach c in array array['birdie_holes','eagle_holes'] loop
-    if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='player_scores' and column_name=c and udt_name in ('_int4','_int8')) then raise exception 'Lakes League preflight: player_scores.% must be an integer array', c; end if;
+    if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='player_scores' and column_name=c and data_type='jsonb') then
+      raise exception 'Lakes League preflight: player_scores.% must retain its existing jsonb format', c;
+    end if;
+  end loop;
+  foreach c in array array['gross_score','net_score','handicap_used'] loop
+    if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='player_scores' and column_name=c and data_type='integer') then
+      raise exception 'Lakes League preflight: player_scores.% must retain its existing integer format', c;
+    end if;
   end loop;
   foreach c in array array['player_id','week_id','gross_score','net_score','handicap_used','birdie_holes','eagle_holes','is_team_score'] loop
     if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='player_scores' and column_name=c) then
@@ -125,7 +135,7 @@ create table public.league_round_participants (
   week_id text not null references public.league_rounds(week_id) on delete cascade,
   player_id bigint not null references public.players(id) on delete cascade,
   team_id text,
-  handicap_used numeric not null check (handicap_used between -20 and 60),
+  handicap_used numeric not null check (handicap_used between -20 and 60 and handicap_used=trunc(handicap_used)),
   tee_time text not null,
   primary key(week_id,player_id)
 );
@@ -145,7 +155,7 @@ begin
     execute format('revoke all on public.%I from public, anon, authenticated',t);
     execute format('grant select, insert, update, delete on public.%I to authenticated',t);
     execute format('create policy league_admin_all on public.%I for all to authenticated using ((select league_private.is_admin())) with check ((select league_private.is_admin()))',t);
-    if t not in ('players','league_attendance','league_player_preferences') then
+    if t not in ('players','league_attendance','league_player_preferences','league_settings') then
       execute format('grant select on public.%I to anon',t);
       execute format('create policy league_public_read on public.%I for select to anon, authenticated using (true)',t);
     end if;
@@ -162,7 +172,7 @@ create policy league_own_preferences on public.league_player_preferences for sel
 create function league_private.public_roster() returns table(id bigint,name text,handicap numeric,availability jsonb,type text,cdga_id text)
 language sql stable security definer set search_path='' as $$
   select p.id::bigint,p.name::text,p.handicap::numeric,
-    coalesce(to_jsonb(pref.availability),to_jsonb(p.availability),'[]'::jsonb),p.type::text,''::text
+    coalesce(to_jsonb(pref.availability),p.availability,'[]'::jsonb),p.type::text,''::text
   from public.players p left join public.league_player_preferences pref on pref.player_id=p.id;
 $$;
 revoke all on function league_private.public_roster() from public, anon, authenticated;
@@ -262,6 +272,7 @@ begin
     if exists(select 1 from public.league_attendance where week_id=p_week_id and player_id=pid and status='out') then raise exception 'An unavailable player is scheduled.'; end if;
     if not exists(select 1 from league_private.public_roster() p where p.id=pid and p.availability ? (entry->>'tee_time')) then raise exception 'A tee time falls outside player availability.'; end if;
     if entry->>'handicap_used' is null then raise exception 'Freeze the handicap for every participant.'; end if;
+    if (entry->>'handicap_used')::numeric<>trunc((entry->>'handicap_used')::numeric) then raise exception 'Frozen playing handicaps must be whole numbers.'; end if;
     if expected_size is null and nullif(entry->>'team_id','') is not null then raise exception 'Individual players cannot belong to a scoring team.'; end if;
     if expected_size is not null and (nullif(entry->>'team_id','') is null or (select count(*) from jsonb_array_elements(p_participants) p where p->>'team_id'=entry->>'team_id')<>expected_size) then raise exception 'Team size does not match this game.'; end if;
     if nullif(entry->>'team_id','') is not null and exists(select 1 from jsonb_array_elements(p_participants) p where p->>'team_id'=entry->>'team_id' and (p->>'tee_time'<>entry->>'tee_time' or (p->>'handicap_used')::numeric<>(entry->>'handicap_used')::numeric)) then raise exception 'Team members must share a tee time and team handicap.'; end if;
@@ -290,7 +301,7 @@ begin
   if participant.player_id is null then raise exception 'You are not assigned to this round.' using errcode='42501'; end if;
   if exists(select 1 from public.league_round_participants p join public.league_attendance a on a.week_id=p.week_id and a.player_id=p.player_id where p.week_id=p_week_id and a.status='out' and (p.player_id=player or (participant.team_id is not null and p.team_id=participant.team_id))) then raise exception 'A team member withdrew. Ask the commissioner to update this round before scoring.'; end if;
   if p_gross_score is null or p_gross_score<9 or p_gross_score>180 then raise exception 'Invalid gross score.'; end if;
-  if p_birdie_holes is null or p_eagle_holes is null or cardinality(p_birdie_holes)>9 or cardinality(p_eagle_holes)>9 or p_birdie_holes && p_eagle_holes or exists(select 1 from unnest(p_birdie_holes || p_eagle_holes) h where h is null or h<1 or h>9) then raise exception 'Invalid hole selections.'; end if;
+  if p_birdie_holes is null or p_eagle_holes is null or coalesce(array_ndims(p_birdie_holes),0)>1 or coalesce(array_ndims(p_eagle_holes),0)>1 or cardinality(p_birdie_holes)>9 or cardinality(p_eagle_holes)>9 or p_birdie_holes && p_eagle_holes or exists(select 1 from unnest(p_birdie_holes || p_eagle_holes) h where h is null or h<1 or h>9) then raise exception 'Invalid hole selections.'; end if;
   if (round.rule_snapshot->>'scoringMode'='scramble') <> (participant.team_id is not null) then raise exception 'Team assignment does not match the frozen rules.'; end if;
   if cardinality(p_birdie_holes || p_eagle_holes)<>(select count(distinct h) from unnest(p_birdie_holes || p_eagle_holes) h) then raise exception 'Each scoring hole may be selected once.'; end if;
   -- A scramble/team total must not create individual birdie/giant-skin records.
@@ -298,7 +309,9 @@ begin
   if exists(select 1 from public.player_scores s join public.league_round_participants p on p.player_id=s.player_id and p.week_id=s.week_id::text where p.week_id=p_week_id and (p.player_id=player or (participant.team_id is not null and p.team_id=participant.team_id))) then raise exception 'A score already exists. Ask the commissioner to correct it.'; end if;
   for team_member in select * from public.league_round_participants where week_id=p_week_id and (player_id=player or (participant.team_id is not null and team_id=participant.team_id)) loop
     insert into public.player_scores(player_id,week_id,gross_score,net_score,handicap_used,birdie_holes,eagle_holes,is_team_score)
-      values(team_member.player_id,p_week_id::integer,p_gross_score,p_gross_score-team_member.handicap_used,team_member.handicap_used,p_birdie_holes,p_eagle_holes,participant.team_id is not null);
+      -- The RPC accepts typed integer arrays for validation, but the existing
+      -- score table stores JSONB. Preserve that format and all historical rows.
+      values(team_member.player_id,p_week_id::integer,p_gross_score,p_gross_score-team_member.handicap_used,team_member.handicap_used,to_jsonb(p_birdie_holes),to_jsonb(p_eagle_holes),participant.team_id is not null);
   end loop;
   select jsonb_agg(to_jsonb(s)) into output from public.player_scores s join public.league_round_participants p on p.player_id=s.player_id and p.week_id=s.week_id::text where p.week_id=p_week_id and (p.player_id=player or (participant.team_id is not null and p.team_id=participant.team_id));
   return output;
