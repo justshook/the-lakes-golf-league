@@ -3,8 +3,10 @@
 The account and ledger migrations replace legacy permissive policies with explicit
 public sporting reads, private player records, and checked commissioner/player RPCs.
 The third migration, `20261019025446_harden_league_object_privileges.sql`, closes the
-remaining object privileges found during the live schema audit. Preparing or testing
-the file does not apply it to the live database.
+remaining object privileges addressed by this change. It was applied through the
+Supabase SQL Editor on 2026-10-24 after the account and ledger migrations. Live catalog
+checks confirmed the intended grants and unchanged historical data. See `auth-setup.md`
+for the required CLI migration-history reconciliation before future deployments.
 
 It removes anonymous/authenticated/PUBLIC access to existing public sequences. Table
 RLS does not protect `nextval`, `setval`, or sequence reads. Score submission still

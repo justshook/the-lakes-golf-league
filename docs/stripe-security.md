@@ -6,7 +6,7 @@ The app currently records league accounting entries. It does **not** create Stri
 
 The reviewed database changes restrict ledger reads to the linked player or commissioner and ledger writes to an administrator-checked RPC. They validate integer cents, preserve immutable records, deduplicate idempotency keys and posted cash references, serialize per-player writes, prevent refunds above the original recorded payment, and constrain recorded payouts to recorded awards. The source passed the local account, ledger, and privilege checks described in `implementation-review.md`.
 
-**These source protections must not be confused with deployed protections.** The live database was inspected, but two migration attempts failed with `Invalid or expired requestState`. The reviewed migrations were not installed, and the live data was verified unchanged. Database hardening and live access checks remain prerequisites to accepting money.
+**Database hardening is now applied; Stripe processing is not implemented.** All three reviewed migrations executed through the Supabase SQL Editor on 2026-10-24. Live role checks passed and historical data fingerprints are unchanged. This establishes database access controls, not verified payment settlement or readiness to accept live payments.
 
 No unprivileged ledger-write bypass was identified in the reviewed source. This review is not a claim of an independent production penetration test.
 

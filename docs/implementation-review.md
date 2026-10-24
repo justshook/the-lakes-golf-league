@@ -61,13 +61,15 @@ Fictional sample players only. Full-page screenshots include the fixed mobile na
 
 ## Activation and next work
 
-The Supabase connection now exposes the Lakes League project. The reviewed hardening
-migrations are prepared, but two apply attempts failed with `Invalid or expired requestState`.
-Follow-up reads confirmed no migration installed and unchanged historical data. The
-protections are not active. Detailed live audit metadata is excluded from this repository.
-Vercel configuration access is still unavailable, and no production deployment, Auth
-configuration, or real payment was performed. Keep this branch a draft until cutover
-and live verification.
+All three reviewed database migrations were applied through the Supabase SQL Editor on
+2026-10-24. Live anonymous and authenticated role checks passed, including self-only
+contacts, blocked ledger writes, and blocked non-admin commissioner operations. Catalog
+checks confirmed RLS and restricted object privileges; historical fingerprints are
+unchanged. The security advisor reports no errors. Detailed live audit metadata is
+excluded from this repository. No app deployment, Auth configuration, or real payment
+was performed in this step. Keep this branch a draft until application activation and
+end-to-end authentication verification. Reconcile CLI migration history before future
+pushes; direct SQL execution did not populate it.
 See [account setup](auth-setup.md), [object permissions](object-privileges.md),
 [ledger setup](ledger-setup.md), and [Stripe security](stripe-security.md).
 
@@ -77,7 +79,8 @@ verified course/rule configuration. Legacy formats remain readable as recorded h
 
 Further delivery needed before operating the entire league solely in this app:
 
-- A working migration write path, staging rehearsal/cutover, email delivery, and sign-in redirect verification.
+- Matching app deployment, commissioner configuration, email delivery, and sign-in redirect verification.
+- CLI migration-history reconciliation after the completed browser SQL application.
 - Automated payment collection/payout integration with provider confirmation/webhooks.
 - Reconciled historical balances, season-owned ledger coverage, and accounting corrections.
 - Commissioner roster/contact maintenance, score correction/finalization, prize allocation,
