@@ -41,6 +41,7 @@ export function normalizeLedgerEntry(input) {
   return {
     id, idempotencyKey, playerId, type: input.type, status: input.status,
     amountCents: input.amountCents, currency: 'USD', reference, relatedEntryId,
+    ...(input.provenance ? { provenance: input.provenance } : {}),
     occurredAt: input.occurredAt ?? null,
     description: typeof input.description === 'string' ? input.description : '',
   };

@@ -64,6 +64,14 @@ test('unverified users cannot complete an authentication callback', async () => 
   await assert.rejects(completeAuthCallback(client, 'https://league.example/auth/callback?code=c'), /email_not_confirmed/);
 });
 
+test('phone confirmation cannot substitute for verified roster email', async () => {
+  const { client } = fixture({ user: {
+    id: 'phone-only', email: 'player@example.test', email_confirmed_at: null,
+    phone_confirmed_at: '2026-01-01', confirmed_at: '2026-01-01',
+  } });
+  await assert.rejects(completeAuthCallback(client, 'https://league.example/auth/callback?code=c'), /email_not_confirmed/);
+});
+
 test('missing sessions and expired links produce actionable, sanitized errors', async () => {
   const { client } = fixture({ session: null });
   await assert.rejects(completeAuthCallback(client, 'https://league.example/auth/callback'), /missing_link/);

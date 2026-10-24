@@ -1,12 +1,12 @@
 import { normalizeLedgerEntry } from '../lib/ledger.js';
 
 export function ledgerEntryFromRow(row) {
-  return normalizeLedgerEntry({
+  return { provenance: row.provenance ?? 'manual_external', ...normalizeLedgerEntry({
     id: row.id, idempotencyKey: row.idempotency_key, playerId: row.player_id,
     type: row.type, status: row.status, amountCents: Number(row.amount_cents), currency: row.currency,
     reference: row.reference, relatedEntryId: row.related_entry_id,
     occurredAt: row.occurred_at, description: row.description,
-  });
+  }) };
 }
 
 export async function loadLedger(client) {

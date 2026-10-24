@@ -67,6 +67,8 @@ export async function completeAuthCallback(client, href) {
   }
   if (!data?.session) fail('missing_link');
   const { user } = checked(await client.auth.getUser());
-  if (!user || !(user.email_confirmed_at || user.confirmed_at)) fail('email_not_confirmed');
+  // confirmed_at also covers phone verification. Roster ownership is based on
+  // verified email, matching the database claim and password-update checks.
+  if (!user?.email_confirmed_at) fail('email_not_confirmed');
   return { user, next: input.next, needsPasswordSetup: input.needsPasswordSetup };
 }

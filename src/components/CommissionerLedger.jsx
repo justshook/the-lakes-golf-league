@@ -1,3 +1,4 @@
+import StripePayments from './StripePayments';
 import React, { useRef, useState } from 'react';
 import { useLeague } from '../LeagueContext';
 import { usePlayerSession } from '../contexts/PlayerSessionContext';
@@ -26,7 +27,7 @@ export default function CommissionerLedger() {
   if (!isAdmin) return null;
   const player = players.find(item => String(item.id) === String(form.playerId));
   const playerEntries = ledgerEntries.filter(entry => String(entry.playerId) === String(form.playerId));
-  const payments = playerEntries.filter(entry => entry.type === 'payment' && entry.status === 'posted');
+  const payments = playerEntries.filter(entry => entry.type === 'payment' && entry.status === 'posted' && entry.provenance !== 'stripe_verified');
   const needsReference = ['payment', 'payout', 'refund'].includes(form.type);
   let totals = null;
   try { if (form.playerId) totals = reconcileLedger(playerEntries, { playerId: form.playerId }); } catch { /* Fail closed below. */ }
@@ -86,12 +87,13 @@ export default function CommissionerLedger() {
         <Button type="submit" disabled={saving || unavailable} className="h-11 w-full rounded-full sm:w-auto">Review entry</Button>
       </form>
     </CardContent></Card>
+    {form.playerId && <StripePayments key={form.playerId} playerId={form.playerId} commissioner />}
     {totals && <div className="grid grid-cols-2 gap-3">
       <Card className="rounded-2xl"><CardContent className="p-4"><p className="text-xs text-charcoal-600">Recorded prizes</p><p className="mt-1 font-display text-2xl font-semibold text-forest-950">{formatMoney(totals.earnedCents)}</p></CardContent></Card>
       <Card className="rounded-2xl"><CardContent className="p-4"><p className="text-xs text-charcoal-600">Confirmed prize payouts</p><p className="mt-1 font-display text-2xl font-semibold text-forest-950">{formatMoney(totals.paidOutCents)}</p></CardContent></Card>
     </div>}
     {playerEntries.length > 0 && <Card className="overflow-hidden rounded-2xl"><CardContent className="divide-y divide-border p-0">
-      {[...playerEntries].sort((a, b) => (b.occurredAt ?? '').localeCompare(a.occurredAt ?? '')).slice(0, 10).map(entry => <div key={entry.id} className="flex items-start justify-between gap-3 p-4"><div className="min-w-0"><p className="text-sm font-medium text-forest-950">{entry.description || TYPES.find(([type]) => type === entry.type)?.[1]}</p><Badge className="mt-1 text-[10px]" variant="secondary">{entry.status === 'posted' ? 'Recorded' : entry.status}</Badge></div><span className="shrink-0 text-sm font-semibold tabular-nums">{formatMoney(entry.amountCents)}</span></div>)}
+      {[...playerEntries].sort((a, b) => (b.occurredAt ?? '').localeCompare(a.occurredAt ?? '')).slice(0, 10).map(entry => <div key={entry.id} className="flex items-start justify-between gap-3 p-4"><div className="min-w-0"><p className="text-sm font-medium text-forest-950">{entry.description || TYPES.find(([type]) => type === entry.type)?.[1]}</p><Badge className="mt-1 text-[10px]" variant="secondary">{entry.status === 'posted' ? (entry.provenance === 'stripe_verified' ? 'Stripe verified' : 'Manual record') : entry.status}</Badge></div><span className="shrink-0 text-sm font-semibold tabular-nums">{formatMoney(entry.amountCents)}</span></div>)}
     </CardContent></Card>}
     <Dialog open={review} onOpenChange={open => { if (!saving) setReview(open); }}><DialogContent className="max-w-sm rounded-2xl"><DialogHeader><DialogTitle>Confirm this record</DialogTitle><DialogDescription className="pt-2 leading-relaxed">{player?.name} · {TYPES.find(([type]) => type === form.type)?.[1]} · {formatMoney(pendingEntry.current?.amountCents)}. {needsReference ? 'Confirm this money movement has already completed.' : 'Confirm the fee or prize amount is correct.'} This creates an accounting record only.</DialogDescription></DialogHeader><DialogFooter className="gap-2"><Button variant="outline" onClick={() => setReview(false)} disabled={saving} className="h-11">Go back</Button><Button onClick={save} disabled={saving} className="h-11">{saving ? 'Saving…' : 'Record entry'}</Button></DialogFooter></DialogContent></Dialog>
   </section>;

@@ -1,3 +1,4 @@
+import StripePayments from '../components/StripePayments';
 import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpRight, CircleDollarSign, Info, Check } from 'lucide-react';
@@ -54,6 +55,7 @@ function MoneyContent({ playerId }) {
       </header>
 
       {isLoading ? <Card><CardContent className="p-6 text-sm text-charcoal-600" role="status">Loading your winnings…</CardContent></Card> : dataError || !player ? <Card><CardContent className="p-6 text-sm leading-relaxed text-charcoal-600">Your money records are temporarily unavailable. Reload the league to see your complete history.</CardContent></Card> : <>
+        <StripePayments playerId={playerId} />
         <HistoryPeriodFilter value={period} periods={periods} onChange={changePeriod} label="Winnings year" />
         <Card className="overflow-hidden rounded-2xl border-forest-950 bg-forest-950 text-cream-100 shadow-sm">
           <CardContent className="p-5 sm:p-6">
@@ -118,7 +120,7 @@ function MoneyContent({ playerId }) {
           <Card className="overflow-hidden rounded-2xl border-border shadow-sm"><CardContent className="divide-y divide-border p-0">
             {movements.map(entry => <div key={entry.id} className="flex items-start justify-between gap-3 p-4">
               <div><p className="text-sm font-semibold text-forest-950">{entry.description || ({ payment: 'League payment', payout: 'Prize payout', refund: 'Payment refund' }[entry.type])}</p><p className="mt-1 text-xs text-charcoal-600">{entry.occurredAt ? formatRoundDate(entry.occurredAt.slice(0, 10)) : 'Date not recorded'}</p></div>
-              <div className="shrink-0 text-right"><p className="text-sm font-semibold tabular-nums">{formatMoney(entry.amountCents)}</p><Badge variant="secondary" className="mt-1 rounded-full text-[10px]">{entry.status === 'posted' && <Check className="mr-1 h-3 w-3" aria-hidden="true" />}{entry.status === 'posted' ? 'Confirmed' : entry.status === 'pending' ? 'Pending' : entry.status === 'failed' ? 'Failed' : 'Voided'}</Badge></div>
+              <div className="shrink-0 text-right"><p className="text-sm font-semibold tabular-nums">{formatMoney(entry.amountCents)}</p><Badge variant="secondary" className="mt-1 rounded-full text-[10px]">{entry.status === 'posted' && <Check className="mr-1 h-3 w-3" aria-hidden="true" />}{entry.status === 'posted' ? (entry.provenance === 'stripe_verified' ? 'Stripe verified' : 'Manual record') : entry.status === 'pending' ? 'Pending' : entry.status === 'failed' ? 'Failed' : 'Voided'}</Badge></div>
             </div>)}
           </CardContent></Card>
         </section>}
