@@ -2,6 +2,25 @@
 
 Monday Night Golf League scheduler and management app.
 
+## Mobile league migration
+
+This branch introduces a mobile-first shadcn player portal and commissioner workflow.
+See [implementation and review notes](docs/implementation-review.md) for what is
+ready, what was tested, and the remaining live-setup requirements.
+
+```bash
+npm ci
+npm run dev:demo -- --host 127.0.0.1
+npm test
+npm run build
+```
+
+Demo mode uses fictional players and in-memory changes only. For live configuration,
+copy `.env.example` to `.env.local` and follow [account setup](docs/auth-setup.md)
+and [ledger setup](docs/ledger-setup.md). Do not apply migrations to an unrelated
+Supabase project or deploy this branch over the live site before staging verification.
+
+
 ## Deployment Guide (For Beginners)
 
 ### Step 1: Download This Folder
@@ -137,8 +156,8 @@ arlington-lakes-golf-league/
 
 ---
 
-## Admin Access
+## Commissioner access
 
-Default admin password: `golf2026`
-
-(You can change this in `src/App.jsx` - search for `ADMIN_PASSWORD`)
+Commissioners sign in with their league email. Access is assigned through protected
+server-side account metadata; there is no shared admin password. Follow
+[account setup](docs/auth-setup.md) before activating the database migrations.
