@@ -2,12 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
 import { Readable } from 'node:stream';
-import { paymentConfig, verifiedUser, sessionSnapshot, createCheckout, processEvent, readRawBody, requireOrigin, safeReceipt } from '../server/payments.js';
+import { paymentConfig, verifiedUser, sessionSnapshot, createCheckout, processEvent, readRawBody, requireOrigin, safeReceipt, ensureDuesPrice } from '../server/payments.js';
 const config = { enabled:true, mode:'test', livemode:false, account:'acct_fixture',origin:'https://league.example' };
-const order = { id:'00000000-0000-0000-0000-000000000001',amount_cents:25000,currency:'usd',status:'creating',livemode:false,account_id:'acct_fixture',expires_at:new Date(Date.now()+3600000).toISOString() };
-const metadata = {application:'lakes-league',order_id:order.id};
-const session = extra => ({id:'cs_fixture',mode:'payment',metadata,client_reference_id:order.id,amount_total:25000,currency:'usd',livemode:false,status:'open',payment_status:'unpaid',payment_intent:null,url:'https://checkout.stripe.com/c/pay/fixture',...extra});
-const paid = () => session({status:'complete',payment_status:'paid',payment_intent:{id:'pi_fixture',metadata,status:'succeeded',amount_received:25000,currency:'usd',livemode:false,latest_charge:{id:'ch_fixture',paid:true,amount:25000,currency:'usd',livemode:false,receipt_url:'https://pay.stripe.com/receipts/fixture'}}});
+const order = { product_id:'lakes-dues-2027',product_name:'2027 Lakes League Dues',season:2027,id:'00000000-0000-0000-0000-000000000001',amount_cents:18000,currency:'usd',status:'creating',livemode:false,account_id:'acct_fixture',expires_at:new Date(Date.now()+3600000).toISOString() };
+const metadata = {application:'lakes-league',order_id:order.id,product_id:order.product_id,season:'2027'};
+const product = {id:order.product_id,active:true,livemode:false,metadata:{application:'lakes-league',season:'2027',kind:'annual_dues'}};
+const price = {id:'price_annual',active:true,livemode:false,product:product.id,type:'one_time',unit_amount:18000,currency:'usd',metadata:{application:'lakes-league',season:'2027'}};
+const session = extra => ({id:'cs_fixture',mode:'payment',metadata,client_reference_id:order.id,amount_total:18000,currency:'usd',livemode:false,status:'open',payment_status:'unpaid',payment_intent:null,url:'https://checkout.stripe.com/c/pay/fixture',...extra});
+const paid = () => session({status:'complete',payment_status:'paid',payment_intent:{id:'pi_fixture',metadata,status:'succeeded',amount_received:18000,currency:'usd',livemode:false,latest_charge:{id:'ch_fixture',paid:true,amount:18000,currency:'usd',livemode:false,receipt_url:'https://pay.stripe.com/receipts/fixture'}}});
 const event = (type='checkout.session.completed') => ({id:'evt_fixture',livemode:false,type,data:{object:session()}});
 
 test('payments default disabled and reject accidental live configuration',()=>{
@@ -38,9 +40,10 @@ test('settlement requires amount, owner metadata, mode, account, paid session an
 });
 test('Checkout uses trusted SQL amount and identity with stable idempotency',async()=>{
  const calls=[];
- const db={rpc:async(name,args)=>{calls.push({name,args});return {data:name==='league_prepare_checkout'?order:null};}};
- const stripe={accounts:{retrieve:async()=>({id:'acct_fixture'})},checkout:{sessions:{create:async(params,options)=>{
-  assert.equal(params.line_items[0].price_data.unit_amount,25000);
+ const db={rpc:async(name,args)=>{calls.push({name,args});return {data:name==='league_prepare_annual_checkout'?order:null};}};
+ const stripe={products:{retrieve:async()=>product},prices:{list:async()=>({data:[price]})},accounts:{retrieve:async()=>({id:'acct_fixture'})},checkout:{sessions:{create:async(params,options)=>{
+  assert.equal(params.line_items[0].price,'price_annual');
+  assert.equal(params.mode,'payment');
   assert.equal(params.client_reference_id,order.id);
   assert.equal(params.success_url,'https://league.example/my-money?checkout=returned');
   assert.equal(params.cancel_url,'https://league.example/my-money?checkout=cancelled');
@@ -50,7 +53,7 @@ test('Checkout uses trusted SQL amount and identity with stable idempotency',asy
  }}}};
  const result=await createCheckout({db,stripe,config},{id:'verified-user',amount:1,player_id:999});
  assert.equal(result.url,'https://checkout.stripe.com/c/pay/fixture');
- assert.deepEqual(calls[0].args,{p_user:'verified-user',p_account:'acct_fixture',p_live:false});
+ assert.deepEqual(calls[0].args,{p_user:'verified-user',p_account:'acct_fixture',p_live:false,p_product:'lakes-dues-2027'});
  assert.equal(calls[1].name,'league_attach_checkout');
 });
 test('pending or already settled orders do not create another Checkout',async()=>{
@@ -96,4 +99,14 @@ test('pausing Checkout preserves configured webhook processing',()=>{
  const paused=paymentConfig({LEAGUE_PAYMENTS_ENABLED:'false',STRIPE_SECRET_KEY:['rk','test','fixture'].join('_'),STRIPE_WEBHOOK_SECRET:'whsec_fixture',STRIPE_ACCOUNT_ID:'acct_fixture',APP_ORIGIN:'https://league.example'});
  assert.equal(paused.enabled,false);
  assert.equal(paused.configured,true);
+});
+
+test('annual catalog creates a stable product and one-time price with idempotency',async()=>{
+ const stripe={products:{retrieve:async()=>{throw {statusCode:404,code:'resource_missing'};},create:async(params,options)=>{assert.equal(params.id,product.id);assert.equal(options.idempotencyKey,'catalog-product-lakes-dues-2027');return product;}},prices:{list:async()=>({data:[]}),create:async(params,options)=>{assert.equal(params.unit_amount,18000);assert.equal(params.recurring,undefined);assert.equal(params.lookup_key,'lakes-dues-2027-usd-18000');assert.equal(options.idempotencyKey,'catalog-price-lakes-dues-2027-usd-18000');return price;}}};
+ assert.equal((await ensureDuesPrice(stripe,config,order)).id,price.id);
+});
+test('annual catalog rejects changed price or recurring subscription',async()=>{
+ for (const wrong of [{...price,unit_amount:100},{...price,type:'recurring',recurring:{interval:'year'}}]) {
+ await assert.rejects(()=>ensureDuesPrice({products:{retrieve:async()=>product},prices:{list:async()=>({data:[wrong]})}},config,order),/price does not match/);
+ }
 });

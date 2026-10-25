@@ -1,4 +1,5 @@
 import Stripe from 'stripe';
+import { DUES_PRODUCT } from '../src/lib/dues-product.js';
 import { createClient } from '@supabase/supabase-js';
 
 export class PaymentError extends Error {
@@ -47,7 +48,7 @@ export async function rpc(db, name, args) {
   if (error) {
     // Do not expose SQL, JWTs, provider payloads or internal identifiers in API errors.
     if (error.code === '42501') throw new PaymentError('This account cannot access these payments.', 403);
-    const known = ['No payable balance', 'minimum 50 cents', 'Please wait', 'rate limit', 'requires reconciliation'];
+    const known = ['No payable balance', 'minimum 50 cents', 'Please wait', 'rate limit', 'requires reconciliation', 'require season reconciliation'];
     if (known.some(value => error.message?.includes(value))) throw new PaymentError(error.message, 409);
     throw new PaymentError('Payment reconciliation is temporarily unavailable. Please retry.', 503);
   }
@@ -74,6 +75,7 @@ export function sessionSnapshot(session, order, config) {
       session.client_reference_id !== order.id || session.amount_total !== Number(order.amount_cents) || session.currency !== order.currency ||
       session.livemode !== config.livemode || order.livemode !== config.livemode || order.account_id !== config.account ||
       (order.session_id && session.id !== order.session_id)) throw new PaymentError('Payment context mismatch.', 400);
+  if (order.product_id && (session.metadata.product_id !== order.product_id || session.metadata.season !== String(order.season))) throw new PaymentError('Annual product context mismatch.', 400);
   let state = session.status === 'expired' ? 'expired' : session.status === 'complete' ? 'pending' : 'open';
   const charge = intent && typeof intent.latest_charge === 'object' ? intent.latest_charge : null;
   if (session.payment_status === 'paid') {
@@ -82,6 +84,7 @@ export function sessionSnapshot(session, order, config) {
         !charge || !charge.paid || charge.amount !== Number(order.amount_cents) || charge.currency !== order.currency || charge.livemode !== config.livemode) {
       throw new PaymentError('Settlement does not match the order.', 400);
     }
+    if (order.product_id && (intent.metadata.product_id !== order.product_id || intent.metadata.season !== String(order.season))) throw new PaymentError('Annual intent context mismatch.', 400);
     state = charge.disputed ? 'disputed' : 'paid';
   } else if (intent?.status === 'canceled') state = 'failed';
   return { order_id: order.id, account_id: config.account, livemode: config.livemode, session_id: session.id,
@@ -90,10 +93,39 @@ export function sessionSnapshot(session, order, config) {
     status: state, receipt_url: safeReceipt(charge?.receipt_url) };
 }
 
+// Create the explicit catalog lazily in the configured account/mode. This performs
+// no charge and never creates a subscription. Stable IDs/lookup keys + idempotency
+// make retries and concurrent first purchases converge on one product and price.
+export async function ensureDuesPrice(stripe, config, order) {
+  const key = `${order.product_id}-${order.currency}-${order.amount_cents}`;
+  let product;
+  try { product = await stripe.products.retrieve(order.product_id); }
+  catch (error) {
+    if (error.statusCode !== 404 || error.code !== 'resource_missing') throw error;
+    product = await stripe.products.create({ id: order.product_id, name: order.product_name,
+      metadata: { application: 'lakes-league', season: String(order.season), kind: 'annual_dues' } },
+      { idempotencyKey: `catalog-product-${order.product_id}` });
+  }
+  if (product.deleted || !product.active || product.livemode !== config.livemode || product.id !== order.product_id ||
+      product.metadata?.application !== 'lakes-league' || product.metadata?.season !== String(order.season) || product.metadata?.kind !== 'annual_dues') {
+    throw new PaymentError('Annual Stripe product does not match the league catalog.', 503);
+  }
+  const prices = await stripe.prices.list({ lookup_keys: [key], active: true, limit: 2 });
+  if (prices.data.length > 1) throw new PaymentError('Ambiguous annual Stripe price.', 503);
+  const price = prices.data[0] || await stripe.prices.create({ product: product.id, unit_amount: Number(order.amount_cents), currency: order.currency,
+    lookup_key: key, metadata: { application: 'lakes-league', season: String(order.season) } }, { idempotencyKey: `catalog-price-${key}` });
+  if (!price.active || price.livemode !== config.livemode || price.type !== 'one_time' || price.recurring || price.unit_amount !== Number(order.amount_cents) ||
+      price.currency !== order.currency || price.product !== product.id || price.metadata?.season !== String(order.season) || price.metadata?.application !== 'lakes-league') {
+    throw new PaymentError('Annual Stripe price does not match the league catalog.', 503);
+  }
+  return price;
+}
+
 export async function createCheckout({ db, stripe, config }, user) {
   if (!config.enabled) throw new PaymentError('Online payments are not enabled yet.', 503);
   await assertAccount(stripe, config);
-  const order = await rpc(db, 'league_prepare_checkout', { p_user: user.id, p_account: config.account, p_live: config.livemode });
+  const order = await rpc(db, 'league_prepare_annual_checkout', { p_user: user.id, p_account: config.account, p_live: config.livemode, p_product: DUES_PRODUCT.id });
+  if (order.product_id !== DUES_PRODUCT.id || order.season !== DUES_PRODUCT.season || Number(order.amount_cents) !== DUES_PRODUCT.amount_cents || order.currency !== DUES_PRODUCT.currency) throw new PaymentError('Annual dues catalog mismatch.', 503);
   if (!['creating', 'open', 'pending'].includes(order.status)) return { order_id: order.id, status: order.status, mode: config.mode };
   if (order.status === 'pending') return { order_id: order.id, status: 'pending', mode: config.mode };
   let session;
@@ -102,12 +134,14 @@ export async function createCheckout({ db, stripe, config }, user) {
     sessionSnapshot(session, order, config);
     if (session.status !== 'open') return { order_id: order.id, status: session.payment_status === 'paid' ? 'pending' : session.status, mode: config.mode };
   } else {
+    const price = await ensureDuesPrice(stripe, config, order);
+    const purchaseMetadata = { application: 'lakes-league', order_id: order.id, product_id: order.product_id, season: String(order.season) };
     session = await stripe.checkout.sessions.create({
       mode: 'payment', client_reference_id: order.id,
       integration_identifier: 'lakes_league_qmsvkyha',
-      metadata: { application: 'lakes-league', order_id: order.id },
-      payment_intent_data: { metadata: { application: 'lakes-league', order_id: order.id } },
-      line_items: [{ quantity: 1, price_data: { currency: order.currency, unit_amount: Number(order.amount_cents), product_data: { name: 'The Lakes league balance' } } }],
+      metadata: purchaseMetadata,
+      payment_intent_data: { metadata: purchaseMetadata },
+      line_items: [{ quantity: 1, price: price.id }],
       success_url: `${config.origin}/my-money?checkout=returned`,
       cancel_url: `${config.origin}/my-money?checkout=cancelled`,
       expires_at: Math.floor(Date.parse(order.expires_at) / 1000),
