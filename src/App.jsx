@@ -18,6 +18,7 @@ const LeaderboardPage = lazy(() => import('./pages/LeaderboardPage'));
 const PlayersPage = lazy(() => import('./pages/PlayersPage'));
 const GiantSkinsPage = lazy(() => import('./pages/GiantSkinsPage'));
 const RulesPage = lazy(() => import('./pages/RulesPage'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 
 export default function App() {
   return <BrowserRouter><PlayerSessionProvider><AuthRoutes /></PlayerSessionProvider></BrowserRouter>;
@@ -45,6 +46,7 @@ function AuthRoutes() {
     <Route path="players/:playerId" element={<PlayersPage />} />
     <Route path="skins" element={<GiantSkinsPage />} />
     <Route path="rules" element={<RulesPage />} />
+    <Route path="privacy" element={<PrivacyPage />} />
     <Route path="admin" element={<CommissionerPage />} />
     <Route path="admin/manage" element={<Navigate to="/admin" replace />} />
     <Route path="*" element={<Navigate to="/" replace />} />

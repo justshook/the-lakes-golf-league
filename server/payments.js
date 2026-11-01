@@ -1,9 +1,10 @@
 import Stripe from 'stripe';
 import { DUES_PRODUCT } from '../src/lib/dues-product.js';
+import { CHECKOUT_RECONCILIATION_CODE, CHECKOUT_RECONCILIATION_MESSAGE } from '../src/lib/payment-errors.js';
 import { createClient } from '@supabase/supabase-js';
 
 export class PaymentError extends Error {
-  constructor(message, status = 400) { super(message); this.status = status; }
+  constructor(message, status = 400, code) { super(message); this.status = status; this.code = code; }
 }
 
 export function paymentConfig(env = process.env) {
@@ -48,7 +49,10 @@ export async function rpc(db, name, args) {
   if (error) {
     // Do not expose SQL, JWTs, provider payloads or internal identifiers in API errors.
     if (error.code === '42501') throw new PaymentError('This account cannot access these payments.', 403);
-    const known = ['No payable balance', 'minimum 50 cents', 'Please wait', 'rate limit', 'requires reconciliation', 'require season reconciliation'];
+    if (['requires reconciliation', 'require season reconciliation'].some(value => error.message?.includes(value))) {
+      throw new PaymentError(CHECKOUT_RECONCILIATION_MESSAGE, 409, CHECKOUT_RECONCILIATION_CODE);
+    }
+    const known = ['No payable balance', 'minimum 50 cents', 'Please wait', 'rate limit'];
     if (known.some(value => error.message?.includes(value))) throw new PaymentError(error.message, 409);
     throw new PaymentError('Payment reconciliation is temporarily unavailable. Please retry.', 503);
   }
@@ -138,13 +142,18 @@ export async function createCheckout({ db, stripe, config }, user) {
     const purchaseMetadata = { application: 'lakes-league', order_id: order.id, product_id: order.product_id, season: String(order.season) };
     session = await stripe.checkout.sessions.create({
       mode: 'payment', client_reference_id: order.id,
+      // League dues use standard direct Checkout even if this account defaults
+      // to Stripe's merchant-of-record product for digital goods.
+      managed_payments: { enabled: false },
       integration_identifier: 'lakes_league_qmsvkyha',
       metadata: purchaseMetadata,
       payment_intent_data: { metadata: purchaseMetadata },
       line_items: [{ quantity: 1, price: price.id }],
-      success_url: `${config.origin}/my-money?checkout=returned`,
-      cancel_url: `${config.origin}/my-money?checkout=cancelled`,
-      expires_at: Math.floor(Date.parse(order.expires_at) / 1000),
+      success_url: `${config.origin}/money?checkout=returned`,
+      cancel_url: `${config.origin}/money?checkout=cancelled`,
+      // Let Stripe start its default 24h lifetime when creation actually succeeds.
+      // A database deadline can fall below Stripe's 30m minimum after an outage;
+      // recomputing it on retry would also change this idempotent request's params.
     }, { idempotencyKey: `lakes-checkout-${order.id}` });
     sessionSnapshot(session, order, config);
     await rpc(db, 'league_attach_checkout', { p_order: order.id, p_session: session.id });
@@ -223,5 +232,8 @@ export function respond(res, status, data) {
   res.status(status).json(data);
 }
 export function fail(res, error) {
+  if (error instanceof Stripe.errors.StripeIdempotencyError || (error instanceof PaymentError && error.code === CHECKOUT_RECONCILIATION_CODE)) {
+    return respond(res, 409, { code: CHECKOUT_RECONCILIATION_CODE, error: CHECKOUT_RECONCILIATION_MESSAGE });
+  }
   respond(res, error instanceof PaymentError ? error.status : 503, { error: error instanceof PaymentError ? error.message : 'Payment service temporarily unavailable. Please retry.' });
 }

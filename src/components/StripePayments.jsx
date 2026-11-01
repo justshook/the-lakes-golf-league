@@ -1,5 +1,6 @@
 import { stripeUrl as receiptUrl, checkoutResult, checkoutNotice, refundLabel } from '../lib/payment-display';
 import { DUES_PRODUCT } from '../lib/dues-product.js';
+import { paymentRequestErrorMessage } from '../lib/payment-errors.js';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { usePlayerSession } from '../contexts/PlayerSessionContext';
@@ -13,7 +14,7 @@ async function request(path, options = {}) {
   if (!data.session) throw new Error('Sign in again to view payments.');
   const response = await fetch(path, { ...options, headers: { Authorization: `Bearer ${data.session.access_token}`, 'Content-Type': 'application/json' } });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error('Payments are temporarily unavailable. Please try again.');
+  if (!response.ok) throw new Error(paymentRequestErrorMessage(result));
   return result;
 }
 export default function StripePayments({ playerId, commissioner = false }) {

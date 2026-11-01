@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
 import { Readable } from 'node:stream';
-import { paymentConfig, verifiedUser, sessionSnapshot, createCheckout, processEvent, readRawBody, requireOrigin, safeReceipt, ensureDuesPrice } from '../server/payments.js';
+import { paymentConfig, verifiedUser, sessionSnapshot, createCheckout, processEvent, readRawBody, requireOrigin, safeReceipt, ensureDuesPrice, fail, rpc } from '../server/payments.js';
+import { CHECKOUT_RECONCILIATION_CODE, CHECKOUT_RECONCILIATION_MESSAGE } from '../src/lib/payment-errors.js';
 const config = { enabled:true, mode:'test', livemode:false, account:'acct_fixture',origin:'https://league.example' };
 const order = { product_id:'lakes-dues-2027',product_name:'2027 Lakes League Dues',season:2027,id:'00000000-0000-0000-0000-000000000001',amount_cents:18000,currency:'usd',status:'creating',livemode:false,account_id:'acct_fixture',expires_at:new Date(Date.now()+3600000).toISOString() };
 const metadata = {application:'lakes-league',order_id:order.id,product_id:order.product_id,season:'2027'};
@@ -44,9 +45,10 @@ test('Checkout uses trusted SQL amount and identity with stable idempotency',asy
  const stripe={products:{retrieve:async()=>product},prices:{list:async()=>({data:[price]})},accounts:{retrieve:async()=>({id:'acct_fixture'})},checkout:{sessions:{create:async(params,options)=>{
   assert.equal(params.line_items[0].price,'price_annual');
   assert.equal(params.mode,'payment');
+  assert.deepEqual(params.managed_payments,{enabled:false});
   assert.equal(params.client_reference_id,order.id);
-  assert.equal(params.success_url,'https://league.example/my-money?checkout=returned');
-  assert.equal(params.cancel_url,'https://league.example/my-money?checkout=cancelled');
+  assert.equal(params.success_url,'https://league.example/money?checkout=returned');
+  assert.equal(params.cancel_url,'https://league.example/money?checkout=cancelled');
   assert.equal(options.idempotencyKey,`lakes-checkout-${order.id}`);
   assert.equal(params.payment_method_types,undefined);
   return session();
@@ -61,6 +63,51 @@ test('pending or already settled orders do not create another Checkout',async()=
   const db={rpc:async()=>({data:{...order,status}})};
   const stripe={accounts:{retrieve:async()=>({id:'acct_fixture'})}};
   assert.equal((await createCheckout({db,stripe,config},{id:'user'})).status,status);
+ }
+});
+test('Checkout creation can retry after an outage without an invalid expiry or changed idempotency params',async()=>{
+ const staleOrder={...order,expires_at:new Date(Date.now()-60000).toISOString()};
+ const requests=[];
+ const db={rpc:async name=>({data:name==='league_prepare_annual_checkout'?staleOrder:null})};
+ const stripe={products:{retrieve:async()=>product},prices:{list:async()=>({data:[price]})},accounts:{retrieve:async()=>({id:config.account})},checkout:{sessions:{create:async(params,options)=>{
+  requests.push({params,options});
+  // Stripe rejects explicit deadlines less than 30m from actual creation.
+  if (params.expires_at != null && params.expires_at<Date.now()/1000+1800) throw new Error('Expiry must be at least 30 minutes from creation.');
+  if(requests.length===1) throw new Error('Provider connection interrupted.');
+  return session();
+ }}}};
+ await assert.rejects(()=>createCheckout({db,stripe,config},{id:'verified-user'}),/connection interrupted/);
+ assert.equal((await createCheckout({db,stripe,config},{id:'verified-user'})).status,'open');
+ assert.deepEqual(requests[0],requests[1]);
+ assert.equal(requests[1].options.idempotencyKey,`lakes-checkout-${order.id}`);
+});
+test('Stripe idempotency conflict returns commissioner review without exposing provider details or rotating the order key',async()=>{
+ const keys=[]; const dbCalls=[];
+ const db={rpc:async name=>{dbCalls.push(name);return {data:order};}};
+ const stripe={products:{retrieve:async()=>product},prices:{list:async()=>({data:[price]})},accounts:{retrieve:async()=>({id:config.account})},checkout:{sessions:{create:async(_params,options)=>{
+  keys.push(options.idempotencyKey);
+  throw new Stripe.errors.StripeIdempotencyError({message:'Private original request parameters and payment identifiers.'});
+ }}}};
+ for(let attempt=0;attempt<2;attempt++) {
+  const res={setHeader(){},status(value){this.statusCode=value;return this;},json(value){this.body=value;}};
+  try { await createCheckout({db,stripe,config},{id:'verified-user'}); assert.fail('Expected reconciliation error.'); }
+  catch(error) { fail(res,error); }
+  assert.equal(res.statusCode,409);
+  assert.deepEqual(res.body,{code:CHECKOUT_RECONCILIATION_CODE,error:CHECKOUT_RECONCILIATION_MESSAGE});
+  assert.equal(JSON.stringify(res.body).includes('Private original'),false);
+ }
+ assert.deepEqual(keys,[`lakes-checkout-${order.id}`,`lakes-checkout-${order.id}`]);
+ assert.deepEqual(dbCalls,['league_prepare_annual_checkout','league_prepare_annual_checkout']);
+});
+test('stale database checkout and season reconciliation use the same bounded review response',async()=>{
+ for (const message of ['Checkout requires reconciliation. Private SQL context.', 'Manual dues records require season reconciliation. Private SQL context.']) {
+  const res={setHeader(){},status(value){this.statusCode=value;return this;},json(value){this.body=value;}};
+  await assert.rejects(()=>rpc({rpc:async()=>({error:{code:'P0001',message}})},'league_prepare_annual_checkout',{}),error=>{
+   fail(res,error);
+   assert.equal(res.statusCode,409);
+   assert.deepEqual(res.body,{code:CHECKOUT_RECONCILIATION_CODE,error:CHECKOUT_RECONCILIATION_MESSAGE});
+   return true;
+  });
  }
 });
 test('webhook refetches latest paid state and bounded refunds instead of trusting stale event body',async()=>{

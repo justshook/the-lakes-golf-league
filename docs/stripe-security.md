@@ -1,54 +1,50 @@
-# Payment security and Stripe readiness
+# Payment security and Stripe activation
 
-## Current status
+## Implementation and verification boundary
 
-The app currently records league accounting entries. It does **not** create Stripe Checkout sessions, charge cards, receive Stripe webhooks, or transfer winnings. There is no card-entry form or dedicated card-data storage. Historical winnings are awards, not evidence of transferred money.
+The app implements Stripe-hosted Checkout for a one-time **2027 Lakes League Dues** purchase of **$180 USD**, with no automatic renewal. The catalog, amount, currency, player ownership, and season are resolved on the server. The browser cannot supply those values. Checkout is disabled unless explicitly configured, and live mode additionally requires `STRIPE_LIVE_APPROVED=true`.
 
-The reviewed database changes restrict ledger reads to the linked player or commissioner and ledger writes to an administrator-checked RPC. They validate integer cents, preserve immutable records, deduplicate idempotency keys and posted cash references, serialize per-player writes, prevent refunds above the original recorded payment, and constrain recorded payouts to recorded awards. The source passed the local account, ledger, and privilege checks described in `implementation-review.md`.
+The three original account, ledger, and privilege migrations are installed in production. The Stripe Checkout and annual-dues migrations are now installed too. Original migration history was repaired without rerunning SQL, and all five versions are recorded. Inspect schema and history before any future push.
 
-**Database hardening is now applied; Stripe processing is not implemented.** All three reviewed migrations executed through the Supabase SQL Editor on 2026-10-24. Live role checks passed and historical data fingerprints are unchanged. This establishes database access controls, not verified payment settlement or readiness to accept live payments.
+Local verification covers server logic with mocked Stripe/Supabase responses, real Stripe SDK signature validation with a local test signing secret, and actual SQL permissions/transactions in a disposable PostgreSQL runtime. Those checks do **not** prove Google sign-in, email delivery, real Stripe Checkout, webhook delivery, receipt availability, or production settlement. Actual preview Google login, owner-confirmed email setup, hosted test payment, signed settlement, cancellation/decline, duplicate-event replay, receipts, and partial/full test refunds have now been verified separately; see [activation review](activation-review.md). Live processing remains disabled and unverified.
 
-No unprivileged ledger-write bypass was identified in the reviewed source. This review is not a claim of an independent production penetration test.
+## Hosted Checkout and server identity
 
-## Current verification boundary
+The server verifies the access token with Supabase Auth `getUser`, requires a confirmed email, and resolves the player through the private account link. It reads the annual product from the trusted database catalog and checks it against the reviewed server product definition. Stable product IDs, price lookup keys, and idempotency keys prevent duplicate catalog creation and Checkout creation during retries. Stripe starts the session lifetime when creation succeeds; a stale database deadline cannot strand a first creation after an outage.
 
-The commissioner's recorded payment or payout is a manual assertion. Its receipt reference is free text; a `posted` status or “Confirmed” label does not mean Stripe verified a transaction. This is the material integration gap: an automated payment system must never treat an arbitrary existing manual entry as provider evidence.
+A private unique purchase constraint and per-player transaction lock prevent duplicate outstanding or settled purchases for the same season and mode. Existing unclassified manual money records require season reconciliation before another annual purchase. Refunds and disputes retain the purchase slot for commissioner review. Checkout cancellation returns to the app without treating a return URL as proof of either payment or final cancellation; an open session can be resumed. Failed card attempts remain in Checkout for retry, while final asynchronous failure and session expiration are reconciled through verified webhooks.
 
-Before integrating Stripe, add immutable provenance such as `manual_external` and `stripe_verified`. Only a trusted server processor may create provider-verified entries and assign provider object IDs. Display manual and provider-confirmed evidence distinctly. The current manual ledger must not initiate charges or payouts.
+Secrets belong in sensitive server environment variables. Never put Stripe secret/restricted keys, webhook signing secrets, Google client secrets, or Supabase privileged keys in `VITE_*`, source control, browser storage, logs, analytics, or error messages. Use a restricted Stripe key with only the required permissions where supported. Checkout routes enforce the configured app origin and fixed return URLs. The application does not accept or store card numbers, CVCs, expiry details, bank credentials, or full provider payloads.
 
-Descriptions and receipt fields must never contain card numbers, CVCs, expiry details, bank credentials, or copied webhook bodies. They are accounting notes, not a place to collect payment credentials.
+## Verified settlement and immutable accounting
 
-## Required payment design
+The webhook route reads unchanged request bytes and verifies the Stripe signature and timestamp with the Stripe SDK before processing. It checks test/live and account context, allowlists event types, and re-fetches the current provider objects so a stale event body is not settlement evidence. Both `checkout.session.completed` and `checkout.session.async_payment_succeeded` require a paid session, a matching successful PaymentIntent, and matching charge, amount, currency, order, product, and season metadata.
 
-1. **Use Stripe-hosted Checkout.** Customers enter payment information on Stripe's hosted page. Do not route card data through app servers, Supabase, browser storage, analytics, error reporting, or application logs. Hosted Checkout reduces exposure; it does not eliminate the merchant's security responsibilities.
-2. **Create sessions on the server.** Authenticate the request and derive the player from the verified account link. Resolve the fee, order, amount in integer cents, currency, and league from trusted server records. Do not accept a browser-supplied player ID or payable amount as authoritative. Store an immutable order snapshot and check ownership and existing payment status before creating a session.
-3. **Keep secrets server-side.** Use separate test and live environments and appropriately restricted keys. Never put secret keys, webhook secrets, or Supabase privileged credentials in `VITE_*` variables, browser bundles, source control, or logs. Use HTTPS, fixed allowed return URLs, and request rate limits.
-4. **Settle only from verified server evidence.** A success-page visit, browser response, or client-supplied session ID is not proof of payment. Verify the webhook signature using the unchanged raw request body, the endpoint signing secret, and Stripe's SDK with timestamp checks. Reject invalid signatures and unexpected account or test/live context. Allowlist handled event types.
-5. **Check the business record before posting.** For Checkout completion or asynchronous payment success, require a verified paid state and match the expected order, amount, currency, account context, and provider object IDs. Fetch the relevant Stripe object server-side when necessary. A completed Checkout session with payment still pending must remain unpaid in the ledger.
-6. **Make settlement durable and idempotent.** Persist unique event IDs and unique settlement identities tied to the payment/order, so separate events for one payment cannot credit it twice. Update order state and the corresponding ledger entry atomically. Acknowledge delivery only after durable enqueueing or successful processing. Handle concurrent retries and out-of-order events without reversing a newer state.
+The processor acknowledges only after the database transaction succeeds. Unique event IDs, unique session/intent identities, stable settlement ledger IDs, per-player locks, and atomic order/ledger writes protect against retries and repeated completion events. Terminal payment and refund states resist older pending snapshots. Only narrowly granted server RPCs can write provider records; browser roles and manual ledger RPCs cannot forge `stripe_verified` provenance.
 
-Refunds must be authorized server-side, tied to the settled original payment, limited to its remaining refundable cents, and issued with stable idempotency keys. Keep requests pending until verified provider status confirms the refund; use unique refund IDs to prevent duplicate deductions. Reconcile failed refunds and disputes separately. Neither a refund request nor a dispute should silently initiate or reverse a prize payout. Automated prize payouts require their own approved, provider-supported design and are outside the current implementation.
+Test orders and refunds never modify real league balances. A live annual settlement atomically posts both its season charge and its confirmed payment. Player profile/payment history and commissioner views expose limited owner/admin summaries, safe Stripe receipt links, test/live labels, refund state, and dispute state. Manual external records remain visibly distinct from Stripe-confirmed entries.
 
-## Minimal private payment records
+## Refunds, disputes, and winnings
 
-| Record | Store | Access |
-| --- | --- | --- |
-| Payment order | Internal order/player/league references, immutable amount and currency, status, Checkout session and payment IDs, account/test-live context, timestamps | Server writes; player reads a limited summary of their own orders |
-| Event processing receipt | Unique event ID, event type, relevant object ID, account/test-live context, received/processed timestamps, attempts, bounded error code | Private server processing only |
-| Refund | Unique provider refund ID, original payment reference, cents, currency, status, timestamps | Server writes; limited owner summary |
-| Ledger provenance | Manual/provider source, unique settlement reference, order reference, recording actor | Immutable server-controlled fields; existing self/admin read boundary |
+The app does not initiate Stripe refunds or payouts. Refunds require an explicit authorized action in Stripe, then `refund.created`, `refund.updated`, `refund.failed`, or `charge.refunded` delivery reconciles provider status. Pending and failed refunds are not deducted as completed refunds. Successful refunds are deduplicated by provider refund ID and cannot exceed the original payment. Manual ledger entries cannot refund Stripe-confirmed payments.
 
-Do not persist full webhook JSON by default. Verify the raw body in memory and retain only fields required for processing, reconciliation, and audit. Do not copy customer addresses, email, card details, or other unrelated provider data into metadata or event logs. Keep the processing queue and operational errors inaccessible to browser clients. Use explicit retention and log-redaction rules.
+Dispute events mark the purchase for commissioner reconciliation. A current won/closed inquiry can restore the payment status; disputes do not automatically create a refund or initiate/reverse prize payouts. The ledger records the historical payment and any verified refunds; disputed funds require separate reconciliation rather than silently changing prize accounting.
 
-## Checks required before enabling live payments
+Historical winnings are awards, not evidence of money transferred. Collecting dues through Checkout does not provide permission or functionality to pay players. A separate provider-supported payout design, eligibility review, and explicit authorization are required. No payout API is exposed by this implementation.
 
-Exercise tampered amounts and player IDs, another player's order access, unsigned and replayed webhooks, delayed payments, duplicate and concurrent events, out-of-order events, excessive refunds, test/live mismatches, and fabricated success redirects. Verify that direct database writes cannot forge provider confirmation and that logs, analytics, errors, and client bundles contain neither secrets nor payment credentials. Reconcile the provider's settled totals with the ledger in test mode before enabling live collection.
+Stripe's current [prohibited and restricted businesses policy](https://stripe.com/legal/restricted-businesses) includes games of skill with monetary/material prizes and entry/player fees promising prizes. Its [policy FAQ](https://support.stripe.com/questions/prohibited-and-restricted-businesses-list-faqs) explains that legality alone does not establish supportability. Because this league records cash prizes, the actual dues allocation and prize model require written Stripe eligibility confirmation before live collection or winnings disbursement. Do not relabel prize funding as ordinary dues to bypass this review.
 
-No live Stripe configuration, charge, refund, or payout was created as part of this work.
+If Stripe confirms the use case is eligible, [Global Payouts](https://docs.stripe.com/global-payouts) is the direct-to-recipient option to assess: recipients need not hold Stripe accounts, while the sender must be enabled for that product, satisfy country and recipient requirements, and fund the separate payout flow. Connect is appropriate only for an approved platform/connected-account model with recipient onboarding and active transfer capabilities. [Stripe's comparison](https://docs.stripe.com/connect/cross-border-payouts-to-recipients/compare-global-payouts) distinguishes these flows and their compliance responsibilities. Neither product's availability is implied by Checkout activation; an ordinary payout to the league's own bank is not a third-party player disbursement.
+
+## Activation checks
+
+Configure a Stripe test environment and matching server account/mode, signing secret, app origin, and Supabase credentials. Apply only the new reviewed migrations after reconciling history. Verify a hosted test purchase, cancellation/resumption, declined card retry, asynchronous outcomes where enabled, signed webhook retries, duplicate/concurrent settlement, receipts, partial/full/failed refunds, ownership isolation, and provider-to-database reconciliation. Verify no secrets or payment details reach the client bundle or logs. A fabricated success URL must never change payment status.
+
+Before live collection, complete account/business eligibility checks and explicitly authorize the live configuration. Ask before any real charge, refund, or payout. No live financial transaction is evidence from the local checks described above.
 
 ## Official references
 
 - [Stripe integration security guide](https://docs.stripe.com/security/guide)
 - [Stripe webhooks: signatures, delivery, and event handling](https://docs.stripe.com/webhooks)
-
-The integration direction also follows the installed `stripe-best-practices` skill: hosted Checkout for one-time payments and server-side webhook fulfillment gated on verified payment status.
+- [Checkout Session creation and expiration](https://docs.stripe.com/api/checkout/sessions/create)
+- [Checkout fulfillment](https://docs.stripe.com/checkout/fulfillment)
