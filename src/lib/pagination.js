@@ -11,6 +11,8 @@ export const LEAGUE_READ_ORDER = Object.freeze({
   league_attendance: ['week_id', 'player_id'],
   league_player_preferences: ['player_id'],
   league_ledger_entries: ['id'],
+  league_scorecards: ['week_id', 'entry_key'],
+  league_round_participants: ['week_id', 'player_id'],
 });
 
 function historyError(table, detail, code = 'HISTORY_INCOMPLETE') {
@@ -27,7 +29,7 @@ function historyError(table, detail, code = 'HISTORY_INCOMPLETE') {
  * last page. No first-page data is returned after a later failure.
  */
 export async function readAllRows(client, table, {
-  order = LEAGUE_READ_ORDER[table], pageSize = 500, isCurrent = () => true,
+  order = LEAGUE_READ_ORDER[table], pageSize = 500, isCurrent = () => true, filters = {},
 } = {}) {
   if (!Array.isArray(order) || order.length === 0 || order.some(key => typeof key !== 'string' || !key)) {
     throw new TypeError('Paginated reads require an explicit stable unique order.');
@@ -40,6 +42,7 @@ export async function readAllRows(client, table, {
     while (true) {
       if (!isCurrent()) throw historyError(table, 'Refresh superseded', 'HISTORY_SUPERSEDED');
       let query = client.from(table).select('*', { count: 'exact' });
+      for (const [column, value] of Object.entries(filters)) query = query.eq(column, value);
       for (const key of order) query = query.order(key, { ascending: true });
       const result = await query.range(rows.length, rows.length + pageSize - 1);
       if (!isCurrent()) throw historyError(table, 'Refresh superseded', 'HISTORY_SUPERSEDED');

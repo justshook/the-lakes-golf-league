@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CalendarDays, Flag, MapPin, UsersRound, Trophy, ChevronRight, LoaderCircle, PencilLine, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, CalendarDays, Flag, MapPin, UsersRound, Trophy, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { useLeague } from '../LeagueContext';
 import { usePlayerSession } from '../contexts/PlayerSessionContext';
 import PlayerAccountGate from '../components/PlayerAccountGate';
@@ -8,16 +8,14 @@ import AttendanceControl from '../components/AttendanceControl';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Input } from '../components/ui/input';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { getPlayerTeam } from '../lib/teams';
 import { summarizePlayerResults, summarizePlayerAwards } from '../lib/player-summary';
 
 const sameId = (a, b) => String(a) === String(b);
 const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 function MyWeekContent() {
-  const { players = [], weeks = [], weeklyGames = [], playerScores = [], setSelectedWeek, submitScore } = useLeague();
-  const { playerId, profile, attendance = {}, rounds = {} } = usePlayerSession();
+  const { players = [], weeks = [], weeklyGames = [], playerScores = [], setSelectedWeek } = useLeague();
+  const { playerId, profile, isDemo, attendance = {}, rounds = {} } = usePlayerSession();
   const player = players.find(item => sameId(item.id, playerId));
   const name = player?.name || profile?.name || profile?.display_name || 'Player';
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -35,13 +33,11 @@ function MyWeekContent() {
   const dateLabel = date?.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const scoreRecorded = playerScores.some(score => sameId(score.player_id, playerId) && sameId(score.week_id, week?.id));
   const scoringWeek = [...weeks].sort((a, b) => b.date.localeCompare(a.date)).find(candidate =>
-    candidate.date <= today && (candidate.status || rounds[String(candidate.id)]?.status) === 'published'
+    (isDemo || candidate.date <= today) && (candidate.status || rounds[String(candidate.id)]?.status) === 'published'
     && !candidate.weatherCancelled && candidate.scoreSubmissionEnabled !== false && candidate.isScoringSupported === true
     && attendance[String(candidate.id)]?.status !== 'out'
     && candidate.teeSheet?.some(group => group.players?.some(id => sameId(id, playerId)))
-    && !playerScores.some(score => sameId(score.player_id, playerId) && sameId(score.week_id, candidate.id))
   );
-  const scoringGame = weeklyGames.find(item => sameId(item.weekId, scoringWeek?.id));
   const openRound = () => { if (week && setSelectedWeek) setSelectedWeek(week.id); };
 
   return <div className="mx-auto max-w-5xl space-y-6 sm:space-y-7">
@@ -57,7 +53,7 @@ function MyWeekContent() {
           </div>
           {week && <div className="bg-cream-100 p-5 text-foreground sm:px-7"><AttendanceControl week={week} /></div>}
         </CardContent></Card>
-        {scoringWeek && submitScore && <ScoreEntry week={scoringWeek} game={scoringGame} submitScore={submitScore} />}
+        {scoringWeek && <div className="rounded-2xl border border-gold-300 bg-cream-200/60 p-4"><p className="mb-1 text-sm font-semibold text-forest-950">Your live scorecard</p><p className="mb-3 text-xs text-charcoal-600">{new Date(`${scoringWeek.date}T12:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · Gross scores, handicap strokes and net scoring.</p><Button asChild className="w-full bg-cta-500 text-forest-950 hover:bg-cta-400"><Link to={`/round/${scoringWeek.id}`}>Open my round <ArrowRight className="size-4" /></Link></Button></div>}
         {week && scoreRecorded && <div className="flex items-center gap-2 rounded-xl bg-forest-900/5 p-4 text-sm text-forest-900"><CheckCircle2 className="size-4" />Your score is recorded. <Link to="/results" className="ml-auto text-xs font-semibold underline">View</Link></div>}
         {week && !isOut && slot && <Card className="content-card"><CardContent className="p-5 sm:p-6"><div className="mb-4 flex items-center justify-between"><h2 className="text-base font-semibold">Your group</h2><UsersRound className="size-4 text-charcoal-600" /></div>
           <div className="divide-y divide-border">{group.map(member => { const self = sameId(member.id, playerId); const partner = teammates.some(person => sameId(person.id, member.id)); return <div key={member.id} className="flex min-h-[62px] items-center gap-3 py-2"><span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cream-200 text-[11px] font-semibold text-forest-950">{member.name.split(' ').slice(0, 2).map(part => part[0]).join('')}</span><div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{member.name}{self && <span className="ml-1 text-charcoal-600">(you)</span>}</p><p className="text-xs text-charcoal-600">{partner ? 'Your teammate' : self ? 'Ready for Monday' : 'In your foursome'}</p></div>{partner && <Badge variant="secondary" className="border-0 bg-forest-900/10 text-[10px] text-forest-900">Partner</Badge>}</div>; })}</div>
@@ -72,18 +68,5 @@ function MyWeekContent() {
       </div>
     </div>
   </div>;
-}
-function ScoreEntry({ week, game, submitScore }) {
-  const [open, setOpen] = useState(false);
-  const [score, setScore] = useState('');
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState('');
-  async function save(event) {
-    event.preventDefault();
-    if (pending) return;
-    setPending(true); setError('');
-    try { await submitScore({ weekId: week.id, grossScore: Number(score), birdieHoles: [], eagleHoles: [] }); setOpen(false); } catch (e) { setError(e.message || 'Your score was not saved. Please try again.'); } finally { setPending(false); }
-  }
-  return <><div className="rounded-2xl border border-gold-300 bg-cream-200/60 p-4"><p className="mb-1 text-sm font-semibold text-forest-950">Finish your round</p><p className="mb-3 text-xs text-charcoal-600">{new Date(`${week.date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })} · {game?.gameName || 'League round'}</p><Button onClick={() => { setError(''); setOpen(true); }} className="w-full bg-cta-500 text-forest-950 hover:bg-cta-400"><PencilLine className="size-4" />{game?.teamType ? 'Enter your team score' : 'Enter your score'}</Button></div><Dialog open={open} onOpenChange={next => { if (!pending) setOpen(next); }}><DialogContent><DialogHeader className="pr-6 text-left"><DialogTitle>{game?.teamType ? 'Record your team score' : 'Record your score'}</DialogTitle><DialogDescription className="pt-2 leading-6">{game?.teamType ? 'Enter the shared team total after completing all nine holes. This score is recorded for each member of your team.' : 'Enter your gross total after completing all nine holes. Your round’s handicap is applied automatically.'}</DialogDescription></DialogHeader><form onSubmit={save} className="space-y-4"><div className="space-y-2"><label htmlFor="gross-score" className="text-sm font-semibold">Gross score · 9 holes</label><Input id="gross-score" type="number" inputMode="numeric" min="9" max="180" step="1" required value={score} onChange={event => setScore(event.target.value)} disabled={pending} placeholder="e.g. 42" /></div><p className="text-xs leading-5 text-charcoal-600">Check the total with your group before saving. Contact the commissioner if a submitted score needs a correction.</p>{error && <p role="alert" className="text-sm text-destructive">{error}</p>}<Button type="submit" disabled={pending} className="w-full">{pending ? <><LoaderCircle className="size-4 animate-spin" />Saving score…</> : 'Confirm and save score'}</Button></form></DialogContent></Dialog></>;
 }
 export default function MyWeekPage() { return <PlayerAccountGate><MyWeekContent /></PlayerAccountGate>; }
