@@ -1,5 +1,14 @@
 # Player accounts and mobile league deployment
 
+## Activation update — 2026-11-01
+
+Google OAuth is now configured in the verified Lakes project, with the canonical Site URL `https://www.lakesleague.com` and exact production/apex/branch callback allowlists. Real Google sign-in and cancellation passed on the protected preview. The existing verified commissioner identity linked to original player 22; no duplicate Auth account or replacement player was created. Google remains in testing status while release checks finish. The server minimum password length is configured to 12.
+
+The supported CLI repair workflow recorded the three previously installed migrations as applied, without rerunning their SQL. A private custom-format database backup was saved and its archive catalog verified before applying the two new Stripe migrations. All five migration versions now have history entries. Do not rerun any of these migrations.
+
+The production email provider still needs custom SMTP credentials. An accepted setup-email request is not delivery proof. See [activation review](activation-review.md) for current evidence and remaining account-owner actions. The deployment guide below includes the earlier handoff context.
+
+
 The three reviewed database migrations were applied to the Lakes project through the Supabase SQL Editor on 2026-10-24. Live role checks passed, and historical table counts and fingerprints are unchanged. Database protections are active; the matching app deployment, commissioner setup, provider configuration, and real email/OAuth tests remain pending. Detailed live audit metadata is excluded from this repository.
 
 The browser execution did not create Supabase CLI migration-history entries. **Do not rerun these migrations against production.** Before a future CLI push, reconcile migration history with the installed schema and mark versions `20261019015334`, `20261019015737`, and `20261019025446` applied using the supported CLI repair workflow. Their SQL has already executed successfully.
@@ -21,9 +30,7 @@ The browser execution did not create Supabase CLI migration-history entries. **D
 ## Authentication redirects and Google activation
 
 Verify email confirmation, Google activation, unique populated roster emails, and
-leaked-password protection with its plan availability before cutover. No provider,
-SMTP, redirect, password-policy, or admin-role settings have been changed through
-this work. This repository does not include player contacts or a live database export.
+leaked-password protection with its plan availability before cutover. Provider, redirect, password-policy, and commissioner state were verified or updated during the 2026-11-01 activation; custom SMTP remains pending. This repository does not include player contacts or a live database export.
 
 The production host currently redirects the apex domain to `www`. Use the canonical
 host consistently in Auth settings and Google configuration. Add these exact Supabase

@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import Stripe from 'stripe';
 import { Readable } from 'node:stream';
-import { paymentConfig, verifiedUser, sessionSnapshot, createCheckout, processEvent, readRawBody, requireOrigin, safeReceipt, ensureDuesPrice } from '../server/payments.js';
+import { paymentConfig, verifiedUser, sessionSnapshot, createCheckout, processEvent, readRawBody, requireOrigin, safeReceipt, ensureDuesPrice, fail, rpc } from '../server/payments.js';
+import { CHECKOUT_RECONCILIATION_CODE, CHECKOUT_RECONCILIATION_MESSAGE } from '../src/lib/payment-errors.js';
 const config = { enabled:true, mode:'test', livemode:false, account:'acct_fixture',origin:'https://league.example' };
 const order = { product_id:'lakes-dues-2027',product_name:'2027 Lakes League Dues',season:2027,id:'00000000-0000-0000-0000-000000000001',amount_cents:18000,currency:'usd',status:'creating',livemode:false,account_id:'acct_fixture',expires_at:new Date(Date.now()+3600000).toISOString() };
 const metadata = {application:'lakes-league',order_id:order.id,product_id:order.product_id,season:'2027'};
@@ -79,6 +80,35 @@ test('Checkout creation can retry after an outage without an invalid expiry or c
  assert.equal((await createCheckout({db,stripe,config},{id:'verified-user'})).status,'open');
  assert.deepEqual(requests[0],requests[1]);
  assert.equal(requests[1].options.idempotencyKey,`lakes-checkout-${order.id}`);
+});
+test('Stripe idempotency conflict returns commissioner review without exposing provider details or rotating the order key',async()=>{
+ const keys=[]; const dbCalls=[];
+ const db={rpc:async name=>{dbCalls.push(name);return {data:order};}};
+ const stripe={products:{retrieve:async()=>product},prices:{list:async()=>({data:[price]})},accounts:{retrieve:async()=>({id:config.account})},checkout:{sessions:{create:async(_params,options)=>{
+  keys.push(options.idempotencyKey);
+  throw new Stripe.errors.StripeIdempotencyError({message:'Private original request parameters and payment identifiers.'});
+ }}}};
+ for(let attempt=0;attempt<2;attempt++) {
+  const res={setHeader(){},status(value){this.statusCode=value;return this;},json(value){this.body=value;}};
+  try { await createCheckout({db,stripe,config},{id:'verified-user'}); assert.fail('Expected reconciliation error.'); }
+  catch(error) { fail(res,error); }
+  assert.equal(res.statusCode,409);
+  assert.deepEqual(res.body,{code:CHECKOUT_RECONCILIATION_CODE,error:CHECKOUT_RECONCILIATION_MESSAGE});
+  assert.equal(JSON.stringify(res.body).includes('Private original'),false);
+ }
+ assert.deepEqual(keys,[`lakes-checkout-${order.id}`,`lakes-checkout-${order.id}`]);
+ assert.deepEqual(dbCalls,['league_prepare_annual_checkout','league_prepare_annual_checkout']);
+});
+test('stale database checkout and season reconciliation use the same bounded review response',async()=>{
+ for (const message of ['Checkout requires reconciliation. Private SQL context.', 'Manual dues records require season reconciliation. Private SQL context.']) {
+  const res={setHeader(){},status(value){this.statusCode=value;return this;},json(value){this.body=value;}};
+  await assert.rejects(()=>rpc({rpc:async()=>({error:{code:'P0001',message}})},'league_prepare_annual_checkout',{}),error=>{
+   fail(res,error);
+   assert.equal(res.statusCode,409);
+   assert.deepEqual(res.body,{code:CHECKOUT_RECONCILIATION_CODE,error:CHECKOUT_RECONCILIATION_MESSAGE});
+   return true;
+  });
+ }
 });
 test('webhook refetches latest paid state and bounded refunds instead of trusting stale event body',async()=>{
  const calls=[];

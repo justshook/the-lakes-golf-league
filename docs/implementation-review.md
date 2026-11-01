@@ -1,5 +1,7 @@
 # Lakes League mobile migration
 
+Current activation evidence and release dependencies are tracked in [activation review](activation-review.md). PR #91 was already merged and deployed when activation resumed on 2026-11-01. The historical implementation and demo checks below are separate from the new real-provider checks.
+
 This branch replaces the shared-password league interface with a player portal and
 commissioner workflow. It keeps the forest, cream, and gold identity and uses actual
 shadcn/Radix components, a mobile bottom navigation bar, 44px controls, and lazy-loaded

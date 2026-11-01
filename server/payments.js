@@ -1,9 +1,10 @@
 import Stripe from 'stripe';
 import { DUES_PRODUCT } from '../src/lib/dues-product.js';
+import { CHECKOUT_RECONCILIATION_CODE, CHECKOUT_RECONCILIATION_MESSAGE } from '../src/lib/payment-errors.js';
 import { createClient } from '@supabase/supabase-js';
 
 export class PaymentError extends Error {
-  constructor(message, status = 400) { super(message); this.status = status; }
+  constructor(message, status = 400, code) { super(message); this.status = status; this.code = code; }
 }
 
 export function paymentConfig(env = process.env) {
@@ -48,7 +49,10 @@ export async function rpc(db, name, args) {
   if (error) {
     // Do not expose SQL, JWTs, provider payloads or internal identifiers in API errors.
     if (error.code === '42501') throw new PaymentError('This account cannot access these payments.', 403);
-    const known = ['No payable balance', 'minimum 50 cents', 'Please wait', 'rate limit', 'requires reconciliation', 'require season reconciliation'];
+    if (['requires reconciliation', 'require season reconciliation'].some(value => error.message?.includes(value))) {
+      throw new PaymentError(CHECKOUT_RECONCILIATION_MESSAGE, 409, CHECKOUT_RECONCILIATION_CODE);
+    }
+    const known = ['No payable balance', 'minimum 50 cents', 'Please wait', 'rate limit'];
     if (known.some(value => error.message?.includes(value))) throw new PaymentError(error.message, 409);
     throw new PaymentError('Payment reconciliation is temporarily unavailable. Please retry.', 503);
   }
@@ -228,5 +232,8 @@ export function respond(res, status, data) {
   res.status(status).json(data);
 }
 export function fail(res, error) {
+  if (error instanceof Stripe.errors.StripeIdempotencyError || (error instanceof PaymentError && error.code === CHECKOUT_RECONCILIATION_CODE)) {
+    return respond(res, 409, { code: CHECKOUT_RECONCILIATION_CODE, error: CHECKOUT_RECONCILIATION_MESSAGE });
+  }
   respond(res, error instanceof PaymentError ? error.status : 503, { error: error instanceof PaymentError ? error.message : 'Payment service temporarily unavailable. Please retry.' });
 }
