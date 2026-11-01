@@ -2,14 +2,14 @@
 
 ## Activation update — 2026-11-01
 
-Google OAuth is now configured in the verified Lakes project, with the canonical Site URL `https://www.lakesleague.com` and exact production/apex/branch callback allowlists. Real Google sign-in and cancellation passed on the protected preview. The existing verified commissioner identity linked to original player 22; no duplicate Auth account or replacement player was created. Google remains in testing status while release checks finish. The server minimum password length is configured to 12.
+Google OAuth is now configured in the verified Lakes project, with the canonical Site URL `https://www.lakesleague.com` and exact production/apex/branch callback allowlists. Real Google sign-in and cancellation passed on the protected preview, and a fresh Google login passed on the canonical production domain after release. The existing verified commissioner identity linked to original player 22; no duplicate Auth account or replacement player was created. The Google basic-identity audience is published as In production for league-wide access. The server minimum password length is configured to 12.
 
 The supported CLI repair workflow recorded the three previously installed migrations as applied, without rerunning their SQL. A private custom-format database backup was saved and its archive catalog verified before applying the two new Stripe migrations. All five migration versions now have history entries. Do not rerun any of these migrations.
 
 Gmail custom SMTP is configured with a separate App Password. The owner confirmed actual delivery and completed password setup through a fresh email. A separate password-reset callback check is pending owner confirmation. See [activation review](activation-review.md) for current evidence and remaining account-owner actions. The deployment guide below includes the earlier handoff context.
 
 
-The three reviewed database migrations were applied to the Lakes project through the Supabase SQL Editor on 2026-10-24. Live role checks passed, and historical table counts and fingerprints are unchanged. Database protections are active. Commissioner configuration and actual preview Google/email setup checks are complete; the production release is the final activation step. Detailed live audit metadata is excluded from this repository.
+The three reviewed database migrations were applied to the Lakes project through the Supabase SQL Editor on 2026-10-24. Live role checks passed, and historical table counts and fingerprints are unchanged. Database protections are active. Commissioner configuration and actual preview Google/email setup checks are complete; PR #92 is merged and the matching application is live at the canonical domain. Detailed live audit metadata is excluded from this repository.
 
 The SQL Editor execution did not originally create CLI migration-history entries. These were reconciled through the supported repair workflow during activation. **Do not rerun these migrations against production.** All five installed versions now have history records; inspect live schema and history before any future push.
 
