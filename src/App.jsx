@@ -36,7 +36,7 @@ function AuthRoutes() {
   // Handles legacy redirects to /, /my-week or /auth/confirm without dropping tokens.
   if (hasAuthCallbackParameters(location.search, location.hash) || ['/auth/callback', '/auth/confirm'].includes(location.pathname)) return <AuthCallbackPage />;
   if (user && setupRequired && !['/account/password', '/account/setup'].includes(location.pathname)) return <Navigate to="/account/password" replace />;
-  if (authLoading) return <AccountLoading />;
+  if (authLoading && !user) return <AccountLoading />;
   if (!user) return <div className="min-h-dvh bg-background px-4 py-6 sm:py-10"><main id="main-content"><React.Suspense fallback={<AccountLoading />}><Routes>
     <Route path="/" element={<SignInPage />} /><Route path="/login" element={<SignInPage />} />
     <Route path="/register" element={<RegisterPage />} /><Route path="/privacy" element={<PrivacyPage />} />

@@ -8,12 +8,12 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 
 export default function RegistrationPaymentPage() {
-  const { user, refreshProfile, isDemo } = usePlayerSession();
+  const { user, profile, refreshProfile, isDemo } = usePlayerSession();
   const [data, setData] = useState(null); const [error, setError] = useState('');
   useEffect(() => {
     const controller = new AbortController(); setData(null); setError('');
     if (isDemo) { setError('Registration payments are unavailable in the demo.'); return; }
-    loadRegistration(supabase, { signal: controller.signal }).then(value => { if (!controller.signal.aborted) { setData(value); if (value.application?.status === 'approved') refreshProfile(); } }).catch(() => { if (!controller.signal.aborted) setError('We couldn’t load your registration. Please refresh or contact the commissioner.'); });
+    loadRegistration(supabase, { signal: controller.signal }).then(value => { if (!controller.signal.aborted) { setData(value); if (value.application?.status === 'approved' && !profile?.player_id) refreshProfile(); } }).catch(() => { if (!controller.signal.aborted) setError('We couldn’t load your registration. Please refresh or contact the commissioner.'); });
     return () => controller.abort();
   }, [user?.id, isDemo]);
   if (error) return <p role="alert" className="py-10 text-sm">{error}</p>;

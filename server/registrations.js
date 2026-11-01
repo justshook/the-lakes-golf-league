@@ -94,6 +94,7 @@ export async function handleRegistrationRequest(req, services) {
   if (action === 'submit') {
     const allowed = ['first_name','last_name','phone','handicap_id','handicap_index','availability','membership_type'];
     if (Object.keys(fields).some(key => !allowed.includes(key))) throw new RegistrationError('Registration cannot accept account or pricing overrides.');
+    if (allowed.some(key => !Object.hasOwn(fields, key)) || typeof fields.handicap_index !== 'number' || !Number.isFinite(fields.handicap_index)) throw new RegistrationError('Complete all registration fields.');
     result = await registrationRpc(services.db, 'league_submit_registration', { p_user: user.id, p_data: fields });
   } else if (['decide','retry_notifications'].includes(action)) {
     const allowed = action === 'decide' ? ['application_id','decision'] : ['application_id'];
