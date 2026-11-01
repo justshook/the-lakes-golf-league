@@ -4,9 +4,9 @@
 
 The app implements Stripe-hosted Checkout for a one-time **2027 Lakes League Dues** purchase of **$180 USD**, with no automatic renewal. The catalog, amount, currency, player ownership, and season are resolved on the server. The browser cannot supply those values. Checkout is disabled unless explicitly configured, and live mode additionally requires `STRIPE_LIVE_APPROVED=true`.
 
-The three original account, ledger, and privilege migrations are installed in production. The new Stripe Checkout and annual-dues migrations are separate activation steps. Inspect the live schema and repair the history for the original three versions through the supported CLI workflow before any migration push; never rerun their SQL against production.
+The three original account, ledger, and privilege migrations are installed in production. The Stripe Checkout and annual-dues migrations are now installed too. Original migration history was repaired without rerunning SQL, and all five versions are recorded. Inspect schema and history before any future push.
 
-Local verification covers server logic with mocked Stripe/Supabase responses, real Stripe SDK signature validation with a local test signing secret, and actual SQL permissions/transactions in a disposable PostgreSQL runtime. Those checks do **not** prove Google sign-in, email delivery, real Stripe Checkout, webhook delivery, receipt availability, or production settlement. Provider configuration, migration activation, a real test-mode purchase, and end-to-end reconciliation must be verified separately before enabling live collection.
+Local verification covers server logic with mocked Stripe/Supabase responses, real Stripe SDK signature validation with a local test signing secret, and actual SQL permissions/transactions in a disposable PostgreSQL runtime. Those checks do **not** prove Google sign-in, email delivery, real Stripe Checkout, webhook delivery, receipt availability, or production settlement. Actual preview Google login, owner-confirmed email setup, hosted test payment, signed settlement, cancellation/decline, duplicate-event replay, receipts, and partial/full test refunds have now been verified separately; see [activation review](activation-review.md). Live processing remains disabled and unverified.
 
 ## Hosted Checkout and server identity
 

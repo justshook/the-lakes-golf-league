@@ -6,12 +6,12 @@ Google OAuth is now configured in the verified Lakes project, with the canonical
 
 The supported CLI repair workflow recorded the three previously installed migrations as applied, without rerunning their SQL. A private custom-format database backup was saved and its archive catalog verified before applying the two new Stripe migrations. All five migration versions now have history entries. Do not rerun any of these migrations.
 
-The production email provider still needs custom SMTP credentials. An accepted setup-email request is not delivery proof. See [activation review](activation-review.md) for current evidence and remaining account-owner actions. The deployment guide below includes the earlier handoff context.
+Gmail custom SMTP is configured with a separate App Password. The owner confirmed actual delivery and completed password setup through a fresh email. A separate password-reset callback check is pending owner confirmation. See [activation review](activation-review.md) for current evidence and remaining account-owner actions. The deployment guide below includes the earlier handoff context.
 
 
-The three reviewed database migrations were applied to the Lakes project through the Supabase SQL Editor on 2026-10-24. Live role checks passed, and historical table counts and fingerprints are unchanged. Database protections are active; the matching app deployment, commissioner setup, provider configuration, and real email/OAuth tests remain pending. Detailed live audit metadata is excluded from this repository.
+The three reviewed database migrations were applied to the Lakes project through the Supabase SQL Editor on 2026-10-24. Live role checks passed, and historical table counts and fingerprints are unchanged. Database protections are active. Commissioner configuration and actual preview Google/email setup checks are complete; the production release is the final activation step. Detailed live audit metadata is excluded from this repository.
 
-The browser execution did not create Supabase CLI migration-history entries. **Do not rerun these migrations against production.** Before a future CLI push, reconcile migration history with the installed schema and mark versions `20261019015334`, `20261019015737`, and `20261019025446` applied using the supported CLI repair workflow. Their SQL has already executed successfully.
+The SQL Editor execution did not originally create CLI migration-history entries. These were reconciled through the supported repair workflow during activation. **Do not rerun these migrations against production.** All five installed versions now have history records; inspect live schema and history before any future push.
 
 ## Deployment order
 
@@ -30,7 +30,7 @@ The browser execution did not create Supabase CLI migration-history entries. **D
 ## Authentication redirects and Google activation
 
 Verify email confirmation, Google activation, unique populated roster emails, and
-leaked-password protection with its plan availability before cutover. Provider, redirect, password-policy, and commissioner state were verified or updated during the 2026-11-01 activation; custom SMTP remains pending. This repository does not include player contacts or a live database export.
+leaked-password protection with its plan availability before cutover. Provider, redirect, password-policy, and commissioner state were verified or updated during the 2026-11-01 activation; custom Gmail SMTP is saved and actual setup-email delivery/password completion are confirmed by the owner. This repository does not include player contacts or a live database export.
 
 The production host currently redirects the apex domain to `www`. Use the canonical
 host consistently in Auth settings and Google configuration. Add these exact Supabase
@@ -78,9 +78,7 @@ On review, the production `/`, `/my-week`, and `/auth/callback` URLs all returne
 SPA with HTTP 200; its public bundle was still the original site, without this branch's
 new callback code. The branch preview was protected by Vercel sign-in. Thus the precise
 failed email destination and Auth redirect settings could not be verified remotely.
-These callback fixes and configuration steps address the app-side return flow, but a
-real delivered-email test is still required after the matching app and database are
-activated. Do not declare live authentication repaired based on mocked tests alone.
+These callback fixes and configuration steps address the app-side return flow. A fresh delivered setup email and password completion have now been confirmed by the owner; the separate reset callback remains under verification. Mocked tests alone are not provider evidence.
 
 ## API contract
 

@@ -129,3 +129,8 @@ The production bundle and connected project both identify Supabase project
 `lmmlmyxfadcyugmmvpwa`. Activate the app, provider, redirects, commissioner role, and
 reviewed database migrations together after staging verification.
 See `auth-setup.md` and `player-history.md`.
+
+
+## Activation follow-through — 2026-11-01
+
+Google preview sign-in and cancellation passed with the original commissioner identity/player ID. Gmail SMTP delivered a fresh setup email and the owner completed password setup. Actual hosted Stripe test Checkout passed cancellation/resumption, decline and payment; signed provider events populated receipts and reconciled $50 plus $130 refunds to fully refunded $180. A provider replay returned duplicate=true without duplicate accounting. All real league ledger entries remain unchanged at zero. See [activation review](activation-review.md) for evidence boundaries and the production release with live collection disabled.
