@@ -18,7 +18,7 @@ export default function PrivacyPage() {
       </CardHeader>
       <CardContent className="space-y-4 pt-3 text-sm leading-7 text-charcoal-600">
         <p>The public league pages show player names, handicaps, league membership type, recurring tee-time availability, published schedules and teams, scores, standings, and recorded prize awards. These sporting records support scheduling and the league’s playing history.</p>
-        <p>Player email addresses and phone numbers, account-to-player links, individual attendance responses, and payment history are kept behind account access controls. Players can access their own private records, and authorized commissioners can access the records needed to administer the league. The stored preference records are private; the recurring tee-time availability they contain is also included in the public roster.</p>
+        <p>Registration applications (name, verified email, phone, handicap ID and index, availability and membership choice), player email addresses and phone numbers, account-to-player links, individual attendance responses, and payment history are kept behind account access controls. Players can access their own private records, and authorized commissioners can access the records needed to administer the league. The stored preference records are private; the recurring tee-time availability they contain is also included in the public roster.</p>
       </CardContent>
     </Card>
     <Card className="content-card">

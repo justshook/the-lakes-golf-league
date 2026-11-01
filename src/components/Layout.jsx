@@ -24,7 +24,7 @@ export default function Layout() {
   const [accountOpen, setAccountOpen] = React.useState(false);
   const legacyPage = ['/rules', '/admin/manage'].some(path => location.pathname === path || location.pathname.startsWith(`${path}/`));
   const activeTab = searchParams.get('tab') || 'week';
-  const accountPage = ['/login', '/account/password', '/account/setup', '/privacy'].includes(location.pathname);
+  const accountPage = ['/login', '/register', '/registration/payment', '/account/password', '/account/setup', '/privacy'].includes(location.pathname);
   const name = profile?.name || profile?.display_name || user?.email?.split('@')[0] || 'Player';
   const initials = name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   const handleSignOut = async () => {

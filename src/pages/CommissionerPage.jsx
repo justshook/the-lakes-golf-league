@@ -1,4 +1,5 @@
 import CommissionerLedger from '../components/CommissionerLedger';
+import RegistrationReview from '../components/RegistrationReview';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, ArrowUpRight, CalendarDays, CheckCircle2, CloudRain, Flag, LoaderCircle, Plus, RefreshCw, Send, Shuffle } from 'lucide-react';
@@ -162,6 +163,8 @@ export default function CommissionerPage() {
     {dataError && <Alert variant="destructive"><AlertCircle className="size-4" /><AlertTitle>League data needs attention</AlertTitle><AlertDescription>{typeof dataError === 'string' ? dataError : dataError.message || 'The latest league data could not be loaded. Reload before making changes.'}</AlertDescription></Alert>}
     {error && <Alert variant="destructive"><AlertCircle className="size-4" /><AlertTitle>Action could not be completed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>}
     {notice && <div role="status" className="flex items-start gap-3 rounded-xl border border-forest-900/15 bg-forest-900/5 px-4 py-3 text-sm text-forest-950"><CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" /><p>{notice}</p></div>}
+
+    <RegistrationReview onDecision={refreshData} />
 
     <Dialog open={createOpen} onOpenChange={open => { if (!busy) setCreateOpen(open); }}>
       <DialogContent>
