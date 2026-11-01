@@ -31,7 +31,11 @@
 
 ## Release and remaining boundaries
 
-The reviewed app is ready for release with Google enabled, demo mode off, production collection disabled, and all live financial approval flags off. Publish the basic-identity Google audience when the public privacy route is live, then verify Google sign-in on the canonical production domain. PR #92 contains the release fixes. Record the production deployment identity and final checks in the release evidence.
+PR #92 was merged as `ee61a5bd72a18240503cebe7a7c7a16725700df6` and Vercel production deployment `GF27PUG37nr4JAzCmuXnQAgwtZbs` is READY on `https://www.lakesleague.com`. Google is enabled, demo mode is off, production collection is disabled, and all live financial approval flags are off. The public privacy route is live and the Google basic-identity audience is published as In production. A fresh Google sign-in passed on the canonical domain and opened original player 22 with commissioner access and unchanged historical profile.
+
+Sixteen production deep links return HTTP 200. Anonymous payment history and Checkout calls return 401; unsigned webhooks return 400. Thirty-five deployed public JavaScript assets were scanned with no detected server-secret patterns. The actual Stripe completion event was resent to the production webhook: HTTP 200, duplicate=true; refunded total stays $180 and the real ledger stays empty. The production profile renders the test refunds and working receipt, and explicitly states collection is disabled. Earlier 503 webhook attempts preceded the configured release; later retries are safe to acknowledge as duplicates.
+
+These are actual provider and deployed checks. The original preview payment was in test mode; no live charge or production purchase is implied. This documentation-only follow-up records the released state without changing the tested application code.
 
 Remaining owner/business actions:
 
