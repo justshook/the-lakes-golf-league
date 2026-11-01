@@ -138,6 +138,9 @@ export async function createCheckout({ db, stripe, config }, user) {
     const purchaseMetadata = { application: 'lakes-league', order_id: order.id, product_id: order.product_id, season: String(order.season) };
     session = await stripe.checkout.sessions.create({
       mode: 'payment', client_reference_id: order.id,
+      // League dues use standard direct Checkout even if this account defaults
+      // to Stripe's merchant-of-record product for digital goods.
+      managed_payments: { enabled: false },
       integration_identifier: 'lakes_league_qmsvkyha',
       metadata: purchaseMetadata,
       payment_intent_data: { metadata: purchaseMetadata },

@@ -44,6 +44,7 @@ test('Checkout uses trusted SQL amount and identity with stable idempotency',asy
  const stripe={products:{retrieve:async()=>product},prices:{list:async()=>({data:[price]})},accounts:{retrieve:async()=>({id:'acct_fixture'})},checkout:{sessions:{create:async(params,options)=>{
   assert.equal(params.line_items[0].price,'price_annual');
   assert.equal(params.mode,'payment');
+  assert.deepEqual(params.managed_payments,{enabled:false});
   assert.equal(params.client_reference_id,order.id);
   assert.equal(params.success_url,'https://league.example/money?checkout=returned');
   assert.equal(params.cancel_url,'https://league.example/money?checkout=cancelled');
