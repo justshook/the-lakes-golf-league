@@ -24,4 +24,4 @@ The five previously installed migration versions have recorded CLI history. Neve
 - Controlled browser regressions pass account setup/reset, signed-out card-only homepage, full-time/substitute registration and approval routing, commissioner decisions and notification retry states at 320/390/1280 pixels. These use mocked services and do not prove actual notification delivery.
 - The protected preview was inspected with real Google sign-in and the existing commissioner account. The new approval dashboard loads and the original player history is preserved.
 - The additive migration is installed with recorded history. Original complete-row fingerprints remain unchanged: 52 players, 402 scores, 140 prize records. Public RLS remains enabled and the security advisor reports zero errors.
-- Gmail host, port and sender configuration are prepared in Vercel. Adding the server-only Gmail App Password is awaiting the owner’s credential approval. Application/approval email delivery is not yet activated or verified.
+- Gmail host, port, sender and the approved hidden App Password are configured in Vercel. Actual application/approval notification checks are in progress.
