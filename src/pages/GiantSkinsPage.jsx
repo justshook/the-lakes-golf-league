@@ -8,11 +8,11 @@ export default function GiantSkinsPage() {
     <div className="space-y-4">
       {/* Page Header */}
       <div>
-        <h2 className="text-3xl font-display font-black leading-none">
-          <span className="text-cream-200">Giant</span>{' '}
-          <span className="text-gold-500">Skins</span>
+        <p className="page-eyebrow mb-1">Season competition</p>
+        <h2 className="page-heading">
+          Giant Skins
         </h2>
-        <p className="text-cream-200/80 text-[0.9375rem] mt-1">Lowest score on each hole for the entire season wins</p>
+        <p className="text-charcoal-600 text-sm leading-6 mt-2">Lowest score on each hole for the entire season wins.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -35,7 +35,7 @@ export default function GiantSkinsPage() {
                       <div className="text-xs sm:text-sm uppercase tracking-[1.5px] text-charcoal-500">Par {hole.par}</div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="min-w-0 max-w-[60%] break-words pl-2 text-right">
                     {hasPlayers ? (
                       <>
                         <div className="font-display text-xl sm:text-2xl font-bold text-gold-600">{hole.lowScore}</div>
@@ -43,7 +43,7 @@ export default function GiantSkinsPage() {
                           {hole.players.map((p, idx) => {
                             const player = getPlayerById(p.playerId);
                             return (
-                              <span key={p.playerId}>
+                              <span key={`${p.playerId}:${p.weekId}:${idx}`}>
                                 {player?.name || 'Unknown'}
                                 {idx < hole.players.length - 1 && ', '}
                               </span>
@@ -80,7 +80,7 @@ export default function GiantSkinsPage() {
                       <div className="text-xs sm:text-sm uppercase tracking-[1.5px] text-charcoal-500">Par {hole.par}</div>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="min-w-0 max-w-[60%] break-words pl-2 text-right">
                     {hasPlayers ? (
                       <>
                         <div className="font-display text-xl sm:text-2xl font-bold text-gold-600">{hole.lowScore}</div>
@@ -88,7 +88,7 @@ export default function GiantSkinsPage() {
                           {hole.players.map((p, idx) => {
                             const player = getPlayerById(p.playerId);
                             return (
-                              <span key={p.playerId}>
+                              <span key={`${p.playerId}:${p.weekId}:${idx}`}>
                                 {player?.name || 'Unknown'}
                                 {idx < hole.players.length - 1 && ', '}
                               </span>

@@ -1,249 +1,38 @@
-import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, Search, Users } from 'lucide-react';
 import { useLeague } from '../LeagueContext';
-import { calc9HoleHandicap } from '../constants';
-import FlightBadge from '../components/FlightBadge';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Badge } from '../components/ui/badge';
+import { summarizePlayerResults, formatRoundDate } from '../lib/player-summary';
 
+const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(value) || 0);
+
+/** Public sporting profiles intentionally exclude contact and account information. */
 export default function PlayersPage() {
   const { playerId } = useParams();
-  const navigate = useNavigate();
-  const {
-    players, selectedPlayer, setSelectedPlayer,
-    playerFilter, setPlayerFilter, filteredPlayers,
-    playerScores, getPlayerById, getTeamTypeForWeek, getPayoutLabel,
-    getPlayerFlight,
-  } = useLeague();
-
-  const selectedFlight = selectedPlayer ? getPlayerFlight(selectedPlayer.id) : null;
-
-  // Sync URL param with selectedPlayer state
-  useEffect(() => {
-    if (playerId) {
-      const player = players.find(p => p.id === parseInt(playerId));
-      if (player) {
-        setSelectedPlayer(player);
-      }
-    } else {
-      setSelectedPlayer(null);
-    }
-  }, [playerId, players]);
-
-  return (
-    <div className="space-y-4">
-      {selectedPlayer ? (
-        <div className="space-y-4">
-          <button
-            onClick={() => navigate('/players')}
-            className="text-cream-200/80 hover:text-cream-200 transition-colors flex items-center gap-2"
-          >
-            ← Back to All Players
-          </button>
-
-          <div className="bg-cream-200 rounded-card shadow-card overflow-hidden">
-            <div className="bg-forest-800 p-4 sm:p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-xl sm:text-2xl font-display font-bold text-cream-200">{selectedPlayer.name}</h3>
-                  <div className="text-cream-200/80 text-sm mt-1 space-y-0.5">
-                    <div>9-Hole HCP: {calc9HoleHandicap(selectedPlayer.handicap)}</div>
-                    <div className="text-cream-200/70 text-sm">18-Hole HCP: {selectedPlayer.handicap}</div>
-                    {selectedPlayer.cdgaId && selectedPlayer.cdgaId !== 'N/A' && (
-                      <div className="text-cream-200/70 text-sm">CDGA ID: {selectedPlayer.cdgaId}</div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <span className={`px-3 py-1 rounded-pill text-xs font-medium ${
-                    selectedPlayer.type === 'full-time' ? 'bg-forest-700' : 'bg-gold-600'
-                  } text-cream-200`}>
-                    {selectedPlayer.type === 'full-time' ? 'Member' : 'Substitute'}
-                  </span>
-                  {selectedFlight?.flight && (
-                    <FlightBadge flight={selectedFlight.flight} variant="dark" full />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 sm:p-6">
-              <div className={`grid gap-4 mb-4 ${selectedFlight ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
-                  <div className="font-display text-2xl sm:text-3xl font-bold text-cream-200">{selectedPlayer.weeksPlayed}</div>
-                  <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Weeks Played</div>
-                </div>
-                <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
-                  <div className="font-display text-2xl sm:text-3xl font-bold text-gold-500">${selectedPlayer.totalMoney}</div>
-                  <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Total Won</div>
-                </div>
-                {selectedFlight && (
-                  <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-4 text-center">
-                    <div className="font-display text-2xl sm:text-3xl font-bold text-cream-200">
-                      {selectedFlight.tied ? 'T' : ''}#{selectedFlight.rank}
-                    </div>
-                    <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Money Rank</div>
-                  </div>
-                )}
-              </div>
-
-              {selectedFlight?.flight && (
-                <div className="mb-6 flex flex-wrap items-center gap-2 bg-cream-300 rounded-card p-3">
-                  <span className="text-lg">🏁</span>
-                  <span className="font-display font-semibold text-charcoal-950 text-[0.9375rem]">
-                    Championship {selectedFlight.flight.name}
-                  </span>
-                  <span className="text-sm text-charcoal-600">
-                    {selectedFlight.flight.description} — seeded {selectedFlight.tied ? 'T' : ''}#{selectedFlight.rank}
-                    {' '}with ${selectedFlight.money.toLocaleString()} won this season.
-                  </span>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-charcoal-600 mb-2">Available Tee Times</h4>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedPlayer.availability.map(time => (
-                      <span key={time} className="bg-forest-900/[0.08] text-forest-800 px-2 py-1 rounded-pill text-xs font-medium">
-                        {time}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="border-t pt-4">
-                  <h4 className="font-semibold text-charcoal-600 mb-2">Contact Information</h4>
-                  <div className="text-charcoal-600 space-y-1">
-                    <div>{selectedPlayer.email}</div>
-                    <div>{selectedPlayer.phone}</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Score Statistics */}
-              {(() => {
-                const playerScoreData = playerScores.filter(s => s.player_id === selectedPlayer.id);
-                if (playerScoreData.length === 0) return null;
-
-                const individualScores = playerScoreData.filter(s => !getTeamTypeForWeek(s.week_id));
-                const avgGross = individualScores.length > 0
-                  ? (individualScores.reduce((sum, s) => sum + s.gross_score, 0) / individualScores.length).toFixed(1)
-                  : '-';
-                const avgNet = individualScores.length > 0
-                  ? (individualScores.reduce((sum, s) => sum + s.net_score, 0) / individualScores.length).toFixed(1)
-                  : '-';
-
-                return (
-                  <div className="border-t pt-4 mt-4">
-                    <h4 className="font-semibold text-charcoal-600 mb-3">Score Statistics</h4>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-3 text-center">
-                        <div className="font-display text-2xl font-bold text-cream-200">{avgGross}</div>
-                        <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Avg Gross</div>
-                      </div>
-                      <div className="bg-charcoal-900 border border-white/[0.06] rounded-card p-3 text-center">
-                        <div className="font-display text-2xl font-bold text-gold-500">{avgNet}</div>
-                        <div className="text-xs font-semibold tracking-[1.5px] uppercase text-charcoal-600">Avg Net</div>
-                      </div>
-                    </div>
-
-                    <h4 className="font-semibold text-charcoal-600 mb-2">Weekly Scores</h4>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead className="bg-cream-300">
-                          <tr>
-                            <th className="th-label text-left rounded-tl-lg">Week</th>
-                            <th className="th-label text-center">Gross</th>
-                            <th className="th-label text-center">HCP</th>
-                            <th className="th-label text-center rounded-tr-lg">Net</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {playerScoreData.sort((a, b) => a.week_id - b.week_id).map(score => (
-                            <tr key={score.week_id} className="border-b border-charcoal-800/10">
-                              <td className="p-2 text-charcoal-600">
-                                Week {score.week_id}
-                                {score.is_team_score && <span className="ml-1 text-xs text-gold-600">(team)</span>}
-                              </td>
-                              <td className="p-2 text-center font-medium">{score.gross_score}</td>
-                              <td className="p-2 text-center text-charcoal-600">-{score.handicap_used}</td>
-                              <td className="p-2 text-center font-display font-bold text-gold-500">{score.net_score}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {Object.keys(selectedPlayer.weeklyMoney).length > 0 && (
-                <div className="border-t pt-4 mt-4">
-                  <h4 className="font-semibold text-charcoal-600 mb-3">Weekly Winnings</h4>
-                  <div className="space-y-2">
-                    {Object.entries(selectedPlayer.weeklyMoney).map(([weekId, categories]) => (
-                      <div key={weekId} className="flex items-center justify-between p-3 bg-cream-300 rounded-card">
-                        <span className="text-charcoal-600">Week {weekId}</span>
-                        <div className="flex items-center gap-2">
-                          {Object.entries(categories).map(([cat, amount]) => (
-                            <span key={cat} className="text-xs bg-forest-900/[0.08] text-forest-800 px-2 py-1 rounded-pill">
-                              {getPayoutLabel(weekId, cat)}: ${amount}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-display font-black text-cream-200 leading-none">League Players ({filteredPlayers.length})</h2>
-            <div className="flex gap-2">
-              {['all', 'full-time', 'substitute'].map(filter => (
-                <button
-                  key={filter}
-                  onClick={() => setPlayerFilter(filter)}
-                  className={`px-5 py-2.5 rounded-pill text-sm font-medium transition-all ${
-                    playerFilter === filter
-                      ? 'bg-cta-500 text-forest-950'
-                      : 'bg-forest-800 text-cream-200 hover:bg-forest-700'
-                  }`}
-                >
-                  {filter === 'all' ? 'All' : filter === 'full-time' ? `Members (${players.filter(p => p.type === 'full-time').length})` : `Subs (${players.filter(p => p.type === 'substitute').length})`}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredPlayers.sort((a, b) => calc9HoleHandicap(a.handicap) - calc9HoleHandicap(b.handicap)).map(player => (
-              <div
-                key={player.id}
-                onClick={() => navigate(`/players/${player.id}`)}
-                className="bg-cream-200 rounded-card shadow-card p-4 cursor-pointer hover:shadow-card-hover hover:-translate-y-1 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <div className="font-display font-semibold text-charcoal-950 text-[0.9375rem] truncate">{player.name}</div>
-                      <FlightBadge flight={getPlayerFlight(player.id)?.flight} className="shrink-0" />
-                    </div>
-                    <div className="text-sm text-charcoal-600">HCP {calc9HoleHandicap(player.handicap)} • {player.availability.length} times</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-display text-gold-500 font-bold text-[0.9375rem]">${player.totalMoney}</div>
-                    <div className="text-sm text-charcoal-600">{player.weeksPlayed}w</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
+  const { players = [], weeks = [], weeklyGames = [], playerScores = [], isLoading } = useLeague();
+  const [query, setQuery] = useState('');
+  const player = playerId == null ? null : players.find(item => String(item.id) === String(playerId));
+  if (isLoading) return <p role="status" className="py-8 text-sm text-charcoal-600">Loading players…</p>;
+  if (playerId != null && !player) return <div className="mx-auto max-w-5xl space-y-4"><Button asChild variant="ghost"><Link to="/players"><ArrowLeft aria-hidden="true" />All players</Link></Button><Card className="content-card"><CardContent className="p-6"><h1 className="text-xl font-semibold">Player unavailable</h1><p className="mt-2 text-sm text-charcoal-600">This player is no longer in the current roster.</p></CardContent></Card></div>;
+  if (player) {
+    const summary = summarizePlayerResults({ playerId: player.id, scores: playerScores, weeks, games: weeklyGames });
+    return <div className="mx-auto max-w-5xl space-y-5">
+      <Button asChild variant="ghost" className="px-0"><Link to="/players"><ArrowLeft aria-hidden="true" />All players</Link></Button>
+      <header><p className="page-eyebrow">Player profile</p><h1 className="page-heading mt-1 break-words">{player.name}</h1><Badge variant="secondary" className="mt-3 rounded-full">{player.type === 'full-time' ? 'League member' : 'Substitute'}</Badge></header>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">{[{ label: 'Rounds', value: summary.roundCount }, { label: 'Winnings', value: money(player.totalMoney) }, { label: 'Avg. gross', value: summary.averageGross?.toFixed(1) ?? '—' }].map(item => <Card key={item.label} className="content-card"><CardContent className="p-3 sm:p-5"><p className="text-[11px] text-charcoal-600 sm:text-xs">{item.label}</p><p className="mt-2 break-words font-display text-2xl font-semibold tabular-nums text-forest-950 sm:text-3xl">{item.value}</p></CardContent></Card>)}</div>
+      <p className="text-xs leading-5 text-charcoal-600">Averages include individual rounds only. Winnings show awards earned.</p>
+      <section aria-labelledby="player-rounds" className="space-y-3"><h2 id="player-rounds" className="font-display text-xl font-semibold text-forest-950">Round history</h2>{summary.rounds.length === 0 ? <Card className="content-card border-dashed"><CardContent className="p-6 text-sm text-charcoal-600">No scores recorded yet.</CardContent></Card> : summary.rounds.map(round => <Card key={round.id} className="content-card"><CardContent className="p-4 sm:p-5"><div className="flex flex-wrap items-start justify-between gap-2"><div className="min-w-0"><p className="text-xs text-charcoal-600">{String(round.weekId).length > 4 ? 'Round' : `Week ${round.weekId}`}{round.date ? ` · ${formatRoundDate(round.date)}` : ''}</p><h3 className="mt-1 text-sm font-semibold text-forest-950">{round.gameName}</h3></div><Badge variant="secondary" className="rounded-full text-[10px]">{round.isTeam ? 'Team score' : 'Individual'}</Badge></div><dl className="mt-4 grid grid-cols-3 divide-x rounded-xl bg-secondary/50 py-3">{[{ label: 'Gross', value: round.gross }, { label: 'Handicap used', value: round.handicapUsed }, { label: 'Net', value: round.net }].map(item => <div key={item.label} className="px-2 text-center"><dt className="text-[10px] text-charcoal-600 sm:text-xs">{item.label}</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{item.value ?? '—'}</dd></div>)}</dl></CardContent></Card>)}</section>
+    </div>;
+  }
+  const filtered = players.filter(item => item.name?.toLowerCase().includes(query.trim().toLowerCase())).sort((a, b) => a.name.localeCompare(b.name));
+  return <div className="mx-auto max-w-5xl space-y-5">
+    <header><p className="page-eyebrow">Good company</p><h1 className="page-heading mt-1">Our players</h1><p className="mt-2 text-sm text-charcoal-600">{players.length} players in the league.</p></header>
+    <div className="relative"><label htmlFor="player-search" className="sr-only">Search players</label><Search className="pointer-events-none absolute left-3 top-3.5 size-4 text-charcoal-600" aria-hidden="true" /><Input id="player-search" type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a player" className="pl-10" /></div>
+    <div className="grid gap-3 sm:grid-cols-2">{filtered.map(item => <Link key={item.id} to={`/players/${encodeURIComponent(item.id)}`} className="flex min-h-20 items-center gap-3 rounded-2xl border bg-card p-4 transition-colors hover:bg-secondary"><span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-forest-900/10 text-sm font-semibold text-forest-950">{item.name.split(/\s+/).map(part => part[0]).slice(0, 2).join('')}</span><div className="min-w-0 flex-1"><h2 className="break-words text-sm font-semibold text-forest-950">{item.name}</h2><p className="mt-1 text-xs text-charcoal-600">{item.type === 'full-time' ? 'League member' : 'Substitute'}</p></div><ArrowRight className="size-4 shrink-0 text-charcoal-400" aria-hidden="true" /></Link>)}</div>
+    {filtered.length === 0 && <Card className="content-card border-dashed"><CardContent className="p-8 text-center"><Users className="mx-auto size-6 text-forest-800" aria-hidden="true" /><h2 className="mt-3 font-semibold">{query ? 'No matching players' : 'The roster is on its way'}</h2><p className="mt-2 text-sm text-charcoal-600">{query ? 'Try a different name.' : 'Player profiles will appear when the roster is available.'}</p></CardContent></Card>}
+  </div>;
 }

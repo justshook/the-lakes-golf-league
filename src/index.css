@@ -2,32 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom golf league styles */
-body {
-  font-family: 'DM Sans', system-ui, sans-serif;
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Hide scrollbar for horizontal navigation */
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-/* Touch target improvements for accessibility */
-button, select, input {
-  min-height: 44px;
+@layer base {
+  :root {
+    --background: 60 20% 98%;
+    --foreground: 240 4% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 4% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 4% 11%;
+    --primary: 123 24% 23%;
+    --primary-foreground: 40 25% 95%;
+    --secondary: 38 30% 93%;
+    --secondary-foreground: 126 26% 16%;
+    --muted: 38 22% 94%;
+    --muted-foreground: 240 1% 36%;
+    --accent: 40 25% 91%;
+    --accent-foreground: 126 26% 16%;
+    --destructive: 0 65% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 38 18% 87%;
+    --input: 38 18% 80%;
+    --ring: 123 24% 23%;
+    --radius: 0.875rem;
+  }
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
+  html { scroll-behavior: smooth; }
+  button, select, input { min-height: 44px; }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 3px; }
+  input, select, textarea { font-size: 16px; }
 }
 
 @layer components {
-  .th-label {
-    @apply px-2 sm:px-4 py-3 text-xs font-semibold tracking-wide uppercase text-charcoal-600;
-  }
+  .th-label { @apply px-2 sm:px-4 py-3 text-xs font-semibold tracking-wide uppercase text-charcoal-600; }
+  .page-eyebrow { @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-charcoal-600; }
+  .page-heading { @apply font-display text-3xl font-bold leading-tight tracking-tight text-forest-950 sm:text-4xl; }
+  .content-card { @apply rounded-2xl border border-border bg-card shadow-none; }
+}
+
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
