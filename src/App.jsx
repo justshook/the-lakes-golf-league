@@ -9,6 +9,8 @@ const SetPasswordPage = lazy(() => import('./pages/SetPasswordPage'));
 const MyProfilePage = lazy(() => import('./pages/MyProfilePage'));
 const MyWeekPage = lazy(() => import('./pages/MyWeekPage'));
 const MySchedulePage = lazy(() => import('./pages/MySchedulePage'));
+const WeeklyResultsPage = lazy(() => import('./pages/WeeklyResultsPage'));
+const LiveRoundPage = lazy(() => import('./pages/LiveRoundPage'));
 const MyResultsPage = lazy(() => import('./pages/MyResultsPage'));
 const MyMoneyPage = lazy(() => import('./pages/MyMoneyPage'));
 const SignInPage = lazy(() => import('./pages/SignInPage'));
@@ -34,7 +36,9 @@ function AuthRoutes() {
     <Route index element={<MyWeekPage />} />
     <Route path="my-week" element={<MyWeekPage />} />
     <Route path="schedule" element={<MySchedulePage />} />
-    <Route path="results" element={<MyResultsPage />} />
+    <Route path="results" element={<WeeklyResultsPage />} />
+    <Route path="results/history" element={<MyResultsPage />} />
+    <Route path="round/:weekId" element={<LiveRoundPage />} />
     <Route path="money" element={<MyMoneyPage />} />
     <Route path="profile" element={<MyProfilePage />} />
     <Route path="account/password" element={<SetPasswordPage />} />
