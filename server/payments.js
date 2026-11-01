@@ -142,9 +142,11 @@ export async function createCheckout({ db, stripe, config }, user) {
       metadata: purchaseMetadata,
       payment_intent_data: { metadata: purchaseMetadata },
       line_items: [{ quantity: 1, price: price.id }],
-      success_url: `${config.origin}/my-money?checkout=returned`,
-      cancel_url: `${config.origin}/my-money?checkout=cancelled`,
-      expires_at: Math.floor(Date.parse(order.expires_at) / 1000),
+      success_url: `${config.origin}/money?checkout=returned`,
+      cancel_url: `${config.origin}/money?checkout=cancelled`,
+      // Let Stripe start its default 24h lifetime when creation actually succeeds.
+      // A database deadline can fall below Stripe's 30m minimum after an outage;
+      // recomputing it on retry would also change this idempotent request's params.
     }, { idempotencyKey: `lakes-checkout-${order.id}` });
     sessionSnapshot(session, order, config);
     await rpc(db, 'league_attach_checkout', { p_order: order.id, p_session: session.id });

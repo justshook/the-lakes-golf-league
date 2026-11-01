@@ -45,8 +45,8 @@ test('Checkout uses trusted SQL amount and identity with stable idempotency',asy
   assert.equal(params.line_items[0].price,'price_annual');
   assert.equal(params.mode,'payment');
   assert.equal(params.client_reference_id,order.id);
-  assert.equal(params.success_url,'https://league.example/my-money?checkout=returned');
-  assert.equal(params.cancel_url,'https://league.example/my-money?checkout=cancelled');
+  assert.equal(params.success_url,'https://league.example/money?checkout=returned');
+  assert.equal(params.cancel_url,'https://league.example/money?checkout=cancelled');
   assert.equal(options.idempotencyKey,`lakes-checkout-${order.id}`);
   assert.equal(params.payment_method_types,undefined);
   return session();
@@ -62,6 +62,22 @@ test('pending or already settled orders do not create another Checkout',async()=
   const stripe={accounts:{retrieve:async()=>({id:'acct_fixture'})}};
   assert.equal((await createCheckout({db,stripe,config},{id:'user'})).status,status);
  }
+});
+test('Checkout creation can retry after an outage without an invalid expiry or changed idempotency params',async()=>{
+ const staleOrder={...order,expires_at:new Date(Date.now()-60000).toISOString()};
+ const requests=[];
+ const db={rpc:async name=>({data:name==='league_prepare_annual_checkout'?staleOrder:null})};
+ const stripe={products:{retrieve:async()=>product},prices:{list:async()=>({data:[price]})},accounts:{retrieve:async()=>({id:config.account})},checkout:{sessions:{create:async(params,options)=>{
+  requests.push({params,options});
+  // Stripe rejects explicit deadlines less than 30m from actual creation.
+  if (params.expires_at != null && params.expires_at<Date.now()/1000+1800) throw new Error('Expiry must be at least 30 minutes from creation.');
+  if(requests.length===1) throw new Error('Provider connection interrupted.');
+  return session();
+ }}}};
+ await assert.rejects(()=>createCheckout({db,stripe,config},{id:'verified-user'}),/connection interrupted/);
+ assert.equal((await createCheckout({db,stripe,config},{id:'verified-user'})).status,'open');
+ assert.deepEqual(requests[0],requests[1]);
+ assert.equal(requests[1].options.idempotencyKey,`lakes-checkout-${order.id}`);
 });
 test('webhook refetches latest paid state and bounded refunds instead of trusting stale event body',async()=>{
  const calls=[];

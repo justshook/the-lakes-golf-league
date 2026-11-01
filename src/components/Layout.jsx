@@ -24,7 +24,7 @@ export default function Layout() {
   const [accountOpen, setAccountOpen] = React.useState(false);
   const legacyPage = ['/rules', '/admin/manage'].some(path => location.pathname === path || location.pathname.startsWith(`${path}/`));
   const activeTab = searchParams.get('tab') || 'week';
-  const accountPage = ['/login', '/account/password', '/account/setup'].includes(location.pathname);
+  const accountPage = ['/login', '/account/password', '/account/setup', '/privacy'].includes(location.pathname);
   const name = profile?.name || profile?.display_name || user?.email?.split('@')[0] || 'Player';
   const initials = name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   const handleSignOut = async () => {
@@ -66,7 +66,7 @@ export default function Layout() {
       </main>
       <footer className={cn('mx-auto hidden max-w-6xl items-center justify-between border-t px-6 py-6 text-xs md:flex', legacyPage ? 'border-white/10 text-cream-200/60' : 'text-charcoal-600')}>
         <p>Arlington Lakes · A better Monday.</p>
-        <div className="flex items-center gap-5"><Link to="/rules" className="py-3 hover:underline">League rules</Link><Link to="/admin" className="py-3 hover:underline">Commissioner</Link>{user && <button onClick={handleSignOut} className="py-3 hover:underline">Sign out</button>}</div>
+        <div className="flex items-center gap-5"><Link to="/rules" className="py-3 hover:underline">League rules</Link><Link to="/privacy" className="py-3 hover:underline">Privacy</Link><Link to="/admin" className="py-3 hover:underline">Commissioner</Link>{user && <button onClick={handleSignOut} className="py-3 hover:underline">Sign out</button>}</div>
       </footer>
       <nav aria-label="Mobile navigation" className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-cream-100/95 px-2 pt-2 backdrop-blur-lg lg:hidden">
         <div className="mx-auto grid max-w-xl grid-cols-5 gap-1">

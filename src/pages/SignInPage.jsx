@@ -85,5 +85,6 @@ export default function SignInPage() {
     </CardContent></Card>
     <div className="space-y-1 px-1 text-xs leading-5 text-charcoal-600"><p className="font-semibold text-foreground">Already play in the league?</p><p>{isResetting ? 'If you’ve never signed in before, choose First time here? and use the email on your roster.' : 'Use First time here? to set up your login, or continue with Google using your roster email. Your existing scores and winnings will link after verification.'}</p><p className="pt-1">Using a different email? Ask your commissioner to update your roster email before signing in.</p></div>
     <Button variant="ghost" asChild className="px-0 text-charcoal-600"><Link to="/league"><ArrowLeft className="size-4" />Back to the league</Link></Button>
+    <p className="text-xs text-charcoal-600"><Link to="/privacy" className="inline-flex min-h-11 items-center underline underline-offset-4">Privacy policy</Link></p>
   </div>;
 }
