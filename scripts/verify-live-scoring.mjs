@@ -168,7 +168,7 @@ await denied('select * from public.league_ledger_entries',/permission denied/);
 await assert.rejects(()=>record(ledgerEntry('anon-write','award',10000)),/permission denied/);pass();
 await db.exec('reset role;');
 await db.exec(await fs.readFile(new URL('../supabase/migrations/20261019025446_harden_league_object_privileges.sql', import.meta.url), 'utf8'));
-await db.exec(await fs.readFile(new URL('../supabase/migrations/20261101203254_live_scorecards.sql', import.meta.url), 'utf8'));
+await db.exec(await fs.readFile(new URL('../supabase/migrations/20261101205048_live_scorecards.sql', import.meta.url), 'utf8'));
 await db.exec(`insert into public.league_rounds(week_id,date,attendance_deadline,status,rule_snapshot) values
  ('801',current_date-1,now()-interval '2 day','published','{"scoringMode":"individual","nineHoles":"front"}'),
  ('802',current_date-1,now()-interval '2 day','published','{"scoringMode":"scramble","nineHoles":"front"}'),

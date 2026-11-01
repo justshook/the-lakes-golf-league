@@ -16,9 +16,9 @@ Uses the existing verified Arlington Lakes front-nine configuration and the play
 
 ## Release
 
-This feature branch is based on production `main`, independently of signup PR #94. Apply `supabase/migrations/20261101203254_live_scorecards.sql` to the verified Lakes League project `lmmlmyxfadcyugmmvpwa` before deploying the matching frontend. The migration is additive apart from protecting the existing total-score submission function; it does not insert or modify historical results. No emails, payments, or player registrations are triggered.
+This feature branch is based on production `main`, independently of signup PR #94. Applied on November 1, 2026: `supabase/migrations/20261101205048_live_scorecards.sql` to the verified Lakes League project `lmmlmyxfadcyugmmvpwa` before the matching frontend release. The migration is additive apart from protecting the existing total-score submission function; it does not insert or modify historical results. No emails, payments, or player registrations are triggered.
 
-Until the migration is installed, the new scoring routes report a loading error and cannot start a round. After applying, verify RLS/function grants and run the Supabase security advisor. Do not use another project's database or fabricate a live round for testing. The draft feature PR does not publish these changes to production.
+Live verification confirmed row-level security, linked-player reads, no anonymous access, no direct authenticated writes, and an invoker public API. The security advisor reported no new findings. All 402 historical score rows retained fingerprint `09c13187cc043894589923571dd81e96`. The migration filename matches the applied Supabase migration version. No live rounds or scores were fabricated for testing.
 
 ## Verification
 
