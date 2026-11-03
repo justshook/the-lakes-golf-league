@@ -1,5 +1,5 @@
 // Only application-owned destinations may be followed after authentication.
-const DESTINATIONS = new Set(['/', '/profile', '/schedule', '/results', '/money', '/account/password']);
+const DESTINATIONS = new Set(['/', '/profile', '/schedule', '/results', '/money', '/account/password', '/register', '/registration/payment']);
 const EMAIL_TYPES = new Set(['email', 'signup', 'magiclink', 'invite', 'recovery']);
 const CALLBACK_KEYS = ['code', 'token_hash', 'access_token', 'refresh_token', 'error', 'error_code', 'error_description'];
 

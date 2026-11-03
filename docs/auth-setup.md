@@ -6,7 +6,7 @@ Google OAuth is now configured in the verified Lakes project, with the canonical
 
 The supported CLI repair workflow recorded the three previously installed migrations as applied, without rerunning their SQL. A private custom-format database backup was saved and its archive catalog verified before applying the two new Stripe migrations. All five migration versions now have history entries. Do not rerun any of these migrations.
 
-Gmail custom SMTP is configured with a separate App Password. The owner confirmed actual delivery and completed password setup through a fresh email. A separate password-reset callback check is pending owner confirmation. See [activation review](activation-review.md) for current evidence and remaining account-owner actions. The deployment guide below includes the earlier handoff context.
+Gmail custom SMTP is configured with a separate App Password. The owner confirmed actual delivery and completed password setup through a fresh email. The owner also confirmed the delivered password-reset link reaches the password page without a 404. See [activation review](activation-review.md) for current evidence and remaining account-owner actions. The deployment guide below includes the earlier handoff context.
 
 
 The three reviewed database migrations were applied to the Lakes project through the Supabase SQL Editor on 2026-10-24. Live role checks passed, and historical table counts and fingerprints are unchanged. Database protections are active. Commissioner configuration and actual preview Google/email setup checks are complete; PR #92 is merged and the matching application is live at the canonical domain. Detailed live audit metadata is excluded from this repository.
@@ -78,7 +78,7 @@ On review, the production `/`, `/my-week`, and `/auth/callback` URLs all returne
 SPA with HTTP 200; its public bundle was still the original site, without this branch's
 new callback code. The branch preview was protected by Vercel sign-in. Thus the precise
 failed email destination and Auth redirect settings could not be verified remotely.
-These callback fixes and configuration steps address the app-side return flow. A fresh delivered setup email and password completion have now been confirmed by the owner; the separate reset callback remains under verification. Mocked tests alone are not provider evidence.
+These callback fixes and configuration steps address the app-side return flow. A fresh delivered setup email and password completion have now been confirmed by the owner; the separate reset callback has also been confirmed by the owner. Mocked tests alone are not provider evidence.
 
 ## API contract
 
@@ -125,3 +125,7 @@ PGLITE_MODULE=/tmp/lakes-db-test/node_modules/@electric-sql/pglite/dist/index.js
 ```
 
 These run 55 account/ledger checks and 34 object-privilege checks on the audited legacy schema, including public contact isolation, verified linking, duplicate email rejection, player ownership, database cutoffs, publication checks, frozen scoring, duplicate submission, sequence restrictions, and future-object defaults. They complement—but do not replace—the staging tests against the actual Supabase Auth, PostgREST, emails, schema and production permissions.
+
+## Registration follow-up
+
+See [registration setup](registration-setup.md) for the new private application/commissioner approval flow, full-time/substitute fees and operational notification delivery. Existing roster players use the registration email step to choose a password without creating a new player.
